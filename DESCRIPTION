@@ -1,0 +1,15 @@
+Package: DataStructures
+Type: Package
+Title: General data structures and algorithms
+Version: 1.0
+Date: 2015-01-08
+Authors@R: c(
+    person("Maciej", "Bartoszuk", role = "aut",
+    email = "bartoszuk@rexamine.com"),
+    person("Marek", "Gagolewski", role = c("aut", "cre"),
+    email = "gagolews@rexamine.com")
+    )
+Description: More about what it does (maybe more than one line)
+License: GPL (>= 2)
+Imports: Rcpp (>= 0.11.3)
+LinkingTo: Rcpp
