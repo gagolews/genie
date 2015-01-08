@@ -17,3 +17,19 @@ queue_pop <- function(queue) {
     .Call('DataStructures_queue_pop', PACKAGE = 'DataStructures', queue)
 }
 
+stack_create <- function() {
+    .Call('DataStructures_stack_create', PACKAGE = 'DataStructures')
+}
+
+stack_empty <- function(stack) {
+    .Call('DataStructures_stack_empty', PACKAGE = 'DataStructures', stack)
+}
+
+stack_push <- function(stack, obj) {
+    invisible(.Call('DataStructures_stack_push', PACKAGE = 'DataStructures', stack, obj))
+}
+
+stack_pop <- function(stack) {
+    .Call('DataStructures_stack_pop', PACKAGE = 'DataStructures', stack)
+}
+

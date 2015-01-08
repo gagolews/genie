@@ -62,3 +62,60 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// stack_create
+SEXP stack_create();
+RcppExport SEXP DataStructures_stack_create() {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        SEXP __result = stack_create();
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// stack_empty
+bool stack_empty(SEXP stack);
+RcppExport SEXP DataStructures_stack_empty(SEXP stackSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type stack(stackSEXP );
+        bool __result = stack_empty(stack);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// stack_push
+void stack_push(SEXP stack, SEXP obj);
+RcppExport SEXP DataStructures_stack_push(SEXP stackSEXP, SEXP objSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type stack(stackSEXP );
+        Rcpp::traits::input_parameter< SEXP >::type obj(objSEXP );
+        stack_push(stack, obj);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// stack_pop
+SEXP stack_pop(SEXP stack);
+RcppExport SEXP DataStructures_stack_pop(SEXP stackSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type stack(stackSEXP );
+        SEXP __result = stack_pop(stack);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
