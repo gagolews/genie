@@ -2,7 +2,7 @@ Package: DataStructures
 Type: Package
 Title: General data structures and algorithms
 Version: 1.0
-Date: 2015-01-08
+Date: 2015-01-20
 Authors@R: c(
     person("Maciej", "Bartoszuk", role = "aut",
     email = "bartoszuk@rexamine.com"),

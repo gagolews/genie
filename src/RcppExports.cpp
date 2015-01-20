@@ -5,6 +5,21 @@
 
 using namespace Rcpp;
 
+// queue_as_list
+List queue_as_list(SEXP queue);
+RcppExport SEXP DataStructures_queue_as_list(SEXP queueSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type queue(queueSEXP );
+        List __result = queue_as_list(queue);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
 // queue_create
 SEXP queue_create();
 RcppExport SEXP DataStructures_queue_create() {
@@ -56,6 +71,21 @@ BEGIN_RCPP
         Rcpp::RNGScope __rngScope;
         Rcpp::traits::input_parameter< SEXP >::type queue(queueSEXP );
         SEXP __result = queue_pop(queue);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// stack_as_list
+List stack_as_list(SEXP stack);
+RcppExport SEXP DataStructures_stack_as_list(SEXP stackSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type stack(stackSEXP );
+        List __result = stack_as_list(stack);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

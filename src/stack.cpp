@@ -1,22 +1,36 @@
 #include <Rcpp.h>
 using namespace Rcpp;
-#include <stack>
+#include <deque>
 
-class S : public std::stack<SEXP> {
+class S : public std::deque<SEXP> {
    public: ~S() {
 //      Rcout << "DESCRUCT!\n";
       while (!this->empty()) {
-         SEXP obj = this->top();
-         this->pop();
+         SEXP obj = this->front();
+         this->pop_front();
          R_ReleaseObject(obj);
       }
    }
 };
 
+
+// [[Rcpp::export("as.list.Stack")]]
+List stack_as_list(SEXP stack) {
+   XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
+   int n = (*_stack).size();
+   List retval(n);
+   std::deque<SEXP>::iterator it = (*_stack).begin();
+   for (int i=0; i < n; ++i)
+      retval[i] = *(it++);
+   return retval;
+}
+
 // [[Rcpp::export]]
 SEXP stack_create() {
    S* stack = new S();
-   return XPtr< S >(stack, true);
+   XPtr< S > retval =  XPtr< S >(stack, true);
+   retval.attr("class") = "Stack";
+   return retval;
 }
 
 // [[Rcpp::export]]
@@ -29,7 +43,7 @@ bool stack_empty(SEXP stack) {
 void stack_push(SEXP stack, SEXP obj) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
    R_PreserveObject(obj);
-   (*_stack).push(obj);
+   (*_stack).push_front(obj);
 }
 
 // [[Rcpp::export]]
@@ -37,23 +51,8 @@ SEXP stack_pop(SEXP stack) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
    if ((*_stack).empty())
       stop("empty stack");
-   SEXP obj = (*_stack).top();
-   (*_stack).pop();
+   SEXP obj = (*_stack).front();
+   (*_stack).pop_front();
    R_ReleaseObject(obj);
    return obj;
 }
-
-
-/***
-q <- stack_create()
-x1 <- 1:10
-x2 <- c("gagas", "gdrher")
-stack_push(q, x1)
-stack_push(q, x2)
-rm(x1)
-rm(x2)
-#rm(q)
-gc(TRUE)
-stack_pop(q)
-stack_pop(q)
-*/
