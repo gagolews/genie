@@ -13,10 +13,16 @@ class S : public std::deque<SEXP> {
    }
 };
 
+void checkIsStackClass(XPtr< S >& _stack)
+{
+   if(strcmp(_stack.attr("class"), "Stack"))
+      stop("not a Stack object");
+}
 
 // [[Rcpp::export("as.list.Stack")]]
 List stack_as_list(SEXP stack) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
+   checkIsStackClass(_stack);
    int n = (*_stack).size();
    List retval(n);
    std::deque<SEXP>::iterator it = (*_stack).begin();
@@ -36,12 +42,14 @@ SEXP stack_create() {
 // [[Rcpp::export]]
 bool stack_empty(SEXP stack) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
+   checkIsStackClass(_stack);
    return (*_stack).empty();
 }
 
 // [[Rcpp::export]]
 void stack_push(SEXP stack, SEXP obj) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
+   checkIsStackClass(_stack);
    R_PreserveObject(obj);
    (*_stack).push_front(obj);
 }
@@ -49,6 +57,7 @@ void stack_push(SEXP stack, SEXP obj) {
 // [[Rcpp::export]]
 SEXP stack_pop(SEXP stack) {
    XPtr< S > _stack = Rcpp::as< XPtr< S > > (stack);
+   checkIsStackClass(_stack);
    if ((*_stack).empty())
       stop("empty stack");
    SEXP obj = (*_stack).front();

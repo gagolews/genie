@@ -13,10 +13,16 @@ class Q : public std::deque<SEXP> {
    }
 };
 
+void checkIsQueueClass(XPtr< Q >& _queue)
+{
+   if(strcmp(_queue.attr("class"), "Queue"))
+      stop("not a Queue object");
+}
 
 // [[Rcpp::export("as.list.Queue")]]
 List queue_as_list(SEXP queue) {
    XPtr< Q > _queue = Rcpp::as< XPtr< Q > > (queue);
+   checkIsQueueClass(_queue);
    int n = (*_queue).size();
    List retval(n);
    std::deque<SEXP>::iterator it = (*_queue).begin();
@@ -37,12 +43,14 @@ SEXP queue_create() {
 // [[Rcpp::export]]
 bool queue_empty(SEXP queue) {
    XPtr< Q > _queue = Rcpp::as< XPtr< Q > > (queue);
+   checkIsQueueClass(_queue);
    return (*_queue).empty();
 }
 
 // [[Rcpp::export]]
 void queue_push(SEXP queue, SEXP obj) {
    XPtr< Q > _queue = Rcpp::as< XPtr< Q > > (queue);
+   checkIsQueueClass(_queue);
    R_PreserveObject(obj);
    (*_queue).push_back(obj);
 }
@@ -50,6 +58,7 @@ void queue_push(SEXP queue, SEXP obj) {
 // [[Rcpp::export]]
 SEXP queue_pop(SEXP queue) {
    XPtr< Q > _queue = Rcpp::as< XPtr< Q > > (queue);
+   checkIsQueueClass(_queue);
    if ((*_queue).empty())
       stop("empty queue");
    SEXP obj = (*_queue).front();
