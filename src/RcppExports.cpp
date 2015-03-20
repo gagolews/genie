@@ -149,3 +149,148 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// vector_as_list
+List vector_as_list(SEXP vec);
+RcppExport SEXP DataStructures_vector_as_list(SEXP vecSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        List __result = vector_as_list(vec);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_create
+SEXP vector_create(int n = 0);
+RcppExport SEXP DataStructures_vector_create(SEXP nSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< int >::type n(nSEXP );
+        SEXP __result = vector_create(n);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_empty
+bool vector_empty(SEXP vec);
+RcppExport SEXP DataStructures_vector_empty(SEXP vecSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        bool __result = vector_empty(vec);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_size
+int vector_size(SEXP vec);
+RcppExport SEXP DataStructures_vector_size(SEXP vecSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        int __result = vector_size(vec);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_front
+RObject vector_front(SEXP vec);
+RcppExport SEXP DataStructures_vector_front(SEXP vecSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        RObject __result = vector_front(vec);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_back
+RObject vector_back(SEXP vec);
+RcppExport SEXP DataStructures_vector_back(SEXP vecSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        RObject __result = vector_back(vec);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_push_back
+void vector_push_back(SEXP vec, RObject obj);
+RcppExport SEXP DataStructures_vector_push_back(SEXP vecSEXP, SEXP objSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        Rcpp::traits::input_parameter< RObject >::type obj(objSEXP );
+        vector_push_back(vec, obj);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// vector_pop_back
+void vector_pop_back(SEXP vec);
+RcppExport SEXP DataStructures_vector_pop_back(SEXP vecSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        vector_pop_back(vec);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// vector_at
+RObject& vector_at(SEXP vec, int i);
+RcppExport SEXP DataStructures_vector_at(SEXP vecSEXP, SEXP iSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        Rcpp::traits::input_parameter< int >::type i(iSEXP );
+        RObject& __result = vector_at(vec, i);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vector_set_at
+void vector_set_at(SEXP vec, int i, RObject obj);
+RcppExport SEXP DataStructures_vector_set_at(SEXP vecSEXP, SEXP iSEXP, SEXP objSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
+        Rcpp::traits::input_parameter< int >::type i(iSEXP );
+        Rcpp::traits::input_parameter< RObject >::type obj(objSEXP );
+        vector_set_at(vec, i, obj);
+    }
+    return R_NilValue;
+END_RCPP
+}

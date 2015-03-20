@@ -41,3 +41,43 @@ stack_pop <- function(stack) {
     .Call('DataStructures_stack_pop', PACKAGE = 'DataStructures', stack)
 }
 
+as.list.Vector <- function(vec) {
+    .Call('DataStructures_vector_as_list', PACKAGE = 'DataStructures', vec)
+}
+
+vector_create <- function(n = 0L) {
+    .Call('DataStructures_vector_create', PACKAGE = 'DataStructures', n)
+}
+
+vector_empty <- function(vec) {
+    .Call('DataStructures_vector_empty', PACKAGE = 'DataStructures', vec)
+}
+
+vector_size <- function(vec) {
+    .Call('DataStructures_vector_size', PACKAGE = 'DataStructures', vec)
+}
+
+vector_front <- function(vec) {
+    .Call('DataStructures_vector_front', PACKAGE = 'DataStructures', vec)
+}
+
+vector_back <- function(vec) {
+    .Call('DataStructures_vector_back', PACKAGE = 'DataStructures', vec)
+}
+
+vector_push_back <- function(vec, obj) {
+    invisible(.Call('DataStructures_vector_push_back', PACKAGE = 'DataStructures', vec, obj))
+}
+
+vector_pop_back <- function(vec) {
+    invisible(.Call('DataStructures_vector_pop_back', PACKAGE = 'DataStructures', vec))
+}
+
+vector_at <- function(vec, i) {
+    .Call('DataStructures_vector_at', PACKAGE = 'DataStructures', vec, i)
+}
+
+vector_set_at <- function(vec, i, obj) {
+    invisible(.Call('DataStructures_vector_set_at', PACKAGE = 'DataStructures', vec, i, obj))
+}
+
