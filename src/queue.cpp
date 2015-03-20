@@ -11,11 +11,14 @@ class Q : public std::deque<SEXP> {
          R_ReleaseObject(obj);
       }
    }
+   static const char* ClassName;
 };
+
+const char* Q::ClassName = "Queue";
 
 void checkIsQueueClass(XPtr< Q >& _queue)
 {
-   if(strcmp(_queue.attr("class"), "Queue"))
+   if(strcmp(_queue.attr("class"), Q::ClassName))
       stop("not a Queue object");
 }
 
@@ -36,7 +39,7 @@ List queue_as_list(SEXP queue) {
 SEXP queue_create() {
    Q* queue = new Q();
    XPtr< Q > retval =  XPtr< Q >(queue, true);
-   retval.attr("class") = "Queue";
+   retval.attr("class") = Q::ClassName;
    return retval;
 }
 

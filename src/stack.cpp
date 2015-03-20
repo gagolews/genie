@@ -11,11 +11,15 @@ class S : public std::deque<SEXP> {
          R_ReleaseObject(obj);
       }
    }
+
+   static const char* ClassName;
 };
+
+const char* S::ClassName = "Stack";
 
 void checkIsStackClass(XPtr< S >& _stack)
 {
-   if(strcmp(_stack.attr("class"), "Stack"))
+   if(strcmp(_stack.attr("class"), S::ClassName))
       stop("not a Stack object");
 }
 
@@ -35,7 +39,7 @@ List stack_as_list(SEXP stack) {
 SEXP stack_create() {
    S* stack = new S();
    XPtr< S > retval =  XPtr< S >(stack, true);
-   retval.attr("class") = "Stack";
+   retval.attr("class") = S::ClassName;
    return retval;
 }
 
