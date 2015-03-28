@@ -210,14 +210,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // vector_front
-RObject vector_front(SEXP vec);
+RObject& vector_front(SEXP vec);
 RcppExport SEXP DataStructures_vector_front(SEXP vecSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
         Rcpp::RNGScope __rngScope;
         Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
-        RObject __result = vector_front(vec);
+        RObject& __result = vector_front(vec);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -225,14 +225,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // vector_back
-RObject vector_back(SEXP vec);
+RObject& vector_back(SEXP vec);
 RcppExport SEXP DataStructures_vector_back(SEXP vecSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
         Rcpp::RNGScope __rngScope;
         Rcpp::traits::input_parameter< SEXP >::type vec(vecSEXP );
-        RObject __result = vector_back(vec);
+        RObject& __result = vector_back(vec);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

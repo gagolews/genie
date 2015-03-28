@@ -58,7 +58,7 @@ int vector_size(SEXP vec) {
 }
 
 // [[Rcpp::export]]
-RObject vector_front(SEXP vec) {
+RObject& vector_front(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
    checkIsVectorClass(_vec);
    if ((*_vec).empty())
@@ -67,7 +67,7 @@ RObject vector_front(SEXP vec) {
 }
 
 // [[Rcpp::export]]
-RObject vector_back(SEXP vec) {
+RObject& vector_back(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
    checkIsVectorClass(_vec);
    if ((*_vec).empty())
@@ -79,6 +79,7 @@ RObject vector_back(SEXP vec) {
 void vector_push_back(SEXP vec, RObject obj) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
    checkIsVectorClass(_vec);
+   R_PreserveObject(obj);
    (*_vec).push_back(obj);
 }
 
@@ -88,7 +89,9 @@ void vector_pop_back(SEXP vec) {
    checkIsVectorClass(_vec);
    if ((*_vec).empty())
       stop("empty vector");
+   RObject  obj = (*_vec).back();
    (*_vec).pop_back();
+   R_ReleaseObject(obj); 
 }
 
 // [[Rcpp::export]]
@@ -103,6 +106,8 @@ void vector_set_at(SEXP vec, int i, RObject obj) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
    checkIsVectorClass(_vec);
    //Rcout << vec <<" "<< i<<" " << obj << std::endl;
+   R_PreserveObject(obj);
+   R_ReleaseObject((*_vec).at(i-1)); 
    (*_vec).at(i-1)=obj;
    //Rcout << vec <<" "<< i<<" " << obj << std::endl;
 }
