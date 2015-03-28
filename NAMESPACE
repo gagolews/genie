@@ -1,3 +1,5 @@
 useDynLib(DataStructures)
 exportPattern("^[[:alpha:]]+")
+export("[.Vector")
+export("[<-.Vector")
 importFrom(Rcpp, evalCpp)
