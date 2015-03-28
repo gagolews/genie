@@ -18,13 +18,8 @@ format.Vector <- function(vec, ...)
 #    vector_at(vec,i) = value
 # }
 # 
-# "vector_at<-" <- function(vec, i, value)
-# {
-#    print(vec)
-#    print(i)
-#    print(value)
-#    vector_set_at(vec,i,value)
-#    print(vec)
-#    print(i)
-#    print(value)
-# }
+"vector_at<-" <- function(vec, i, value)
+{
+   vector_set_at(vec,i,value)
+   vec
+}
