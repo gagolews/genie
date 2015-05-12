@@ -81,3 +81,27 @@ vector_set_at <- function(vec, i, obj) {
     invisible(.Call('DataStructures_vector_set_at', PACKAGE = 'DataStructures', vec, i, obj))
 }
 
+vptree_create <- function(distance, isSimilarity = FALSE, m = 2L, minm = 4L, maxLeafPointsCount = 25L, vantageCandidatesCount = 5L, testPointsCount = 15L) {
+    .Call('DataStructures_vptree_create', PACKAGE = 'DataStructures', distance, isSimilarity, m, minm, maxLeafPointsCount, vantageCandidatesCount, testPointsCount)
+}
+
+vptree_insert <- function(tree, obj) {
+    invisible(.Call('DataStructures_vptree_insert', PACKAGE = 'DataStructures', tree, obj))
+}
+
+vptree_set_distancefunction <- function(tree, distance, isSimilarity = FALSE) {
+    invisible(.Call('DataStructures_vptree_set_distancefunction', PACKAGE = 'DataStructures', tree, distance, isSimilarity))
+}
+
+vptree_build <- function(tree, listobj) {
+    invisible(.Call('DataStructures_vptree_build', PACKAGE = 'DataStructures', tree, listobj))
+}
+
+vptree_searchKNN <- function(tree, p, k) {
+    .Call('DataStructures_vptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k)
+}
+
+vptree_searchRadius <- function(tree, p, tau) {
+    .Call('DataStructures_vptree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau)
+}
+
