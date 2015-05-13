@@ -18,6 +18,7 @@
 #include <numeric>
 #include <fstream>
 #include <exception>
+#include <unordered_map>
 
 // include headers that implement a archive in simple text format
 #include <boost/archive/text_oarchive.hpp>
@@ -39,10 +40,61 @@ struct RFunction {
    Function f;
 };
 
+class Point
+{
+public:
+   int i;
+   int j;
+   Point():i(0),j(0){}
+   Point(int i, int j):i(i),j(j){}
+   static Point createValidPoint(int i, int j)
+   {
+      if(j < i)
+      {
+         swap(i,j);
+      }
+      return Point(i,j);
+   }
+
+   bool operator==(const Point &other) const
+   {
+      return (i == other.i && j == other.j);
+   }
+};
+/* not working
+class PointHasher
+{
+public:
+  std::size_t operator()(const Point& k) const
+  {
+    //using std::size_t;
+    //using std::hash;
+    //using std::string;
+    return 1;//(51 + hash<int>()(k.i)) * 51 + hash<int>()(k.j);
+    //return (hash<int>()(k.i) ^ (hash<int>()(k.j) << 1));
+  }
+};
+*/
+namespace std {
+
+  template <>
+  struct hash<Point>
+  {
+    std::size_t operator()(const Point& k) const
+    {
+      return (51 + hash<int>()(k.i)) * 51 + hash<int>()(k.j);
+    }
+  };
+
+}
+
 struct distClass
 {
-    RFunction* distance;
-    bool isSimilarity;
+   RFunction* distance;
+   bool isSimilarity;
+   vector<RObject> *items;
+
+   unordered_map<Point, double> hashmap;
 
     /*friend class boost::serialization::access;
     template<class Archive>
@@ -51,11 +103,29 @@ struct distClass
         //ar & distance;
     }*/
 
-    double operator()(const RObject& v1, const RObject& v2)
-    {
-       NumericVector res = distance->f(v1,v2);
-       return isSimilarity ? 1.0-res[0] : res[0];
-    }
+   double operator()(const RObject& v1, const RObject& v2)
+   {
+      NumericVector res = distance->f(v1,v2);
+      return isSimilarity ? 1.0-res[0] : res[0];
+   }
+
+   double operator()(int v1, int v2)
+   {
+      if(v1==v2) return 0;
+      Point p = Point::createValidPoint(v1,v2);
+      std::unordered_map<Point,double>::const_iterator got = hashmap.find(p);
+      if ( got == hashmap.end() )
+      {
+         NumericVector res = distance->f((*items)[v1],(*items)[v2]);
+         double d = isSimilarity ? 1.0-res[0] : res[0];
+         hashmap.emplace(p, d);
+         return d;
+      }
+      else
+      {
+         return got->second;
+      }
+   }
 };
 
 template<typename T>
@@ -70,7 +140,7 @@ public:
 		{
     		if(max_leaf_size < vantage_point_candidates + test_point_count)
     		{
-    			stop("Warning: max leaf size is too small");
+    			stop("Error: max leaf size is too small");
     		}
 		}
 
@@ -89,6 +159,7 @@ public:
         delete _root;
         //_distance = distance;
         _items = items;
+        _distance.items = &_items;
         vector<int> indices(items.size());
         for(int i=0;i<indices.size();i++)
         	indices[i] = i;
@@ -99,11 +170,13 @@ public:
     void setItems(const std::vector<T>& items)
     {
         _items = items;
+       _distance.items = &_items;
     }
 
     void setDistanceFunction(const distClass& distance_arg)
     {
-        _distance = distance_arg;
+       _distance = distance_arg;
+       _distance.items = &_items;
     }
 
     void searchKNN( const T& target, int k, std::vector<T>* results,
@@ -124,6 +197,60 @@ public:
 
         std::reverse( results->begin(), results->end() );
         std::reverse( distances->begin(), distances->end() );
+    }
+
+   void searchKNNKnown( const T& target, int k, std::vector<T>* results,
+        std::vector<double>* distances)
+    {
+        int index = findIndex(target);
+        searchKNNKnownIndex(index, k, results, distances);
+    }
+
+   void searchKNNKnownIndex(int index, int k, std::vector<T>* results,
+        std::vector<double>* distances)
+    {
+        std::priority_queue<HeapItem> heap;
+
+        _tau = std::numeric_limits<double>::max();
+        search( _root, index, true, k, heap );
+
+        results->clear(); distances->clear();
+
+        while( !heap.empty() ) {
+            results->push_back( _items[heap.top().index] );
+            distances->push_back( heap.top().dist );
+            heap.pop();
+        }
+
+        std::reverse( results->begin(), results->end() );
+        std::reverse( distances->begin(), distances->end() );
+    }
+
+   void searchRadiusKnownIndex(int index, double tau, std::vector<T>* results,
+        std::vector<double>* distances)
+    {
+        std::priority_queue<HeapItem> heap;
+
+        _tau = tau;
+        search( _root, index, false, -1, heap );
+
+        results->clear(); distances->clear();
+
+        while( !heap.empty() ) {
+            results->push_back( _items[heap.top().index] );
+            distances->push_back( heap.top().dist );
+            heap.pop();
+        }
+
+        std::reverse( results->begin(), results->end() );
+        std::reverse( distances->begin(), distances->end() );
+    }
+
+   void searchRadiusKnown( const T& target, double tau, std::vector<T>* results,
+        std::vector<double>* distances)
+    {
+      int index = findIndex(target);
+      searchRadiusKnownIndex(index, tau, results, distances);
     }
 
     void searchRadius( const T& target, double tau, std::vector<T>* results,
@@ -238,11 +365,20 @@ private:
         //_items, indices[0], _distance
         DistanceComparator(vector<T>* items, int index, distClass distance ) : items(items), index(index), distance(distance) {}
         bool operator()(int a, int b) {
-            return distance( (*items)[index], (*items)[a] ) < distance( (*items)[index], (*items)[b] );
+            return distance( index, a ) < distance( index, b );
         }
     };
 
-
+   int findIndex(const T& target)
+   {
+      for(int i = 0; i<_items.size(); i++)
+      {
+          //if(Rcpp::all(_items[i] == target))
+         if(_items[i] == target)
+             return i;
+      }
+      stop("There is no such element in the tree.");
+   }
 
     void splitLeaf(Node* node, const T& target)
     {
@@ -359,14 +495,14 @@ private:
     	}
     	node->parent = parent;
 
-        if ( indices.size() < _max_leaf_size  ) {
-        	node->isLeaf=true;
-        	node->points = indices;
-            return node;
-        }
+       if ( indices.size() < _max_leaf_size  ) {
+          node->isLeaf=true;
+          node->points = indices;
+          return node;
+       }
 
-        node->isLeaf=false;
-        node->childCount = childCountThis;
+       node->isLeaf=false;
+       node->childCount = childCountThis;
 
 		// choose an arbitrary point and move it to the start
 		int vpi = chooseNewVantagePoint(indices); //(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
@@ -499,6 +635,52 @@ private:
 			}*/
         }
     }
+
+   void search( Node* node, int index, bool isKNN, int k,
+                 std::priority_queue<HeapItem>& heap )
+    {
+        if ( node == NULL ) return;
+
+        double dist = _distance(node->vpindex, index);
+        //printf("dist=%g tau=%gn", dist, _tau );
+        if(node->isLeaf)
+        {
+        	for(int i=0;i<node->points.size();i++)
+        	{
+				double dist2 = _distance(node->points[i], index );
+				if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
+					if ( heap.size() == k && isKNN) heap.pop();
+					heap.push( HeapItem(node->points[i], dist2) );
+					if ( heap.size() == k && isKNN)
+					{
+						_tau = heap.top().dist;
+						//Rcout << "current tau=" << _tau << endl;
+					}
+				}
+        	}
+        }
+        else
+        {
+        	vector<bool> visited(node->childCount, false);
+
+			for(int i=0;i<node->childCount-1;i++)
+			{
+				//if ( dist < node->radiuses[i] ) {
+					if ( dist - _tau <= node->radiuses[i] && !visited[i]) {
+						search( node->children[i], index, isKNN, k, heap );
+						visited[i]=true;
+					}
+					if ( dist + _tau >= node->radiuses[i] && !visited[i+1]) {
+						search( node->children[i+1], index, isKNN, k, heap );
+						visited[i+1]=true;
+					}
+				//}
+			}
+			/*if ( dist + _tau >= node->radiuses[node->childCount-2] ) {
+				search( node->children[node->childCount-1], target, k, heap );
+			}*/
+        }
+    }
 };
 
 template<typename T>
@@ -588,13 +770,13 @@ List vptree_searchKNN(SEXP tree, RObject p, int k)
 }
 
 // [[Rcpp::export]]
-List vptree_searchRadius(SEXP tree, RObject p, double tau)
+List vptree_searchKNNKnown(SEXP tree, RObject p, int k)
 {
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchRadius( p, tau, &results, &distances);
+   (*_tree).searchKNNKnown( p, k, &results, &distances);
 
    List resultList(2);
    List elements(results.size());
@@ -611,5 +793,100 @@ List vptree_searchRadius(SEXP tree, RObject p, double tau)
    return resultList;
 }
 
+// [[Rcpp::export]]
+List vptree_searchKNNKnownIndex(SEXP tree, int index, int k)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
+   checkIsVpTreeClass(_tree);
+   std::vector<RObject> results;
+   std::vector<double> distances;
+   (*_tree).searchKNNKnownIndex( index, k, &results, &distances);
+
+   List resultList(2);
+   List elements(results.size());
+   List distancesRcpp(results.size());
+   int idx =0;
+   for (std::vector<RObject>::iterator it = results.begin(); it!=results.end(); ++it)
+   {
+      elements[idx] = *it;
+      distancesRcpp[idx] = distances[idx];
+      idx++;
+   }
+   resultList[0] = elements;
+   resultList[1] = distancesRcpp;
+   return resultList;
+}
+
+// [[Rcpp::export]]
+List vptree_searchRadius(SEXP tree, RObject p, double tau)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
+   checkIsVpTreeClass(_tree);
+   std::vector<RObject> results;
+   std::vector<double> distances;
+   (*_tree).searchRadius( p, tau, &results, &distances);
+
+   List resultList(2);
+   List elements(results.size());
+   List distancesRcpp(results.size());
+   int idx =0;
+   for (std::vector<RObject>::iterator it = results.begin(); it!=results.end(); ++it)
+   {
+      elements[idx] = *it;
+      distancesRcpp[idx] = distances[idx];
+      idx++;
+   }
+   resultList[0] = elements;
+   resultList[1] = distancesRcpp;
+   return resultList;
+}
+
+// [[Rcpp::export]]
+List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
+   checkIsVpTreeClass(_tree);
+   std::vector<RObject> results;
+   std::vector<double> distances;
+   (*_tree).searchRadiusKnown( p, tau, &results, &distances);
+
+   List resultList(2);
+   List elements(results.size());
+   List distancesRcpp(results.size());
+   int idx =0;
+   for (std::vector<RObject>::iterator it = results.begin(); it!=results.end(); ++it)
+   {
+      elements[idx] = *it;
+      distancesRcpp[idx] = distances[idx];
+      idx++;
+   }
+   resultList[0] = elements;
+   resultList[1] = distancesRcpp;
+   return resultList;
+}
+
+// [[Rcpp::export]]
+List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
+   checkIsVpTreeClass(_tree);
+   std::vector<RObject> results;
+   std::vector<double> distances;
+   (*_tree).searchRadiusKnownIndex( index, tau, &results, &distances);
+
+   List resultList(2);
+   List elements(results.size());
+   List distancesRcpp(results.size());
+   int idx =0;
+   for (std::vector<RObject>::iterator it = results.begin(); it!=results.end(); ++it)
+   {
+      elements[idx] = *it;
+      distancesRcpp[idx] = distances[idx];
+      idx++;
+   }
+   resultList[0] = elements;
+   resultList[1] = distancesRcpp;
+   return resultList;
+}
 
 

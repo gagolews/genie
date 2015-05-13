@@ -101,7 +101,23 @@ vptree_searchKNN <- function(tree, p, k) {
     .Call('DataStructures_vptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k)
 }
 
+vptree_searchKNNKnown <- function(tree, p, k) {
+    .Call('DataStructures_vptree_searchKNNKnown', PACKAGE = 'DataStructures', tree, p, k)
+}
+
+vptree_searchKNNKnownIndex <- function(tree, index, k) {
+    .Call('DataStructures_vptree_searchKNNKnownIndex', PACKAGE = 'DataStructures', tree, index, k)
+}
+
 vptree_searchRadius <- function(tree, p, tau) {
     .Call('DataStructures_vptree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau)
+}
+
+vptree_searchRadiusKnown <- function(tree, p, tau) {
+    .Call('DataStructures_vptree_searchRadiusKnown', PACKAGE = 'DataStructures', tree, p, tau)
+}
+
+vptree_searchRadiusKnownIndex <- function(tree, index, tau) {
+    .Call('DataStructures_vptree_searchRadiusKnownIndex', PACKAGE = 'DataStructures', tree, index, tau)
 }
 

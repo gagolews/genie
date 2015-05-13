@@ -372,6 +372,40 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// vptree_searchKNNKnown
+List vptree_searchKNNKnown(SEXP tree, RObject p, int k);
+RcppExport SEXP DataStructures_vptree_searchKNNKnown(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
+        Rcpp::traits::input_parameter< int >::type k(kSEXP );
+        List __result = vptree_searchKNNKnown(tree, p, k);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_searchKNNKnownIndex
+List vptree_searchKNNKnownIndex(SEXP tree, int index, int k);
+RcppExport SEXP DataStructures_vptree_searchKNNKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< int >::type index(indexSEXP );
+        Rcpp::traits::input_parameter< int >::type k(kSEXP );
+        List __result = vptree_searchKNNKnownIndex(tree, index, k);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
 // vptree_searchRadius
 List vptree_searchRadius(SEXP tree, RObject p, double tau);
 RcppExport SEXP DataStructures_vptree_searchRadius(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP) {
@@ -383,6 +417,40 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
         Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
         List __result = vptree_searchRadius(tree, p, tau);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_searchRadiusKnown
+List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau);
+RcppExport SEXP DataStructures_vptree_searchRadiusKnown(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
+        Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
+        List __result = vptree_searchRadiusKnown(tree, p, tau);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_searchRadiusKnownIndex
+List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau);
+RcppExport SEXP DataStructures_vptree_searchRadiusKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP tauSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< int >::type index(indexSEXP );
+        Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
+        List __result = vptree_searchRadiusKnownIndex(tree, index, tau);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
