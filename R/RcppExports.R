@@ -121,3 +121,27 @@ vptree_searchRadiusKnownIndex <- function(tree, index, tau) {
     .Call('DataStructures_vptree_searchRadiusKnownIndex', PACKAGE = 'DataStructures', tree, index, tau)
 }
 
+vptree_getItems <- function(vptree) {
+    .Call('DataStructures_vptree_getItems', PACKAGE = 'DataStructures', vptree)
+}
+
+vptree_getFunction <- function(vptree) {
+    .Call('DataStructures_vptree_getFunction', PACKAGE = 'DataStructures', vptree)
+}
+
+vptree_serialize <- function(vptree, filename) {
+    invisible(.Call('DataStructures_vptree_serialize', PACKAGE = 'DataStructures', vptree, filename))
+}
+
+vptree_read <- function(filename) {
+    .Call('DataStructures_vptree_read', PACKAGE = 'DataStructures', filename)
+}
+
+vptree_setItems <- function(vptree, items) {
+    invisible(.Call('DataStructures_vptree_setItems', PACKAGE = 'DataStructures', vptree, items))
+}
+
+vptree_setMetricFunction <- function(vptree, f) {
+    invisible(.Call('DataStructures_vptree_setMetricFunction', PACKAGE = 'DataStructures', vptree, f))
+}
+

@@ -457,3 +457,87 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// vptree_getItems
+List vptree_getItems(SEXP vptree);
+RcppExport SEXP DataStructures_vptree_getItems(SEXP vptreeSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        List __result = vptree_getItems(vptree);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_getFunction
+Function vptree_getFunction(SEXP vptree);
+RcppExport SEXP DataStructures_vptree_getFunction(SEXP vptreeSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        Function __result = vptree_getFunction(vptree);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_serialize
+void vptree_serialize(SEXP vptree, std::string filename);
+RcppExport SEXP DataStructures_vptree_serialize(SEXP vptreeSEXP, SEXP filenameSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP );
+        vptree_serialize(vptree, filename);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// vptree_read
+SEXP vptree_read(std::string filename);
+RcppExport SEXP DataStructures_vptree_read(SEXP filenameSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP );
+        SEXP __result = vptree_read(filename);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_setItems
+void vptree_setItems(SEXP vptree, List items);
+RcppExport SEXP DataStructures_vptree_setItems(SEXP vptreeSEXP, SEXP itemsSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        Rcpp::traits::input_parameter< List >::type items(itemsSEXP );
+        vptree_setItems(vptree, items);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// vptree_setMetricFunction
+void vptree_setMetricFunction(SEXP vptree, Function f);
+RcppExport SEXP DataStructures_vptree_setMetricFunction(SEXP vptreeSEXP, SEXP fSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        Rcpp::traits::input_parameter< Function >::type f(fSEXP );
+        vptree_setMetricFunction(vptree, f);
+    }
+    return R_NilValue;
+END_RCPP
+}

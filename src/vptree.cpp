@@ -19,11 +19,14 @@
 #include <fstream>
 #include <exception>
 #include <unordered_map>
+#include <string>
 
 // include headers that implement a archive in simple text format
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
+
+#include "boost/serialization/unordered_map.hpp"
 
 using namespace Rcpp;
 using namespace std;
@@ -47,6 +50,15 @@ public:
    int j;
    Point():i(0),j(0){}
    Point(int i, int j):i(i),j(j){}
+
+   friend class boost::serialization::access;
+   template<class Archive>
+      void serialize(Archive & ar, const unsigned int version)
+   {
+      ar & i;
+      ar & j;
+   }
+
    static Point createValidPoint(int i, int j)
    {
       if(j < i)
@@ -61,6 +73,17 @@ public:
       return (i == other.i && j == other.j);
    }
 };
+
+ostream& operator<< (ostream& os, const Point& obj) {
+       os << obj.i<< " " << obj.j;
+       return os;
+}
+
+istream& operator>> (istream& is, Point& obj) {
+       is >> obj.i;
+       is >> obj.j;
+       return is;
+}
 /* not working
 class PointHasher
 {
@@ -75,6 +98,8 @@ public:
   }
 };
 */
+
+
 namespace std {
 
   template <>
@@ -96,12 +121,13 @@ struct distClass
 
    unordered_map<Point, double> hashmap;
 
-    /*friend class boost::serialization::access;
+    friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive & ar, const unsigned int version)
     {
-        //ar & distance;
-    }*/
+       ar & isSimilarity;
+       ar & hashmap;
+    }
 
    double operator()(const RObject& v1, const RObject& v2)
    {
@@ -155,6 +181,11 @@ public:
     	return vector<T>(_items.begin(), _items.end());
 	}
 
+   Function getMetricFunction()
+   {
+      return _distance.distance->f;
+   }
+
     void create( const std::vector<T>& items) {
         delete _root;
         //_distance = distance;
@@ -177,7 +208,17 @@ public:
     {
        _distance = distance_arg;
        _distance.items = &_items;
+       //isSimilarity = _distance.isSimilarity;
     }
+
+   void setMetricFunction(Function f)
+   {
+      //distClass distci;
+      //distci.isSimilarity = isSimilarity;
+      _distance.distance = new RFunction(f);
+      //_distance = distci;
+      //_distance.items = &_items;
+   }
 
     void searchKNN( const T& target, int k, std::vector<T>* results,
         std::vector<double>* distances)
@@ -280,32 +321,32 @@ public:
 	}
 
 private:
-    distClass _distance;
-    std::vector<T> _items;
-    double _tau;
+   distClass _distance;
+   std::vector<T> _items;
+   double _tau;
 
-    // The following condition must held:
-    // MAX_LEAF_SIZE >= VANTAGE_POINT_CANDIDATES + TEST_POINT_COUNT
-    int _max_leaf_size;
-    int _vantage_point_candidates;
-    int _test_point_count;
-    int _m; //max number of children
-    int _minM; //min number of children
+   // The following condition must held:
+   // MAX_LEAF_SIZE >= VANTAGE_POINT_CANDIDATES + TEST_POINT_COUNT
+   int _max_leaf_size;
+   int _vantage_point_candidates;
+   int _test_point_count;
+   int _m; //max number of children
+   int _minM; //min number of children
 
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        //ar & _items;
-        //ar & _tau;
-        ar & _root;
-        ar & _max_leaf_size;
-        ar & _vantage_point_candidates;
-        ar & _test_point_count;
-        ar & _m;
-        ar & _minM;
-        //ar & distance;
-    }
+   friend class boost::serialization::access;
+   template<class Archive>
+      void serialize(Archive & ar, const unsigned int version)
+   {
+      //ar & _items;
+      //ar & _tau;
+      ar & _root;
+      ar & _max_leaf_size;
+      ar & _vantage_point_candidates;
+      ar & _test_point_count;
+      ar & _m;
+      ar & _minM;
+      ar & _distance;
+   }
 
     struct Node
     {
@@ -371,9 +412,12 @@ private:
 
    int findIndex(const T& target)
    {
+      int a = 43;
+      //NumericVector nvTarget(target);
       for(int i = 0; i<_items.size(); i++)
       {
           //if(Rcpp::all(_items[i] == target))
+         //NumericVector nvTarget(target);
          if(_items[i] == target)
              return i;
       }
@@ -682,14 +726,27 @@ private:
         }
     }
 };
-
+/*
+template <>
+   void vptree<RObject>::findIndex(const RObject& target) // specialize only one member
+   {
+      Rcout << "specialized" << endl;
+      for(int i = 0; i<_items.size(); i++)
+      {
+         if(Rcpp::all(_items[i] == target))
+            //if(_items[i] == target)
+            return i;
+      }
+      stop("There is no such element in the tree.");
+   }
+*/
 template<typename T>
 const char* VpTree<T>::ClassName = "VpTree";
 
 template<typename T>
-void checkIsVpTreeClass(XPtr< VpTree<T> >& _queue)
+void checkIsVpTreeClass(XPtr< VpTree<T> >& _tree)
 {
-   if(strcmp(_queue.attr("class"), VpTree<T>::ClassName))
+   if(strcmp(_tree.attr("class"), VpTree<T>::ClassName))
       stop("not a VpTree object");
 }
 
@@ -889,4 +946,71 @@ List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau)
    return resultList;
 }
 
+// [[Rcpp::export]]
+List vptree_getItems(SEXP vptree)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   return wrap(_tree->getCopyItems());
+   //return List();
+}
 
+// [[Rcpp::export]]
+Function vptree_getFunction(SEXP vptree)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   return _tree->getMetricFunction();
+}
+
+// [[Rcpp::export]]
+void vptree_serialize(SEXP vptree, std::string filename)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+
+   std::ofstream ofs(filename);
+   {
+      if(!ofs.good())
+      {
+         stop("File creation error.");
+      }
+      // save tree to archive
+      boost::archive::text_oarchive oa(ofs);
+      // write class instance to archive
+      oa << *_tree;
+   }
+}
+
+// [[Rcpp::export]]
+SEXP vptree_read(std::string filename)
+{
+   VpTree<RObject>* vptree_read = new VpTree<RObject>(4, 2, 25, 5, 10);
+   // create and open an archive for input
+   {
+      std::ifstream ifs(filename);
+      boost::archive::text_iarchive ia(ifs);
+      // read class state from archive
+      ia >> *vptree_read;
+   }
+   XPtr< VpTree<RObject> > retval =  XPtr< VpTree<RObject> >(vptree_read, true);
+   retval.attr("class") = VpTree<RObject>::ClassName;
+   return retval;
+}
+
+// [[Rcpp::export]]
+void vptree_setItems(SEXP vptree, List items)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   vector<RObject> points = createStdVectorOfRobjects(items);
+   _tree->setItems(points);
+}
+
+// [[Rcpp::export]]
+void vptree_setMetricFunction(SEXP vptree, Function f)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   _tree->setMetricFunction(f);
+}
