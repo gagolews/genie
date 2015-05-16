@@ -21,22 +21,62 @@ queue_pop <- function(queue) {
     .Call('DataStructures_queue_pop', PACKAGE = 'DataStructures', queue)
 }
 
-as.list.Stack <- function(stack) {
-    .Call('DataStructures_stack_as_list', PACKAGE = 'DataStructures', stack)
-}
-
+#' @rdname stack
+#' @title Stack
+#'
+#' @description
+#' Stack is an abstract data type which allows for pushing elements
+#' and popping them in reverse (last in-first out) order.
+#'
+#' @details
+#' \code{stack_create} creates a new stack.
+#'
+#' @return
+#' \code{stack_create} returns a new, empty stack.
 stack_create <- function() {
     .Call('DataStructures_stack_create', PACKAGE = 'DataStructures')
 }
 
+#' @rdname stack
+#' @details
+#' \code{as.list.Stack} converts a given stack object to an R list.
+#'
+#' @return
+#' \code{as.list.Stack} returns an R list object.
+#' @param stack a stack object
+as.list.Stack <- function(stack) {
+    .Call('DataStructures_stack_as_list', PACKAGE = 'DataStructures', stack)
+}
+
+#' @rdname stack
+#' @details
+#' \code{stack_empty} determines if a given stack is empty or not.
+#'
+#' @return
+#' \code{stack_empty} returns a single logical value.
 stack_empty <- function(stack) {
     .Call('DataStructures_stack_empty', PACKAGE = 'DataStructures', stack)
 }
 
+#' @rdname stack
+#' @details
+#' \code{stack_push} pushes a given object to the top of the stack.
+#'
+#' @return
+#' \code{stack_push} does not return anything interesting.
+#'
+#' @param obj an R object
 stack_push <- function(stack, obj) {
     invisible(.Call('DataStructures_stack_push', PACKAGE = 'DataStructures', stack, obj))
 }
 
+#' @rdname stack
+#' @details
+#' \code{stack_pop} pops an object from the top of the stack.
+#'
+#' @return
+#' \code{stack_pop} returns an object at the top of te stack or
+#' throws an error if the stack is empty.
 stack_pop <- function(stack) {
     .Call('DataStructures_stack_pop', PACKAGE = 'DataStructures', stack)
 }
