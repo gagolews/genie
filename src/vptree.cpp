@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iostream>
 #include <Rcpp.h>
 #define USE_RINTERNALS
@@ -160,9 +158,9 @@ class VpTree
 public:
     static const char* ClassName;
 
-    VpTree(int m=4, int minM=2, int max_leaf_size=25, int vantage_point_candidates=5, int test_point_count=15)
-		: _root(NULL), _m(m), _minM(minM), _max_leaf_size(max_leaf_size), _vantage_point_candidates(vantage_point_candidates),
-		  _test_point_count(test_point_count)
+    VpTree(int m=4, int minM=2, size_t max_leaf_size=25, size_t vantage_point_candidates=5, size_t test_point_count=15)
+    : _m(m), _minM(minM), _max_leaf_size(max_leaf_size), _vantage_point_candidates(vantage_point_candidates),
+    _test_point_count(test_point_count), _root(NULL)
 		{
     		if(max_leaf_size < vantage_point_candidates + test_point_count)
     		{
@@ -171,7 +169,7 @@ public:
 		}
 
     ~VpTree() {
-       for(int i=0;i<_items.size();i++)
+       for(size_t i=0;i<_items.size();i++)
           R_ReleaseObject(_items[i]);
         delete _root;
     }
@@ -192,7 +190,7 @@ public:
         _items = items;
         _distance.items = &_items;
         vector<int> indices(items.size());
-        for(int i=0;i<indices.size();i++)
+        for(size_t i=0;i<indices.size();i++)
         	indices[i] = i;
         //_root = buildFromPoints(indices, _minM, _minM, NULL, NULL);
         _root = buildFromPoints(indices, _m, _m, NULL, NULL);
@@ -327,11 +325,11 @@ private:
 
    // The following condition must held:
    // MAX_LEAF_SIZE >= VANTAGE_POINT_CANDIDATES + TEST_POINT_COUNT
-   int _max_leaf_size;
-   int _vantage_point_candidates;
-   int _test_point_count;
    int _m; //max number of children
    int _minM; //min number of children
+   size_t _max_leaf_size;
+   size_t _vantage_point_candidates;
+   size_t _test_point_count;
 
    friend class boost::serialization::access;
    template<class Archive>
@@ -339,13 +337,13 @@ private:
    {
       //ar & _items;
       //ar & _tau;
-      ar & _root;
+      ar & _m;
+      ar & _minM;
       ar & _max_leaf_size;
       ar & _vantage_point_candidates;
       ar & _test_point_count;
-      ar & _m;
-      ar & _minM;
       ar & _distance;
+      ar & _root;
    }
 
     struct Node
@@ -399,9 +397,9 @@ private:
 
     struct DistanceComparator
     {
+        vector<T>* items;
         int index;
         distClass distance;
-        vector<T>* items;
 
         //_items, indices[0], _distance
         DistanceComparator(vector<T>* items, int index, distClass distance ) : items(items), index(index), distance(distance) {}
@@ -412,9 +410,9 @@ private:
 
    int findIndex(const T& target)
    {
-      int a = 43;
+//      int a = 43;
       //NumericVector nvTarget(target);
-      for(int i = 0; i<_items.size(); i++)
+      for(size_t i = 0; i<_items.size(); i++)
       {
           //if(Rcpp::all(_items[i] == target))
          //NumericVector nvTarget(target);
@@ -422,6 +420,7 @@ private:
              return i;
       }
       stop("There is no such element in the tree.");
+      return -1; // fake retval, avoid warning
    }
 
     void splitLeaf(Node* node, const T& target)
@@ -430,12 +429,12 @@ private:
     	if(parent == NULL) //strange case, when we have only one leaf in whole tree, very small number of items
     	{
     		//Rcout << "splitLeaf - tree grows in height, items size = " << _items.size() << endl;
-    		delete _root;
-    		vector<int> indices(_items.size());
-			for(int i=0;i<indices.size();i++)
-				indices[i] = i;
-			_root = buildFromPoints(indices, _minM, _minM, NULL);
-    		return;
+         delete _root;
+         vector<int> indices(_items.size());
+         for(size_t i=0;i<indices.size();i++)
+            indices[i] = i;
+         _root = buildFromPoints(indices, _minM, _minM, NULL);
+         return;
     	}
     	//Rcout << "splitLeaf - przebudowuje" << endl;
     	vector<int> allitems;
@@ -461,7 +460,7 @@ private:
 			//Rcout << "splitNonLeaf - tree grows in height, items size = " << _items.size() << endl;
 			delete _root;
 			vector<int> indices(_items.size());
-			for(int i=0;i<indices.size();i++)
+			for(size_t i=0;i<indices.size();i++)
 				indices[i] = i;
 			_root = buildFromPoints(indices, _minM, _minM, NULL, NULL);
 			return;
@@ -584,13 +583,13 @@ private:
         vector<int> candidates(0);
         vector<int> testPoints(0);
 
-        for (int i = 0; i < 0 + _vantage_point_candidates; ++i) {
+        for (size_t i = 0; i < 0 + _vantage_point_candidates; ++i) {
             int basePointIndex = i + (int) (rand() % (indices.size() - i));
             candidates.push_back(indices[basePointIndex]);
             std::swap(indices[i], indices[basePointIndex] );
         }
         //Rcout << "wybralem kandydatow" << endl;
-        for (int i = 0 + _vantage_point_candidates; i < 0 + _vantage_point_candidates + _test_point_count; ++i) {
+        for (size_t i = 0 + _vantage_point_candidates; i < 0 + _vantage_point_candidates + _test_point_count; ++i) {
             int testPointIndex = i + (int) (rand() % (indices.size() - i));
             testPoints.push_back(indices[testPointIndex]);
             std::swap(indices[i], indices[testPointIndex] );
@@ -602,9 +601,9 @@ private:
             Rcout << "testPoints.size() " << testPoints.size() << endl;*/
         double bestBasePointSigma = 0;
         int bestIndex = 0;
-        for(int i=0;i<candidates.size();i++) {
+        for(size_t i=0;i<candidates.size();i++) {
             vector<double> distances(_test_point_count);
-            for (int j = 0; j < _test_point_count; ++j) {
+            for (size_t j = 0; j < _test_point_count; ++j) {
                 distances[j] = _distance( _items[candidates[i]], _items[testPoints[j]] );
             }
             //Rcout << "przed liczeniem sigmy" << endl;
@@ -625,7 +624,7 @@ private:
         double avg = sum / values.size();
         double sigmaSq = 0;
 
-        for (int i=0;i<values.size();i++) {
+        for (size_t i=0;i<values.size();i++) {
             double value = values[i];
             double dev = value - avg;
             sigmaSq += dev * dev;
@@ -643,13 +642,13 @@ private:
         //printf("dist=%g tau=%gn", dist, _tau );
         if(node->isLeaf)
         {
-        	for(int i=0;i<node->points.size();i++)
+        	for(size_t i=0;i<node->points.size();i++)
         	{
 				double dist2 = _distance( _items[node->points[i]], target );
 				if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
-					if ( heap.size() == k && isKNN) heap.pop();
+					if ( heap.size() == (size_t)k && isKNN) heap.pop();
 					heap.push( HeapItem(node->points[i], dist2) );
-					if ( heap.size() == k && isKNN)
+					if ( heap.size() ==(size_t) k && isKNN)
 					{
 						_tau = heap.top().dist;
 						//Rcout << "current tau=" << _tau << endl;
@@ -689,13 +688,13 @@ private:
         //printf("dist=%g tau=%gn", dist, _tau );
         if(node->isLeaf)
         {
-        	for(int i=0;i<node->points.size();i++)
+        	for(size_t i=0;i<node->points.size();i++)
         	{
 				double dist2 = _distance(node->points[i], index );
 				if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
-					if ( heap.size() == k && isKNN) heap.pop();
+					if ( heap.size() ==(size_t) k && isKNN) heap.pop();
 					heap.push( HeapItem(node->points[i], dist2) );
-					if ( heap.size() == k && isKNN)
+					if ( heap.size() == (size_t) k && isKNN)
 					{
 						_tau = heap.top().dist;
 						//Rcout << "current tau=" << _tau << endl;
