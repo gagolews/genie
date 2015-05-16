@@ -27,12 +27,6 @@ void checkIsStackClass(XPtr< S >& _stack)
 
 
 //' @rdname stack
-//' @title Stack
-//'
-//' @description
-//' Stack is an abstract data type which allows for pushing elements
-//' and popping them in reverse (last in-first out) order.
-//'
 //' @details
 //' \code{stack_create} creates a new stack.
 //'
