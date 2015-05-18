@@ -24,6 +24,13 @@ void checkIsVectorClass(XPtr< V >& _stack)
       stop("not a Vector object");
 }
 
+//' @rdname vector
+//' @details
+//' \code{as.list.Vector} converts a given vector object to an R list.
+//'
+//' @return
+//' \code{as.list.Vector} returns an R list object.
+//' @param vec a vector object
 // [[Rcpp::export("as.list.Vector")]]
 List vector_as_list(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -35,6 +42,12 @@ List vector_as_list(SEXP vec) {
    return retval;
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_create} creates a new vector.
+//'
+//' @return
+//' \code{vector_create} returns a new, empty vector.
 // [[Rcpp::export]]
 SEXP vector_create(int n=0) {
    V* vec = new V(n);
@@ -43,6 +56,12 @@ SEXP vector_create(int n=0) {
    return retval;
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_empty} determines if a given stack is empty or not.
+//'
+//' @return
+//' \code{vector_empty} returns a single logical value.
 // [[Rcpp::export]]
 bool vector_empty(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -50,6 +69,12 @@ bool vector_empty(SEXP vec) {
    return (*_vec).empty();
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_size} returns a size of vector.
+//'
+//' @return
+//' \code{vector_size} returns a single integer value.
 // [[Rcpp::export]]
 int vector_size(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -57,6 +82,13 @@ int vector_size(SEXP vec) {
    return (*_vec).size();
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_front} returns the first object of a given vector.
+//'
+//' @return
+//' \code{vector_front} returns a single RObject value or
+//' throws an error if a vector is empty.
 // [[Rcpp::export]]
 RObject& vector_front(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -66,6 +98,13 @@ RObject& vector_front(SEXP vec) {
    return (*_vec).front();
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_back} returns the last object of a given vector.
+//'
+//' @return
+//' \code{vector_back} returns a single RObject value or
+//' throws an error if a vector is empty.
 // [[Rcpp::export]]
 RObject& vector_back(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -75,6 +114,14 @@ RObject& vector_back(SEXP vec) {
    return (*_vec).back();
 }
 
+//' @rdname stack
+//' @details
+//' \code{vector_push_back} pushes a given object at the end of the vector.
+//'
+//' @return
+//' \code{vector_push_back} does not return anything interesting.
+//'
+//' @param obj an R object
 // [[Rcpp::export]]
 void vector_push_back(SEXP vec, RObject obj) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -83,6 +130,14 @@ void vector_push_back(SEXP vec, RObject obj) {
    (*_vec).push_back(obj);
 }
 
+//' @rdname stack
+//' @details
+//' \code{vector_pop_back} removes the last element in the vector, effectively
+//' reducing the container size by one.
+//'
+//' @return
+//' \code{vector_pop_back} does not return anything interesting. Throws an
+//' error if a vector is empty.
 // [[Rcpp::export]]
 void vector_pop_back(SEXP vec) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -91,9 +146,17 @@ void vector_pop_back(SEXP vec) {
       stop("empty vector");
    RObject  obj = (*_vec).back();
    (*_vec).pop_back();
-   R_ReleaseObject(obj); 
+   R_ReleaseObject(obj);
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_at} returns an object at position i in the vector.
+//'
+//' @return
+//' \code{vector_at} returns a single RObject value.
+//'
+//' @param i position i in the vector
 // [[Rcpp::export]]
 RObject& vector_at(SEXP vec, int i) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
@@ -101,14 +164,21 @@ RObject& vector_at(SEXP vec, int i) {
    return (*_vec).at(i-1);
 }
 
+//' @rdname vector
+//' @details
+//' \code{vector_set_at} sets an object obj at position i in the vector.
+//'
+//' @return
+//' \code{vector_set_at} does not return anything interesting.
+//'
+//' @param i position i in the vector
+//' @param obj an R object
 // [[Rcpp::export]]
 void vector_set_at(SEXP vec, int i, RObject obj) {
    XPtr< V > _vec = Rcpp::as< XPtr< V > > (vec);
    checkIsVectorClass(_vec);
-   //Rcout << vec <<" "<< i<<" " << obj << std::endl;
    R_PreserveObject(obj);
-   R_ReleaseObject((*_vec).at(i-1)); 
+   R_ReleaseObject((*_vec).at(i-1));
    (*_vec).at(i-1)=obj;
-   //Rcout << vec <<" "<< i<<" " << obj << std::endl;
 }
 

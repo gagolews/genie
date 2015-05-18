@@ -60,7 +60,6 @@ List stack_as_list(SEXP stack) {
    return retval;
 }
 
-
 //' @rdname stack
 //' @details
 //' \code{stack_empty} determines if a given stack is empty or not.

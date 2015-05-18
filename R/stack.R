@@ -23,7 +23,6 @@ print.Stack <- function(stack, ...)
    print(as.list.Stack(stack), ...)
 }
 
-
 #' @rdname stack
 #' @details
 #' \code{format.Stack} pretty-prints the contents of the stack
