@@ -4,7 +4,7 @@ using namespace Rcpp;
 
 class S : public std::deque<SEXP> {
    public: ~S() {
-//      Rcout << "DESCRUCT!\n";
+      //      Rcout << "DESCRUCT!\n";
       while (!this->empty()) {
          SEXP obj = this->front();
          this->pop_front();
