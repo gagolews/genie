@@ -217,7 +217,7 @@ the object in space. Indices are as in a list given for building a tree.
 For inserted objects they are pushed back at the end.
 Please do not use this function for objects, which are "new" in a metric
 space. This function can be faster than \code{vptree_searchKNN} and
-\code{vptree_searchKNNKnown}.
+\code{vptree_searchKNNKnown}. Indexing starts with 1, as in R language.
 
 \code{vptree_searchRadius} finds neighbours for a given object
 within a given radius in the tree.
@@ -238,7 +238,7 @@ within a given radius . Indices are as in a list given for building a tree.
 For inserted objects they are pushed back at the end.
 Please do not use this function for objects, which are "new" in a metric
 space. This function can be faster than \code{vptree_searchRadius} and
-\code{vptree_searchRadiusKnown}.
+\code{vptree_searchRadiusKnown}. Indexing starts with 1, as in R language.
 
 \code{vptree_getItems} returns a list of points in it.
 

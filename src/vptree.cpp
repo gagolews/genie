@@ -248,7 +248,7 @@ template<typename T>
    void searchKNNKnownIndex(int index, int k, std::vector<T>* results,
                             std::vector<double>* distances)
    {
-
+      if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
       std::priority_queue<HeapItem> heap;
 
       _tau = std::numeric_limits<double>::max();
@@ -269,6 +269,7 @@ template<typename T>
    void searchRadiusKnownIndex(int index, double tau, std::vector<T>* results,
                                std::vector<double>* distances)
    {
+      if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
       std::priority_queue<HeapItem> heap;
 
       _tau = tau;
@@ -946,7 +947,7 @@ List vptree_searchKNNKnown(SEXP tree, RObject p, int k)
 //' For inserted objects they are pushed back at the end.
 //' Please do not use this function for objects, which are "new" in a metric
 //' space. This function can be faster than \code{vptree_searchKNN} and
-//' \code{vptree_searchKNNKnown}.
+//' \code{vptree_searchKNNKnown}. Indexing starts with 1, as in R language.
 //'
 //' @return
 //' \code{vptree_searchKNNKnown} returns a list. First element of the list
@@ -957,6 +958,7 @@ List vptree_searchKNNKnown(SEXP tree, RObject p, int k)
 // [[Rcpp::export]]
 List vptree_searchKNNKnownIndex(SEXP tree, int index, int k)
 {
+   index--;
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
@@ -1063,7 +1065,7 @@ List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau)
 //' For inserted objects they are pushed back at the end.
 //' Please do not use this function for objects, which are "new" in a metric
 //' space. This function can be faster than \code{vptree_searchRadius} and
-//' \code{vptree_searchRadiusKnown}.
+//' \code{vptree_searchRadiusKnown}. Indexing starts with 1, as in R language.
 //'
 //' @return
 //' \code{vptree_searchRadiusKnownIndex} returns a list. First element of the list
@@ -1074,6 +1076,7 @@ List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau)
 // [[Rcpp::export]]
 List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau)
 {
+   index--;
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
