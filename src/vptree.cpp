@@ -219,12 +219,12 @@ template<typename T>
    }
 
    void searchKNN( const T& target, int k, std::vector<T>* results,
-                  std::vector<double>* distances)
+                  std::vector<double>* distances, bool findItself = true)
    {
       std::priority_queue<HeapItem> heap;
 
       _tau = std::numeric_limits<double>::max();
-      search( _root, target, true, k, heap );
+      search( _root, target, true, k, heap, findItself );
 
       results->clear(); distances->clear();
 
@@ -239,20 +239,20 @@ template<typename T>
    }
 
    void searchKNNKnown( const T& target, int k, std::vector<T>* results,
-                       std::vector<double>* distances)
+                       std::vector<double>* distances, bool findItself = true)
    {
       int index = findIndex(target);
-      searchKNNKnownIndex(index, k, results, distances);
+      searchKNNKnownIndex(index, k, results, distances, findItself);
    }
 
    void searchKNNKnownIndex(int index, int k, std::vector<T>* results,
-                            std::vector<double>* distances)
+                            std::vector<double>* distances, bool findItself = true)
    {
       if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
       std::priority_queue<HeapItem> heap;
 
       _tau = std::numeric_limits<double>::max();
-      search( _root, index, true, k, heap );
+      search( _root, index, true, k, heap, findItself );
 
       results->clear(); distances->clear();
 
@@ -267,13 +267,13 @@ template<typename T>
    }
 
    void searchRadiusKnownIndex(int index, double tau, std::vector<T>* results,
-                               std::vector<double>* distances)
+                               std::vector<double>* distances, bool findItself = true)
    {
       if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
       std::priority_queue<HeapItem> heap;
 
       _tau = tau;
-      search( _root, index, false, -1, heap );
+      search( _root, index, false, -1, heap, findItself );
 
       results->clear(); distances->clear();
 
@@ -288,19 +288,19 @@ template<typename T>
    }
 
    void searchRadiusKnown( const T& target, double tau, std::vector<T>* results,
-                          std::vector<double>* distances)
+                          std::vector<double>* distances, bool findItself = true)
    {
       int index = findIndex(target);
-      searchRadiusKnownIndex(index, tau, results, distances);
+      searchRadiusKnownIndex(index, tau, results, distances, findItself);
    }
 
    void searchRadius( const T& target, double tau, std::vector<T>* results,
-                     std::vector<double>* distances)
+                     std::vector<double>* distances, bool findItself = true)
    {
       std::priority_queue<HeapItem> heap;
 
       _tau = tau;
-      search( _root, target, false, -1, heap );
+      search( _root, target, false, -1, heap, findItself);
 
       results->clear(); distances->clear();
 
@@ -636,17 +636,22 @@ template<typename T>
    }
 
    void search( Node* node, const T& target, bool isKNN, int k,
-               std::priority_queue<HeapItem>& heap )
+               std::priority_queue<HeapItem>& heap, bool findItself)
    {
       if ( node == NULL ) return;
 
-      double dist = _distance( _items[node->vpindex], target );
+
       //printf("dist=%g tau=%gn", dist, _tau );
       if(node->isLeaf)
       {
          for(size_t i=0;i<node->points.size();i++)
          {
             double dist2 = _distance( _items[node->points[i]], target );
+            if(dist2 < 1e-6)
+            {
+                if(!findItself && R_compute_identical(_items[node->points[i]], target, 16))
+                   continue;
+            }
             if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
                if ( heap.size() == (size_t)k && isKNN) heap.pop();
                heap.push( HeapItem(node->points[i], dist2) );
@@ -660,17 +665,18 @@ template<typename T>
       }
       else
       {
+         double dist = _distance( _items[node->vpindex], target );
          vector<bool> visited(node->childCount, false);
 
          for(int i=0;i<node->childCount-1;i++)
          {
             //if ( dist < node->radiuses[i] ) {
             if ( dist - _tau <= node->radiuses[i] && !visited[i]) {
-               search( node->children[i], target, isKNN, k, heap );
+               search( node->children[i], target, isKNN, k, heap, findItself );
                visited[i]=true;
             }
             if ( dist + _tau >= node->radiuses[i] && !visited[i+1]) {
-               search( node->children[i+1], target, isKNN, k, heap );
+               search( node->children[i+1], target, isKNN, k, heap, findItself );
                visited[i+1]=true;
             }
             //}
@@ -682,17 +688,21 @@ template<typename T>
    }
 
    void search( Node* node, int index, bool isKNN, int k,
-               std::priority_queue<HeapItem>& heap )
+               std::priority_queue<HeapItem>& heap, bool findItself )
    {
       if ( node == NULL ) return;
 
-      double dist = _distance(node->vpindex, index);
       //printf("dist=%g tau=%gn", dist, _tau );
       if(node->isLeaf)
       {
          for(size_t i=0;i<node->points.size();i++)
          {
             double dist2 = _distance(node->points[i], index );
+            if(dist2 < 1e-6)
+            {
+                if(!findItself && R_compute_identical(_items[node->points[i]], _items[index], 16))
+                   continue;
+            }
             if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
                if ( heap.size() ==(size_t) k && isKNN) heap.pop();
                heap.push( HeapItem(node->points[i], dist2) );
@@ -706,17 +716,18 @@ template<typename T>
       }
       else
       {
+         double dist = _distance(node->vpindex, index);
          vector<bool> visited(node->childCount, false);
 
          for(int i=0;i<node->childCount-1;i++)
          {
             //if ( dist < node->radiuses[i] ) {
             if ( dist - _tau <= node->radiuses[i] && !visited[i]) {
-               search( node->children[i], index, isKNN, k, heap );
+               search( node->children[i], index, isKNN, k, heap, findItself );
                visited[i]=true;
             }
             if ( dist + _tau >= node->radiuses[i] && !visited[i+1]) {
-               search( node->children[i+1], index, isKNN, k, heap );
+               search( node->children[i+1], index, isKNN, k, heap, findItself );
                visited[i+1]=true;
             }
             //}
@@ -879,14 +890,15 @@ void vptree_build(SEXP tree, List listobj) {
 //' with distances these objects from a given object.
 //' @param p an R object for which neighbours are found
 //' @param k a single integer, number of neighbours to find
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchKNN(SEXP tree, RObject p, int k)
+List vptree_searchKNN(SEXP tree, RObject p, int k, bool findItself = true)
 {
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchKNN( p, k, &results, &distances);
+   (*_tree).searchKNN( p, k, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());
@@ -916,14 +928,15 @@ List vptree_searchKNN(SEXP tree, RObject p, int k)
 //' with distances these objects from a given object.
 //' @param p an R object for which neighbours are found
 //' @param k a single integer, number of neighbours to find
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchKNNKnown(SEXP tree, RObject p, int k)
+List vptree_searchKNNKnown(SEXP tree, RObject p, int k, bool findItself = true)
 {
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchKNNKnown( p, k, &results, &distances);
+   (*_tree).searchKNNKnown( p, k, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());
@@ -955,15 +968,16 @@ List vptree_searchKNNKnown(SEXP tree, RObject p, int k)
 //' with distances these objects from a given object.
 //' @param index index of an object in the space
 //' @param k a single integer, number of neighbours to find
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchKNNKnownIndex(SEXP tree, int index, int k)
+List vptree_searchKNNKnownIndex(SEXP tree, int index, int k, bool findItself = true)
 {
    index--;
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchKNNKnownIndex( index, k, &results, &distances);
+   (*_tree).searchKNNKnownIndex( index, k, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());
@@ -995,14 +1009,15 @@ List vptree_searchKNNKnownIndex(SEXP tree, int index, int k)
 //' with distances these objects from a given object.
 //' @param p an R object for which neighbours are found
 //' @param tau a float value, a radius
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchRadius(SEXP tree, RObject p, double tau)
+List vptree_searchRadius(SEXP tree, RObject p, double tau, bool findItself = true)
 {
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchRadius( p, tau, &results, &distances);
+   (*_tree).searchRadius( p, tau, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());
@@ -1033,14 +1048,15 @@ List vptree_searchRadius(SEXP tree, RObject p, double tau)
 //' with distances these objects from a given object.
 //' @param p an R object for which neighbours are found
 //' @param tau a float value, a radius
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau)
+List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau, bool findItself = true)
 {
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchRadiusKnown( p, tau, &results, &distances);
+   (*_tree).searchRadiusKnown( p, tau, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());
@@ -1073,15 +1089,16 @@ List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau)
 //' with distances these objects from a given object.
 //' @param index index of an object in the space
 //' @param tau a float value, a radius
+//' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau)
+List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau, bool findItself = true)
 {
    index--;
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (tree);
    checkIsVpTreeClass(_tree);
    std::vector<RObject> results;
    std::vector<double> distances;
-   (*_tree).searchRadiusKnownIndex( index, tau, &results, &distances);
+   (*_tree).searchRadiusKnownIndex( index, tau, &results, &distances, findItself);
 
    List resultList(2);
    List elements(results.size());

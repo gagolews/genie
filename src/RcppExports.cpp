@@ -356,8 +356,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchKNN
-List vptree_searchKNN(SEXP tree, RObject p, int k);
-RcppExport SEXP DataStructures_vptree_searchKNN(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP) {
+List vptree_searchKNN(SEXP tree, RObject p, int k, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchKNN(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -365,7 +365,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
         Rcpp::traits::input_parameter< int >::type k(kSEXP );
-        List __result = vptree_searchKNN(tree, p, k);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchKNN(tree, p, k, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -373,8 +374,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchKNNKnown
-List vptree_searchKNNKnown(SEXP tree, RObject p, int k);
-RcppExport SEXP DataStructures_vptree_searchKNNKnown(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP) {
+List vptree_searchKNNKnown(SEXP tree, RObject p, int k, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchKNNKnown(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -382,7 +383,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
         Rcpp::traits::input_parameter< int >::type k(kSEXP );
-        List __result = vptree_searchKNNKnown(tree, p, k);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchKNNKnown(tree, p, k, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -390,8 +392,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchKNNKnownIndex
-List vptree_searchKNNKnownIndex(SEXP tree, int index, int k);
-RcppExport SEXP DataStructures_vptree_searchKNNKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP kSEXP) {
+List vptree_searchKNNKnownIndex(SEXP tree, int index, int k, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchKNNKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP kSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -399,7 +401,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< int >::type index(indexSEXP );
         Rcpp::traits::input_parameter< int >::type k(kSEXP );
-        List __result = vptree_searchKNNKnownIndex(tree, index, k);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchKNNKnownIndex(tree, index, k, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -407,8 +410,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchRadius
-List vptree_searchRadius(SEXP tree, RObject p, double tau);
-RcppExport SEXP DataStructures_vptree_searchRadius(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP) {
+List vptree_searchRadius(SEXP tree, RObject p, double tau, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchRadius(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -416,7 +419,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
         Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
-        List __result = vptree_searchRadius(tree, p, tau);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchRadius(tree, p, tau, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -424,8 +428,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchRadiusKnown
-List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau);
-RcppExport SEXP DataStructures_vptree_searchRadiusKnown(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP) {
+List vptree_searchRadiusKnown(SEXP tree, RObject p, double tau, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchRadiusKnown(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -433,7 +437,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
         Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
-        List __result = vptree_searchRadiusKnown(tree, p, tau);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchRadiusKnown(tree, p, tau, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -441,8 +446,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vptree_searchRadiusKnownIndex
-List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau);
-RcppExport SEXP DataStructures_vptree_searchRadiusKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP tauSEXP) {
+List vptree_searchRadiusKnownIndex(SEXP tree, int index, double tau, bool findItself = true);
+RcppExport SEXP DataStructures_vptree_searchRadiusKnownIndex(SEXP treeSEXP, SEXP indexSEXP, SEXP tauSEXP, SEXP findItselfSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -450,7 +455,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
         Rcpp::traits::input_parameter< int >::type index(indexSEXP );
         Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
-        List __result = vptree_searchRadiusKnownIndex(tree, index, tau);
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = vptree_searchRadiusKnownIndex(tree, index, tau, findItself);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

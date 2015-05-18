@@ -306,8 +306,8 @@ vptree_build <- function(tree, listobj) {
 #' with distances these objects from a given object.
 #' @param p an R object for which neighbours are found
 #' @param k a single integer, number of neighbours to find
-vptree_searchKNN <- function(tree, p, k) {
-    .Call('DataStructures_vptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k)
+vptree_searchKNN <- function(tree, p, k, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k, findItself)
 }
 
 #' @rdname vptree
@@ -323,8 +323,8 @@ vptree_searchKNN <- function(tree, p, k) {
 #' with distances these objects from a given object.
 #' @param p an R object for which neighbours are found
 #' @param k a single integer, number of neighbours to find
-vptree_searchKNNKnown <- function(tree, p, k) {
-    .Call('DataStructures_vptree_searchKNNKnown', PACKAGE = 'DataStructures', tree, p, k)
+vptree_searchKNNKnown <- function(tree, p, k, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchKNNKnown', PACKAGE = 'DataStructures', tree, p, k, findItself)
 }
 
 #' @rdname vptree
@@ -342,8 +342,8 @@ vptree_searchKNNKnown <- function(tree, p, k) {
 #' with distances these objects from a given object.
 #' @param index index of an object in the space
 #' @param k a single integer, number of neighbours to find
-vptree_searchKNNKnownIndex <- function(tree, index, k) {
-    .Call('DataStructures_vptree_searchKNNKnownIndex', PACKAGE = 'DataStructures', tree, index, k)
+vptree_searchKNNKnownIndex <- function(tree, index, k, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchKNNKnownIndex', PACKAGE = 'DataStructures', tree, index, k, findItself)
 }
 
 #' @rdname vptree
@@ -361,8 +361,8 @@ vptree_searchKNNKnownIndex <- function(tree, index, k) {
 #' with distances these objects from a given object.
 #' @param p an R object for which neighbours are found
 #' @param tau a float value, a radius
-vptree_searchRadius <- function(tree, p, tau) {
-    .Call('DataStructures_vptree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau)
+vptree_searchRadius <- function(tree, p, tau, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau, findItself)
 }
 
 #' @rdname vptree
@@ -379,8 +379,8 @@ vptree_searchRadius <- function(tree, p, tau) {
 #' with distances these objects from a given object.
 #' @param p an R object for which neighbours are found
 #' @param tau a float value, a radius
-vptree_searchRadiusKnown <- function(tree, p, tau) {
-    .Call('DataStructures_vptree_searchRadiusKnown', PACKAGE = 'DataStructures', tree, p, tau)
+vptree_searchRadiusKnown <- function(tree, p, tau, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchRadiusKnown', PACKAGE = 'DataStructures', tree, p, tau, findItself)
 }
 
 #' @rdname vptree
@@ -399,8 +399,8 @@ vptree_searchRadiusKnown <- function(tree, p, tau) {
 #' with distances these objects from a given object.
 #' @param index index of an object in the space
 #' @param tau a float value, a radius
-vptree_searchRadiusKnownIndex <- function(tree, index, tau) {
-    .Call('DataStructures_vptree_searchRadiusKnownIndex', PACKAGE = 'DataStructures', tree, index, tau)
+vptree_searchRadiusKnownIndex <- function(tree, index, tau, findItself = TRUE) {
+    .Call('DataStructures_vptree_searchRadiusKnownIndex', PACKAGE = 'DataStructures', tree, index, tau, findItself)
 }
 
 #' @rdname vptree

@@ -31,17 +31,17 @@ vptree_set_distancefunction(tree, distance, isSimilarity = FALSE)
 
 vptree_build(tree, listobj)
 
-vptree_searchKNN(tree, p, k)
+vptree_searchKNN(tree, p, k, findItself = TRUE)
 
-vptree_searchKNNKnown(tree, p, k)
+vptree_searchKNNKnown(tree, p, k, findItself = TRUE)
 
-vptree_searchKNNKnownIndex(tree, index, k)
+vptree_searchKNNKnownIndex(tree, index, k, findItself = TRUE)
 
-vptree_searchRadius(tree, p, tau)
+vptree_searchRadius(tree, p, tau, findItself = TRUE)
 
-vptree_searchRadiusKnown(tree, p, tau)
+vptree_searchRadiusKnown(tree, p, tau, findItself = TRUE)
 
-vptree_searchRadiusKnownIndex(tree, index, tau)
+vptree_searchRadiusKnownIndex(tree, index, tau, findItself = TRUE)
 
 vptree_getItems(vptree)
 
