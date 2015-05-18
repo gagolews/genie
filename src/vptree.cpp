@@ -418,7 +418,7 @@ template<typename T>
       {
          //if(Rcpp::all(_items[i] == target))
          //NumericVector nvTarget(target);
-         if(_items[i] == target)
+         if(R_compute_identical(_items[i], target, 16))
             return i;
       }
       stop("There is no such element in the tree.");
