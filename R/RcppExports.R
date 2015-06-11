@@ -578,3 +578,28 @@ vptree_setMetricFunction <- function(vptree, f) {
     invisible(.Call('DataStructures_vptree_setMetricFunction', PACKAGE = 'DataStructures', vptree, f))
 }
 
+#' @rdname vptree
+#' @details
+#' \code{vptree_treeSize} returns the size of a tree. To returned value adding
+#' a size of RObjects in space is needed. In other words, this function
+#' returns size of all nodes in tree (and a tree itself),
+#' including indices of points in space,
+#' size of pointers, radiuses etc., but no points (RObjects) underlying.
+#'
+#'
+#' @return
+#' \code{vptree_treeSize} returns a size in bytes of a vp-tree.
+vptree_treeSize <- function(vptree) {
+    .Call('DataStructures_vptree_treeSize', PACKAGE = 'DataStructures', vptree)
+}
+
+#' @rdname vptree
+#' @details
+#' \code{vptree_treeSize} returns the height of a tree.
+#'
+#' @return
+#' \code{vptree_treeSize} returns the height of a tree.
+vptree_treeHeight <- function(vptree) {
+    .Call('DataStructures_vptree_treeHeight', PACKAGE = 'DataStructures', vptree)
+}
+

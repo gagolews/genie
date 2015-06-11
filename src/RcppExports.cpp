@@ -625,3 +625,33 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// vptree_treeSize
+size_t vptree_treeSize(SEXP vptree);
+RcppExport SEXP DataStructures_vptree_treeSize(SEXP vptreeSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        size_t __result = vptree_treeSize(vptree);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// vptree_treeHeight
+int vptree_treeHeight(SEXP vptree);
+RcppExport SEXP DataStructures_vptree_treeHeight(SEXP vptreeSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        int __result = vptree_treeHeight(vptree);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}

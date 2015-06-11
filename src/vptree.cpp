@@ -62,6 +62,18 @@ template<typename T>
       return _distance.distance->f;
    }
 
+   size_t treeSize()
+   {
+      if(_root==NULL) return sizeof(VpTree);
+      return sizeof(VpTree) + treeSize_rec(_root);
+   }
+
+   int treeHeight()
+   {
+      if(_root==NULL) return 0;
+      return treeHeight_rec(_root);
+   }
+
    void create( const std::vector<T>& items) {
       delete _root;
       //_distance = distance;
@@ -511,6 +523,34 @@ template<typename T>
       }
 
       return sigmaSq;
+   }
+
+   size_t calculateNodeSize(Node* node)
+   {
+      return node->radiuses.size()*sizeof(double)
+         + node->points.size()*sizeof(int)
+         + node->children.size()*sizeof(Node*)
+         + sizeof(Node);
+   }
+
+   size_t treeSize_rec(Node* node)
+   {
+      size_t size = calculateNodeSize(node);
+      for(int i=0;i<node->childCount;i++)
+      {
+         size += treeSize_rec(node->children[i]);
+      }
+      return size;
+   }
+
+   int treeHeight_rec(Node* node)
+   {
+      int maxH = 0;
+      for(int i=0;i<node->childCount;i++)
+      {
+         maxH = max(treeHeight_rec(node->children[i]), maxH);
+      }
+      return maxH+1;
    }
 
    void search( Node* node, const T& target, bool isKNN, int k,
@@ -1097,4 +1137,37 @@ void vptree_setMetricFunction(SEXP vptree, Function f)
    XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
    checkIsVpTreeClass(_tree);
    _tree->setMetricFunction(f);
+}
+
+//' @rdname vptree
+//' @details
+//' \code{vptree_treeSize} returns the size of a tree. To returned value adding
+//' a size of RObjects in space is needed. In other words, this function
+//' returns size of all nodes in tree (and a tree itself),
+//' including indices of points in space,
+//' size of pointers, radiuses etc., but no points (RObjects) underlying.
+//'
+//'
+//' @return
+//' \code{vptree_treeSize} returns a size in bytes of a vp-tree.
+// [[Rcpp::export]]
+size_t vptree_treeSize(SEXP vptree)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   return _tree->treeSize();
+}
+
+//' @rdname vptree
+//' @details
+//' \code{vptree_treeSize} returns the height of a tree.
+//'
+//' @return
+//' \code{vptree_treeSize} returns the height of a tree.
+// [[Rcpp::export]]
+int vptree_treeHeight(SEXP vptree)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   return _tree->treeHeight();
 }

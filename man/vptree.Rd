@@ -19,6 +19,8 @@
 \alias{vptree_setItems}
 \alias{vptree_setMetricFunction}
 \alias{vptree_set_distancefunction}
+\alias{vptree_treeHeight}
+\alias{vptree_treeSize}
 \title{VpTree}
 \usage{
 vptree_create(distance, isSimilarity = FALSE, m = 2L, minm = 4L,
@@ -54,6 +56,10 @@ vptree_read(filename)
 vptree_setItems(vptree, items)
 
 vptree_setMetricFunction(vptree, f)
+
+vptree_treeSize(vptree)
+
+vptree_treeHeight(vptree)
 
 vptree_save(vptree, filenamePrefix)
 
@@ -188,6 +194,10 @@ with distances these objects from a given object.
 
 \code{vptree_setMetricFunction} does not return anything interesting.
 
+\code{vptree_treeSize} returns a size in bytes of a vp-tree.
+
+\code{vptree_treeSize} returns the height of a tree.
+
 \code{vptree_save} does not return anything interesting.
 
 \code{vptree_load} returns a loaded vptree.
@@ -273,6 +283,14 @@ unless you know what you are doing.
 \code{vptree_setMetricFunction} sets metric function. Using this
 function after building a tree will cause problems. Do not use this function
 unless you know what you are doing.
+
+\code{vptree_treeSize} returns the size of a tree. To returned value adding
+a size of RObjects in space is needed. In other words, this function
+returns size of all nodes in tree (and a tree itself),
+including indices of points in space,
+size of pointers, radiuses etc., but no points (RObjects) underlying.
+
+\code{vptree_treeSize} returns the height of a tree.
 
 \code{vptree_save} saves the tree into a group of 3 files: Tree itself,
 points which are R objects and metric function. Only prefix of file names
