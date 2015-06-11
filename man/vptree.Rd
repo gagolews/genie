@@ -97,25 +97,37 @@ point in a  metric space}
 
 \item{k}{a single integer, number of neighbours to find}
 
+\item{findItself}{boolean value, should results contain an given object?}
+
 \item{p}{an R object for which neighbours are found}
 
 \item{k}{a single integer, number of neighbours to find}
+
+\item{findItself}{boolean value, should results contain an given object?}
 
 \item{index}{index of an object in the space}
 
 \item{k}{a single integer, number of neighbours to find}
 
-\item{p}{an R object for which neighbours are found}
-
-\item{tau}{a float value, a radius}
+\item{findItself}{boolean value, should results contain an given object?}
 
 \item{p}{an R object for which neighbours are found}
 
 \item{tau}{a float value, a radius}
+
+\item{findItself}{boolean value, should results contain an given object?}
+
+\item{p}{an R object for which neighbours are found}
+
+\item{tau}{a float value, a radius}
+
+\item{findItself}{boolean value, should results contain an given object?}
 
 \item{index}{index of an object in the space}
 
 \item{tau}{a float value, a radius}
+
+\item{findItself}{boolean value, should results contain an given object?}
 
 \item{filename}{a path to file in which a strucutre of a tree will be saved.}
 

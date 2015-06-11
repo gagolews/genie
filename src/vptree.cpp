@@ -25,132 +25,10 @@
 #include <boost/serialization/vector.hpp>
 
 #include "boost/serialization/unordered_map.hpp"
+#include "metric_trees_helpers.h"
 
 using namespace Rcpp;
 using namespace std;
-
-struct RFunction {
-   RFunction(Function _f) : f(_f) {
-      R_PreserveObject(f);
-   }
-
-   ~RFunction() {
-      R_ReleaseObject(f);
-   }
-
-   Function f;
-};
-
-class Point
-{
-   public:
-   int i;
-   int j;
-   Point():i(0),j(0){}
-   Point(int i, int j):i(i),j(j){}
-
-   friend class boost::serialization::access;
-   template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-   {
-      ar & i;
-      ar & j;
-   }
-
-   static Point createValidPoint(int i, int j)
-   {
-      if(j < i)
-      {
-         swap(i,j);
-      }
-      return Point(i,j);
-   }
-
-   bool operator==(const Point &other) const
-   {
-      return (i == other.i && j == other.j);
-   }
-};
-
-ostream& operator<< (ostream& os, const Point& obj) {
-   os << obj.i<< " " << obj.j;
-   return os;
-}
-
-istream& operator>> (istream& is, Point& obj) {
-   is >> obj.i;
-   is >> obj.j;
-   return is;
-}
-/* not working
-class PointHasher
-{
-public:
-  std::size_t operator()(const Point& k) const
-  {
-    //using std::size_t;
-    //using std::hash;
-    //using std::string;
-    return 1;//(51 + hash<int>()(k.i)) * 51 + hash<int>()(k.j);
-    //return (hash<int>()(k.i) ^ (hash<int>()(k.j) << 1));
-  }
-};
-*/
-
-
-namespace std {
-
-   template <>
-      struct hash<Point>
-   {
-      std::size_t operator()(const Point& k) const
-      {
-         return (51 + hash<int>()(k.i)) * 51 + hash<int>()(k.j);
-      }
-   };
-
-}
-
-struct distClass
-{
-   RFunction* distance;
-   bool isSimilarity;
-   vector<RObject> *items;
-
-   unordered_map<Point, double> hashmap;
-
-   friend class boost::serialization::access;
-   template<class Archive>
-      void serialize(Archive & ar, const unsigned int version)
-   {
-      ar & isSimilarity;
-      ar & hashmap;
-   }
-
-   double operator()(const RObject& v1, const RObject& v2)
-   {
-      NumericVector res = distance->f(v1,v2);
-      return isSimilarity ? 1.0-res[0] : res[0];
-   }
-
-   double operator()(int v1, int v2)
-   {
-      if(v1==v2) return 0;
-      Point p = Point::createValidPoint(v1,v2);
-      std::unordered_map<Point,double>::const_iterator got = hashmap.find(p);
-      if ( got == hashmap.end() )
-      {
-         NumericVector res = distance->f((*items)[v1],(*items)[v2]);
-         double d = isSimilarity ? 1.0-res[0] : res[0];
-         hashmap.emplace(p, d);
-         return d;
-      }
-      else
-      {
-         return got->second;
-      }
-   }
-};
 
 template<typename T>
    class VpTree
@@ -841,19 +719,6 @@ void vptree_set_distancefunction(SEXP tree, Function distance, bool isSimilarity
    distci.isSimilarity = isSimilarity;
    distci.distance = new RFunction(distance);
    (*_tree).setDistanceFunction(distci);
-}
-
-vector<RObject> createStdVectorOfRobjects(List listobj)
-{
-   int n = listobj.size();
-   vector<RObject> points(n);
-   for(int i=0;i<n;i++)
-   {
-      RObject obj = listobj[i];
-      R_PreserveObject(obj);
-      points[i] = obj;
-   }
-   return points;
 }
 
 //' @rdname vptree
