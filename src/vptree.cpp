@@ -519,7 +519,7 @@ template<typename T>
       for(size_t i=0;i<candidates.size();i++) {
          vector<double> distances(_test_point_count);
          for (size_t j = 0; j < _test_point_count; ++j) {
-            distances[j] = _distance( _items[candidates[i]], _items[testPoints[j]] );
+            distances[j] = _distance( candidates[i], testPoints[j] );
          }
          //Rcout << "przed liczeniem sigmy" << endl;
          double sigma = sigmaSquare(distances);
