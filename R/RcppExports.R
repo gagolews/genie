@@ -603,3 +603,13 @@ vptree_treeHeight <- function(vptree) {
     .Call('DataStructures_vptree_treeHeight', PACKAGE = 'DataStructures', vptree)
 }
 
+#' @rdname vptree
+#' @details
+#' \code{vptree_printCounters} prints how many hits every element in hashmap got.
+#'
+#' @return
+#' \code{vptree_printCounters} does not return anything interesting.
+vptree_printCounters <- function(vptree) {
+    invisible(.Call('DataStructures_vptree_printCounters', PACKAGE = 'DataStructures', vptree))
+}
+

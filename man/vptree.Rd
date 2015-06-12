@@ -7,6 +7,7 @@
 \alias{vptree_getItems}
 \alias{vptree_insert}
 \alias{vptree_load}
+\alias{vptree_printCounters}
 \alias{vptree_read}
 \alias{vptree_save}
 \alias{vptree_searchKNN}
@@ -60,6 +61,8 @@ vptree_setMetricFunction(vptree, f)
 vptree_treeSize(vptree)
 
 vptree_treeHeight(vptree)
+
+vptree_printCounters(vptree)
 
 vptree_save(vptree, filenamePrefix)
 
@@ -198,6 +201,8 @@ with distances these objects from a given object.
 
 \code{vptree_treeSize} returns the height of a tree.
 
+\code{vptree_printCounters} does not return anything interesting.
+
 \code{vptree_save} does not return anything interesting.
 
 \code{vptree_load} returns a loaded vptree.
@@ -291,6 +296,8 @@ including indices of points in space,
 size of pointers, radiuses etc., but no points (RObjects) underlying.
 
 \code{vptree_treeSize} returns the height of a tree.
+
+\code{vptree_printCounters} prints how many hits every element in hashmap got.
 
 \code{vptree_save} saves the tree into a group of 3 files: Tree itself,
 points which are R objects and metric function. Only prefix of file names

@@ -79,11 +79,19 @@ template<typename T>
       //_distance = distance;
       _items = items;
       _distance.items = &_items;
+      #ifdef DEBUG
+      _distance.metricCalculated = 0;
+      _distance.hashmapHit = 0;
+      #endif
       vector<int> indices(items.size());
       for(size_t i=0;i<indices.size();i++)
          indices[i] = i;
       //_root = buildFromPoints(indices, _minM, _minM, NULL, NULL);
       _root = buildFromPoints(indices, _m, _m, NULL, NULL);
+      #ifdef DEBUG
+      Rcout << "metric calculated = " << _distance.metricCalculated << endl;
+      Rcout << "hashmapHit = " << _distance.hashmapHit << endl;
+      #endif
    }
 
    void setItems(const std::vector<T>& items)
@@ -139,6 +147,10 @@ template<typename T>
                             std::vector<double>* distances, bool findItself = true)
    {
       if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
+      #ifdef DEBUG
+      _distance.metricCalculated = 0;
+      _distance.hashmapHit = 0;
+      #endif
       std::priority_queue<HeapItem> heap;
 
       _tau = std::numeric_limits<double>::max();
@@ -154,6 +166,10 @@ template<typename T>
 
       std::reverse( results->begin(), results->end() );
       std::reverse( distances->begin(), distances->end() );
+      #ifdef DEBUG
+      Rcout << "metric calculated = " << _distance.metricCalculated << endl;
+      Rcout << "hashmapHit = " << _distance.hashmapHit << endl;
+      #endif
    }
 
    void searchRadiusKnownIndex(int index, double tau, std::vector<T>* results,
@@ -209,6 +225,13 @@ template<typename T>
       _items.push_back(target);
       insert_rec(_root, target);
    }
+
+   #ifdef DEBUG
+   void printCounters()
+   {
+      _distance.printCounters();
+   }
+   #endif
 
    private:
    distClass _distance;
@@ -291,10 +314,10 @@ template<typename T>
    {
       vector<T>* items;
       int index;
-      distClass distance;
+      distClass& distance;
 
       //_items, indices[0], _distance
-      DistanceComparator(vector<T>* items, int index, distClass distance ) : items(items), index(index), distance(distance) {}
+      DistanceComparator(vector<T>* items, int index, distClass& distance ) : items(items), index(index), distance(distance) {}
       bool operator()(int a, int b) {
          return distance( index, a ) < distance( index, b );
       }
@@ -1171,3 +1194,19 @@ int vptree_treeHeight(SEXP vptree)
    checkIsVpTreeClass(_tree);
    return _tree->treeHeight();
 }
+
+#ifdef DEBUG
+//' @rdname vptree
+//' @details
+//' \code{vptree_printCounters} prints how many hits every element in hashmap got.
+//'
+//' @return
+//' \code{vptree_printCounters} does not return anything interesting.
+// [[Rcpp::export]]
+void vptree_printCounters(SEXP vptree)
+{
+   XPtr< VpTree<RObject> > _tree = Rcpp::as< XPtr< VpTree<RObject> > > (vptree);
+   checkIsVpTreeClass(_tree);
+   _tree->printCounters();
+}
+#endif

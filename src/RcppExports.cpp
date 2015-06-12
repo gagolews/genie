@@ -655,3 +655,15 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// vptree_printCounters
+void vptree_printCounters(SEXP vptree);
+RcppExport SEXP DataStructures_vptree_printCounters(SEXP vptreeSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type vptree(vptreeSEXP );
+        vptree_printCounters(vptree);
+    }
+    return R_NilValue;
+END_RCPP
+}

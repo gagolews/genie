@@ -18,6 +18,8 @@
 using namespace Rcpp;
 using namespace std;
 
+//Sys.setenv(PKG_CPPFLAGS="-DDEBUG")
+
 struct RFunction {
    RFunction(Function _f) : f(_f) {
       R_PreserveObject(f);
@@ -61,6 +63,44 @@ class Point
    }
 };
 
+class Value
+{
+public:
+   double dist;
+#ifdef DEBUG
+   int counter;
+#endif
+
+   Value() : dist(0)
+#ifdef DEBUG
+   , counter(1)
+#endif
+   {}
+
+   Value(double dist) : dist(dist)
+#ifdef DEBUG
+   , counter(1)
+#endif
+   {}
+
+   friend class boost::serialization::access;
+   template<class Archive>
+   void serialize(Archive & ar, const unsigned int version)
+   {
+      ar & dist;
+#ifdef DEBUG
+      ar & counter;
+#endif
+   }
+
+#ifdef DEBUG
+   void incrementCounter()
+   {
+      counter++;
+   }
+#endif
+};
+
 ostream& operator<< (ostream& os, const Point& obj);
 istream& operator>> (istream& is, Point& obj);
 
@@ -84,7 +124,12 @@ struct distClass
    bool isSimilarity;
    vector<RObject> *items;
 
-   unordered_map<Point, double> hashmap;
+   unordered_map<Point, Value> hashmap;
+
+   #ifdef DEBUG
+   int metricCalculated;
+   int hashmapHit;
+   #endif
 
    friend class boost::serialization::access;
    template<class Archive>
@@ -102,21 +147,37 @@ struct distClass
 
    double operator()(int v1, int v2)
    {
+#ifdef DEBUG
+      metricCalculated++;
+#endif
       if(v1==v2) return 0;
       Point p = Point::createValidPoint(v1,v2);
-      std::unordered_map<Point,double>::const_iterator got = hashmap.find(p);
+      std::unordered_map<Point,Value>::iterator got = hashmap.find(p);
       if ( got == hashmap.end() )
       {
          NumericVector res = distance->f((*items)[v1],(*items)[v2]);
          double d = isSimilarity ? 1.0-res[0] : res[0];
-         hashmap.emplace(p, d);
+         hashmap.emplace(p, Value(d));
          return d;
       }
       else
       {
-         return got->second;
+#ifdef DEBUG
+         got->second.incrementCounter();
+         hashmapHit++;
+#endif
+         return got->second.dist;
       }
    }
+
+#ifdef DEBUG
+   void printCounters()
+   {
+      for (auto it=hashmap.begin(); it != hashmap.end(); ++it)
+         Rcout << it->first << " => " << it->second.counter << endl;
+      Rcout << "hashmap count = " << hashmap.size() << endl;
+   }
+#endif
 };
 
 vector<RObject> createStdVectorOfRobjects(List listobj);
