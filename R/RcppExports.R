@@ -96,6 +96,101 @@ mtree_searchRadius <- function(tree, p, tau, findItself = TRUE) {
     .Call('DataStructures_mtree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau, findItself)
 }
 
+#' @rdname mvptree
+#' @details
+#' \code{mvptree_create} creates an empty m-tree instance. Please use
+#' \code{mvptree_build} for populating the tree.
+#'
+#' @return
+#' \code{mvptree_create} returns a new, empty m-tree.
+#' @param distance an R function, which calculates metric in the space
+#' @param isSimilarity a logical value, does a distance function calculate
+#' distance or similarity?
+#' @param m single integer, maximum number of children can be in a node
+#' in the tree
+#' @param minm single integer, minimum number of children can be in a node
+#' in the tree
+#' @param maxLeafPointsCount single integer, maximum number of
+#' points in a single leaf
+#' @param vantageCandidatesCount single integer, number of candidates
+#' considered as a vantage point in a single node. Too big number can
+#' cause performance problem in building the tree, but too small can cause
+#' performance problem when searching.
+#' @param testPointsCount single integer, how many points are considered with
+#' a single candidate for vantage point in a node to assess a variance of
+#' distances
+mvptree_create <- function(distance, isSimilarity = FALSE) {
+    .Call('DataStructures_mvptree_create', PACKAGE = 'DataStructures', distance, isSimilarity)
+}
+
+#' @rdname mvptree
+#' @details
+#' \code{mvptree_insert} inserts a new point into a m-tree.
+#' Calling this function n times has worse performance in comparison
+#' to calling one \code{mvptree_build} with n points in the beginning.
+#'
+#' @return
+#' \code{mvptree_insert} does not return anything interesting.
+#' @param obj a point to insert
+mvptree_insert <- function(tree, obj) {
+    invisible(.Call('DataStructures_mvptree_insert', PACKAGE = 'DataStructures', tree, obj))
+}
+
+#' @rdname mvptree
+#' @details
+#' \code{mvptree_build} populates an empty tree with set of points. If called
+#' for non-empty tree, whole structure of previous tree is deleted. This is
+#' recommended way of building a tree (instead of inserts by
+#' \code{mvptree_insert}).
+#'
+#' @return
+#' \code{mvptree_build} does not return anything interesting.
+#' @param listobj an R list, where every element of list is assumed as one
+#' point in a  metric space
+mvptree_build <- function(tree, listobj) {
+    invisible(.Call('DataStructures_mvptree_build', PACKAGE = 'DataStructures', tree, listobj))
+}
+
+#' @rdname mvptree
+#' @details
+#' \code{mvptree_searchKNN} finds k nearest neighbours for a given object
+#' in the tree.
+#' Please use this function for objects, which are not in a set of points
+#' inserted to the tree or which were used for building the tree. For these
+#' cases please use \code{mvptree_searchKNNKnown} or
+#' \code{mvptree_searchKNNKnownIndex} which can be faster.
+#'
+#' @return
+#' \code{mvptree_searchKNN} returns a list. First element of the list
+#' is a list with found elements. A second element of the list is a list
+#' with distances these objects from a given object.
+#' @param p an R object for which neighbours are found
+#' @param k a single integer, number of neighbours to find
+#' @param findItself boolean value, should results contain an given object?
+mvptree_searchKNN <- function(tree, p, k, tau) {
+    .Call('DataStructures_mvptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k, tau)
+}
+
+#' @rdname mvptree
+#' @details
+#' \code{mvptree_searchRadius} finds neighbours for a given object
+#' within a given radius in the tree.
+#' Please use this function for objects, which are not in a set of points
+#' inserted to the tree or which were used for building the tree. For these
+#' cases please use \code{mvptree_searchRadiusKnown} or
+#' \code{mvptree_searchRadiusKnownIndex} which can be faster.
+#'
+#' @return
+#' \code{mvptree_searchRadius} returns a list. First element of the list
+#' is a list with found elements. A second element of the list is a list
+#' with distances these objects from a given object.
+#' @param p an R object for which neighbours are found
+#' @param tau a float value, a radius
+#' @param findItself boolean value, should results contain an given object?
+mvptree_searchRadius <- function(tree, p, tau, findItself = TRUE) {
+    .Call('DataStructures_mvptree_searchRadius', PACKAGE = 'DataStructures', tree, p, tau, findItself)
+}
+
 #' @rdname queue
 #' @details
 #' \code{as.list.Queue} converts a given queue object to an R list.

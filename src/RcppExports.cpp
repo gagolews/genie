@@ -83,6 +83,84 @@ BEGIN_RCPP
     return __sexp_result;
 END_RCPP
 }
+// mvptree_create
+SEXP mvptree_create(Function distance, bool isSimilarity = false);
+RcppExport SEXP DataStructures_mvptree_create(SEXP distanceSEXP, SEXP isSimilaritySEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< Function >::type distance(distanceSEXP );
+        Rcpp::traits::input_parameter< bool >::type isSimilarity(isSimilaritySEXP );
+        SEXP __result = mvptree_create(distance, isSimilarity);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// mvptree_insert
+void mvptree_insert(SEXP tree, RObject obj);
+RcppExport SEXP DataStructures_mvptree_insert(SEXP treeSEXP, SEXP objSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< RObject >::type obj(objSEXP );
+        mvptree_insert(tree, obj);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// mvptree_build
+void mvptree_build(SEXP tree, List listobj);
+RcppExport SEXP DataStructures_mvptree_build(SEXP treeSEXP, SEXP listobjSEXP) {
+BEGIN_RCPP
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< List >::type listobj(listobjSEXP );
+        mvptree_build(tree, listobj);
+    }
+    return R_NilValue;
+END_RCPP
+}
+// mvptree_searchKNN
+List mvptree_searchKNN(SEXP tree, RObject p, int k, double tau);
+RcppExport SEXP DataStructures_mvptree_searchKNN(SEXP treeSEXP, SEXP pSEXP, SEXP kSEXP, SEXP tauSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
+        Rcpp::traits::input_parameter< int >::type k(kSEXP );
+        Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
+        List __result = mvptree_searchKNN(tree, p, k, tau);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
+// mvptree_searchRadius
+List mvptree_searchRadius(SEXP tree, RObject p, double tau, bool findItself = true);
+RcppExport SEXP DataStructures_mvptree_searchRadius(SEXP treeSEXP, SEXP pSEXP, SEXP tauSEXP, SEXP findItselfSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< SEXP >::type tree(treeSEXP );
+        Rcpp::traits::input_parameter< RObject >::type p(pSEXP );
+        Rcpp::traits::input_parameter< double >::type tau(tauSEXP );
+        Rcpp::traits::input_parameter< bool >::type findItself(findItselfSEXP );
+        List __result = mvptree_searchRadius(tree, p, tau, findItself);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
 // queue_as_list
 List queue_as_list(SEXP queue);
 RcppExport SEXP DataStructures_queue_as_list(SEXP queueSEXP) {

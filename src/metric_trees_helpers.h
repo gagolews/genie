@@ -14,6 +14,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include "boost/serialization/unordered_map.hpp"
+#include "mvptree/mvptree.h"
 
 using namespace Rcpp;
 using namespace std;
@@ -143,6 +144,14 @@ struct distClass
    {
       NumericVector res = distance->f(v1,v2);
       return isSimilarity ? 1.0-res[0] : res[0];
+   }
+
+   float operator()(MVPDP *pointA, MVPDP *pointB) const
+   {
+      RObject *o1 = (RObject*)pointA->data;
+      RObject *o2 = (RObject*)pointB->data;
+
+      return (*this)(*o1,*o2);
    }
 
    double operator()(int v1, int v2)
