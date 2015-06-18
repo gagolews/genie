@@ -8,13 +8,14 @@
 \alias{mvptree_searchRadius}
 \title{mvpTree}
 \usage{
-mvptree_create(distance, isSimilarity = FALSE)
+mvptree_create(distance, isSimilarity = FALSE, mvp_branchfactor = 2L,
+  mvp_pathlength = 5L, mvp_leafcap = 25L)
 
 mvptree_insert(tree, obj)
 
 mvptree_build(tree, listobj)
 
-mvptree_searchKNN(tree, p, k, tau)
+mvptree_searchKNN(tree, p, k, findItself = TRUE)
 
 mvptree_searchRadius(tree, p, tau, findItself = TRUE)
 }

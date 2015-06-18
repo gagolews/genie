@@ -24,6 +24,18 @@
 #ifndef _MVPTREE_H
 #define _MVPTREE_H
 
+#include <Rcpp.h>
+#define USE_RINTERNALS
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+#include <Rmath.h>
+#include <Rdefines.h>
+#include <R_ext/Rdynload.h>
+#include <queue>
+
+using namespace Rcpp;
+
 /*data type for a datapoint - refers to the bitwidth of each element */
  enum MVPDataType {
     MVP_NOTASSIGNED = 0,
@@ -115,7 +127,7 @@ struct MVPTree {
                            /* Refers to the array of float's stored in each datapoint.*/
     int leafcap;           /* capacity of leaf nodes  (number datapoints)             */
     int fd;                /* internal use                                            */
-    int k;                 /* internal use for retrieve function (knearest)           */
+    unsigned int k;                 /* internal use for retrieve function (knearest)           */
     MVPDataType datatype;     /* internal use                                            */
     off_t pos;             /* internal use for mvp_read() and mvp_write()             */
     off_t size;            /* internal use for mvp_read() and mvp_write()             */
@@ -124,6 +136,15 @@ struct MVPTree {
     Node *node;            /* reference to top of tree                                */
     CmpFunc dist;          /* distance function - e.g. L1 or L2                       */
 } ;
+
+struct HeapItemMVPTree {
+      HeapItemMVPTree(RObject* obj, double dist) : obj(obj), dist(dist) {}
+      RObject* obj;
+      double dist;
+      bool operator<( const HeapItemMVPTree& o ) const {
+         return dist < o.dist;
+      }
+   };
 
 
 /*   DP* dp_alloc
@@ -263,8 +284,8 @@ MVPError mvptree_add(MVPTree *tree, MVPDP **points, unsigned int nbpoints);
  *
  */
 
-MVPDP** mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,\
-                                       unsigned int *nbresults, MVPError *error);
+std::priority_queue<HeapItemMVPTree> mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,\
+                                       unsigned int *nbresults, MVPError *error, bool findItself);
 
 /*
  *   mvptree_write

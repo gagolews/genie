@@ -31,6 +31,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <queue>
+#include <iostream>
 #include "mvptree/mvptree.h"
 
 #define HEADER_SIZE 32
@@ -327,6 +329,7 @@ static MVPDP*** sort_points(MVPDP **points, unsigned int nbpoints, int sv1_pos, 
 static int find_distance_range_for_vp(MVPDP **points, unsigned int nbpoints, MVPDP *vp,\
                                       MVPTree *tree, int lvl){
     if (!points || nbpoints == 0 || !vp || !tree || !tree->dist){
+       stop("czegos brakuje.");
 	return -1;
     }
     CmpFunc func = tree->dist;
@@ -334,6 +337,7 @@ static int find_distance_range_for_vp(MVPDP **points, unsigned int nbpoints, MVP
     for (i = 0; i < nbpoints; i++){
 	float d = func(vp, points[i]);
 	if (is_nan(d) || d < 0.0f){
+      stop("policzona liczba jest zla.");
 	    return -2;
 	}
 	if (lvl < tree->pathlength){
@@ -367,6 +371,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	    }
 
 	    if (select_vantage_points(points, nbpoints, &sv1_pos, &sv2_pos, tree->dist) < 0){
+          stop("MVP_VPNOSELECT");
 		*error = MVP_VPNOSELECT;
 		free_node(new_node);
 		return NULL;
@@ -376,6 +381,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	    new_node->leaf.sv2 = (sv2_pos >= 0) ? points[sv2_pos] : NULL;
 
 	    if (find_distance_range_for_vp(points, nbpoints, new_node->leaf.sv1,tree,lvl)<0){
+      stop("MVP_NOSV1RANGE");
 		*error = MVP_NOSV1RANGE;
 		free_node(new_node);
 		return NULL;
@@ -383,6 +389,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 
 	    if (new_node->leaf.sv2){
                 if (find_distance_range_for_vp(points,nbpoints,new_node->leaf.sv2,tree,lvl+1)<0){
+            stop("MVP_NOSV2RANGE");
 		    *error = MVP_NOSV2RANGE;
 		    free_node(new_node);
 		    return NULL;
@@ -415,6 +422,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	    new_node->internal.sv2 = points[sv2_pos];
 
 	    if (find_distance_range_for_vp(points,nbpoints,new_node->internal.sv1,tree,lvl)<0){
+          stop("MVP_NOSV1RANGE");
 		*error = MVP_NOSV1RANGE;
 		free_node(new_node);
 		return NULL;
@@ -441,6 +449,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		/* for each bin */
 		if (find_distance_range_for_vp(bins[i], binlengths[i], new_node->internal.sv2,\
 					       tree, lvl+1) < 0){
+         stop("MVP_NOSV2RANGE");
 		    *error = MVP_NOSV2RANGE;
 		    free_node(new_node);
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
@@ -492,6 +501,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 
 		/* add points into leaf - plenty of room */
  	        if (find_distance_range_for_vp(points,nbpoints,new_node->leaf.sv1,tree,lvl)<0){
+              stop("MVP_NOSV1RANGE");
 		    *error = MVP_NOSV1RANGE;
 		    return new_node;
 		}
@@ -501,6 +511,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		    pos = 1;
 		}
 		if (find_distance_range_for_vp(points,nbpoints,new_node->leaf.sv2,tree,lvl+1)<0){
+         stop("MVP_NOSV2RANGE");
 		    *error = MVP_NOSV2RANGE;
 		    return new_node;
 		}
@@ -541,6 +552,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 	} else { /* node is internal - must recurse on subnodes */
 
 	    if (find_distance_range_for_vp(points, nbpoints, new_node->internal.sv1,tree,lvl)<0){
+          stop("MVP_NOSV1RANGE");
 		*error = MVP_NOSV1RANGE;
 		return new_node;
 	    }
@@ -562,6 +574,7 @@ static Node* _mvptree_add(MVPTree *tree, Node *node, MVPDP **points, unsigned in
 		int j;
 		if (find_distance_range_for_vp(bins[i], binlengths[i],\
                                         new_node->internal.sv2, tree, lvl+1) < 0){
+         stop("MVP_NOSV2RANGE");
 		    *error = MVP_NOSV2RANGE;
 		    for (j=0;j<tree->branchfactor;j++){free(bins[j]);}
 		    free(bins);
@@ -625,11 +638,23 @@ MVPError mvptree_add(MVPTree *tree, MVPDP **points, unsigned int nbpoints) {
     }
     return err;
 }
-
-
+/*
+void //printHeap(std::priority_queue<HeapItemMVPTree>& heap)
+{
+   std::priority_queue<HeapItemMVPTree>& heap2;
+   while( !heap.empty() ) {
+         heap2.push(heap.top());
+         Rcout << heap.top().dist << endl;
+         heap.pop();
+      }
+   heap = heap2;
+}
+*/
 static
-MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius, MVPDP** results,\
-                                                          unsigned int *nbresults, int lvl){
+MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float& radius, MVPDP** results,\
+                                                          unsigned int *nbresults, int lvl, std::priority_queue<HeapItemMVPTree>& heap, bool findItself){
+
+    bool canAdd;
     MVPError err = MVP_SUCCESS;
     int bf = tree->branchfactor;
     int lengthM1 = bf - 1;
@@ -646,9 +671,24 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	}
 
 	if (lvl < tree->pathlength) target->path[lvl] = d1;
-	if (d1 <= radius){
-	    results[(*nbresults)++] = node->leaf.sv1;
-	    if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
+   canAdd = true;
+   if(d1 < 1e-6)
+   {
+      if(!findItself && R_compute_identical(*(RObject*)(node->internal.sv1->data), *(RObject*)(target->data), 16))
+         canAdd = false;
+   }
+	if (d1 <= radius && canAdd){
+      if ( heap.size() == (size_t)tree->k) heap.pop();
+
+      heap.push( HeapItemMVPTree((RObject*)(node->leaf.sv1->data), d1) );
+      //printHeap(heap);
+      //stop("Na chwile przed heap.push");
+      if ( heap.size() ==(size_t) tree->k)
+      {
+         radius = heap.top().dist;
+      }
+      //results[(*nbresults)++] = node->leaf.sv1;
+	    //if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
 	}
 	if (tree->node->leaf.sv2){
 	    d2 = distance(target, node->leaf.sv2);
@@ -656,23 +696,37 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	    if (is_nan(d2) || d2 < 0.0f){
 		return MVP_BADDISTVAL;
 	    }
-	    if (d2 <= radius){
-		results[(*nbresults)++] = node->leaf.sv2;
-		if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
-	    }
+      canAdd = true;
+   if(d2 < 1e-6)
+   {
+      if(!findItself && R_compute_identical(*(RObject*)(node->internal.sv2->data), *(RObject*)(target->data), 16))
+         canAdd = false;
+   }
+	    if (d2 <= radius && canAdd){
+          if ( heap.size() == (size_t)tree->k) heap.pop();
+
+          heap.push( HeapItemMVPTree((RObject*)(node->leaf.sv2->data), d2) );
+          if ( heap.size() ==(size_t) tree->k)
+          {
+             radius = heap.top().dist;
+          }
+       }
 	    if (lvl+1 < tree->pathlength) target->path[lvl+1] = d2;
 	    for (i=0;i<node->leaf.nbpoints;i++){
 
-		/* check all points
+	   /*//check all points
 		float d = distance(target,node->leaf.points[i]);
-		fprintf(stdout,"pnt%d distance(Q,%s)=%f\n",i,node->leaf.points[i]->id,d);
+		//fprintf(stdout,"pnt%d distance(Q,%s)=%f\n",i,node->leaf.points[i]->id,d);
 		if (d <= radius){
-		    results[(*nbresults)++] = node->leaf.points[i];
-		    if (*nbresults >= tree->k){
-			return MVP_KNEARESTCAP;
-		    }
-		}
-		*/
+         if ( heap.size() == (size_t)tree->k) heap.pop();
+         heap.push( HeapItemMVPTree((RObject*)(node->leaf.points[i]->data), d) );
+         //printHeap(heap);
+         if ( heap.size() ==(size_t) tree->k)
+         {
+            radius = heap.top().dist;
+         }
+		}*/
+
 
 		/* filter points before checking */
 		if (d1 - radius <= node->leaf.d1[i] && d1 + radius >= node->leaf.d1[i]){
@@ -694,12 +748,21 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 			    if (is_nan(d) || d < 0.0){
 				return MVP_BADDISTVAL;
 			    }
-			    if (d <= radius){
-				results[(*nbresults)++] = node->leaf.points[i];
-				if (*nbresults >= tree->k){
-				    return MVP_KNEARESTCAP;
-				}
-			    }
+            canAdd = true;
+            if(d < 1e-6)
+            {
+               if(!findItself && R_compute_identical(*(RObject*)(node->leaf.points[i]->data), *(RObject*)(target->data), 16))
+                  canAdd = false;
+            }
+
+            if (d <= radius && canAdd){
+               if ( heap.size() == (size_t)tree->k) heap.pop();
+               heap.push( HeapItemMVPTree((RObject*)(node->leaf.points[i]->data), d) );
+               if ( heap.size() ==(size_t) tree->k)
+               {
+                  radius = heap.top().dist;
+               }
+            }
 			}
 		    }
 		}
@@ -711,18 +774,42 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	if (is_nan(d1) || d1 < 0.0f){
 	    return MVP_BADDISTVAL;
 	}
-	if (d1 <= radius){
-	    results[(*nbresults)++] = node->internal.sv1;
-	    if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
+   canAdd = true;
+   if(d1 < 1e-6)
+   {
+      if(!findItself && R_compute_identical(*(RObject*)(node->internal.sv1->data), *(RObject*)(target->data), 16))
+         canAdd = false;
+   }
+	if (d1 <= radius && canAdd){
+      if ( heap.size() == (size_t)tree->k) heap.pop();
+
+      heap.push( HeapItemMVPTree((RObject*)(node->internal.sv1->data), d1) );
+      //printHeap(heap);
+      //stop("Na chwile przed heap.push");
+      if ( heap.size() ==(size_t) tree->k)
+      {
+         radius = heap.top().dist;
+      }
+      //results[(*nbresults)++] = node->internal.sv1;
 	}
 	if (lvl < tree->pathlength) target->path[lvl] = d1;
 	d2 = distance(target, node->internal.sv2);
 	if (is_nan(d2) || d2 < 0.0f){
 	    return MVP_BADDISTVAL;
 	}
-	if (d2 <= radius){
-	    results[(*nbresults)++] = node->internal.sv2;
-	    if (*nbresults >= tree->k) return MVP_KNEARESTCAP;
+   canAdd = true;
+   if(d2 < 1e-6)
+   {
+      if(!findItself && R_compute_identical(*(RObject*)(node->internal.sv2->data), *(RObject*)(target->data), 16))
+         canAdd = false;
+   }
+	if (d2 <= radius && canAdd){
+      if ( heap.size() == (size_t)tree->k) heap.pop();
+      heap.push( HeapItemMVPTree((RObject*)(node->internal.sv2->data), d2) );
+      if ( heap.size() ==(size_t) tree->k)
+      {
+         radius = heap.top().dist;
+      }
 	}
 	if (lvl+1 < tree->pathlength) target->path[lvl+1] = d2;
 	/* check <= each 1st level bins */
@@ -735,7 +822,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 		    if (d2 - radius <= node->internal.M2[i*lengthM1+j]){
 
 			err = _mvptree_retrieve(tree,(Node*)(node->internal.child_nodes[i*bf+j]),target,
-                                                            radius, results, nbresults, lvl+2);
+                                                            radius, results, nbresults, lvl+2, heap, findItself);
 
 			if (err != MVP_SUCCESS) return err;
 		    }
@@ -744,7 +831,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 		if (d2 + radius >= node->internal.M2[i*lengthM1+lengthM1-1]){
 
 		    err = _mvptree_retrieve(tree,(Node*)(node->internal.child_nodes[i*bf+lengthM1]),
-                                        target, radius, results, nbresults, lvl+2);
+                                        target, radius, results, nbresults, lvl+2, heap, findItself);
 		    if (err != MVP_SUCCESS) return err;
 		}
 	    }
@@ -758,7 +845,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 		if (d2 - radius <= node->internal.M2[lengthM1*lengthM1+j]){
 
 		    err = _mvptree_retrieve(tree,(Node*)(node->internal.child_nodes[bf*lengthM1+j]),
-                                            target, radius, results, nbresults, lvl+2);
+                                            target, radius, results, nbresults, lvl+2, heap, findItself);
 		    if (err != MVP_SUCCESS) return err;
 		}
 	    }
@@ -767,7 +854,7 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
 	    if (d2 + radius >= node->internal.M2[lengthM1*lengthM1+lengthM1-1]){
 
 		err = _mvptree_retrieve(tree,(Node*)(node->internal.child_nodes[bf*lengthM1+lengthM1]),
-                                         target, radius, results, nbresults, lvl+2);
+                                         target, radius, results, nbresults, lvl+2, heap, findItself);
 		if (err != MVP_SUCCESS) return err;
 	    }
 	}
@@ -777,16 +864,18 @@ MVPError _mvptree_retrieve(MVPTree *tree,Node *node,MVPDP *target, float radius,
     return err;
 }
 
-MVPDP** mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,\
-                                                 unsigned int *nbresults,MVPError *error){
+std::priority_queue<HeapItemMVPTree> mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, float radius,\
+                                                 unsigned int *nbresults,MVPError *error, bool findItself){
+   std::priority_queue<HeapItemMVPTree> heap;
+
     if (!tree || !target || !nbresults || knearest == 0 || radius < 0) {
 	*error = MVP_ARGERR;
-	return NULL;
+	return heap;
     }
 
     if (!tree->dist){
 	*error = MVP_NODISTANCEFUNC;
-	return NULL;
+	return heap;
     }
 
     *nbresults = 0;
@@ -794,29 +883,26 @@ MVPDP** mvptree_retrieve(MVPTree *tree, MVPDP *target, unsigned int knearest, fl
 
     if (!tree->node){
 	*error = MVP_EMPTYTREE;
-	return NULL;
+	return heap;
     }
 
-    MVPDP **results = (MVPDP**)malloc(knearest*sizeof(MVPDP*));
-    if (!results) {
-	*error = MVP_MEMALLOC;
-	return NULL;
-    }
+    MVPDP **results;
+
 
     target->path = (float*)malloc(tree->pathlength*sizeof(float));
     if (target->path == NULL){
 	*error = MVP_MEMALLOC;
 	free(results);
-	return NULL;
+	return heap;
     }
     tree->k = knearest;
 
-    *error = _mvptree_retrieve(tree, tree->node, target, radius, results, nbresults, 0);
+    *error = _mvptree_retrieve(tree, tree->node, target, radius, results, nbresults, 0, heap, findItself);
 
     free(target->path);
     target->path = NULL;
 
-    return results;
+    return heap;
 }
 
 static off_t write_datapoint(MVPDP *dp, MVPTree *tree){

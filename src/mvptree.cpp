@@ -28,7 +28,7 @@
 #include "metric_trees_helpers.h"
 #include "mvptree/mvptree.h"
 
-#define MVP_BRANCHFACTOR 2
+#define MVP_BRANCHFACTOR 3
 #define MVP_PATHLENGTH   5
 #define MVP_LEAFCAP     25
 
@@ -89,35 +89,18 @@ void checkIsMvpTreeClass(XPtr<mvptree>& _tree)
 //' a single candidate for vantage point in a node to assess a variance of
 //' distances
 // [[Rcpp::export]]
-SEXP mvptree_create(Function distance, bool isSimilarity = false) {
+SEXP mvptree_create(Function distance, bool isSimilarity = false, int mvp_branchfactor=2, int mvp_pathlength=5, int mvp_leafcap=25) {
    distClass distci;
    distci.isSimilarity = isSimilarity;
    distci.distance = new RFunction(distance);
 
-   MVPTree *tree = mvptree_alloc(NULL, distanceWrapper, MVP_BRANCHFACTOR, MVP_PATHLENGTH, MVP_LEAFCAP);
+   MVPTree *tree = mvptree_alloc(NULL, distanceWrapper, mvp_branchfactor, mvp_pathlength, mvp_leafcap);
 
    mvptree* vec = new mvptree(tree, distci);
    globaltree = vec;
    XPtr< mvptree > retval =  XPtr< mvptree >(vec, true);
    retval.attr("class") = mvptree::ClassName;
    return retval;
-}
-
-//' @rdname mvptree
-//' @details
-//' \code{mvptree_insert} inserts a new point into a m-tree.
-//' Calling this function n times has worse performance in comparison
-//' to calling one \code{mvptree_build} with n points in the beginning.
-//'
-//' @return
-//' \code{mvptree_insert} does not return anything interesting.
-//' @param obj a point to insert
-// [[Rcpp::export]]
-void mvptree_insert(SEXP tree, RObject obj) {
-   XPtr< mvptree > _tree = Rcpp::as< XPtr< mvptree > > (tree);
-   checkIsMvpTreeClass(_tree);
-   R_PreserveObject(obj);
-   //(*_tree).add(obj);
 }
 
 MVPDP* generate_point(RObject obj){
@@ -137,6 +120,7 @@ MVPDP* generate_point(RObject obj){
       newpnt->data = malloc(sizeof(RObject));
       RObject* row = (RObject*)newpnt->data;
       row[0] = obj;
+      R_PreserveObject(row[0]);
    }
    else if(sizeof(RObject*) == 8)
    {
@@ -144,6 +128,7 @@ MVPDP* generate_point(RObject obj){
       newpnt->data = malloc(sizeof(RObject));
       RObject* row = (RObject*)newpnt->data;
       row[0] = obj;
+      R_PreserveObject(row[0]);
    }
    else
       stop("sizeof(RObject*) is not 4 nor 8");
@@ -153,6 +138,28 @@ MVPDP* generate_point(RObject obj){
    newpnt->id = strdup(scratch);
 
    return newpnt;
+}
+
+//' @rdname mvptree
+//' @details
+//' \code{mvptree_insert} inserts a new point into a m-tree.
+//' Calling this function n times has worse performance in comparison
+//' to calling one \code{mvptree_build} with n points in the beginning.
+//'
+//' @return
+//' \code{mvptree_insert} does not return anything interesting.
+//' @param obj a point to insert
+// [[Rcpp::export]]
+void mvptree_insert(SEXP tree, RObject obj) {
+   XPtr< mvptree > _tree = Rcpp::as< XPtr< mvptree > > (tree);
+   checkIsMvpTreeClass(_tree);
+   R_PreserveObject(obj);
+   MVPDP* obj2 = generate_point(obj);
+   MVPDP **pointlist = (MVPDP**)malloc(1*sizeof(MVPDP*));
+   pointlist[0] = obj2;
+   MVPError err = mvptree_add(_tree->_tree, pointlist, 1);
+   if(err != MVP_SUCCESS)
+      stop(std::to_string(err));
 }
 
 MVPDP** createMVPDPFromVector(const vector<RObject>& vec)
@@ -192,6 +199,8 @@ void mvptree_build(SEXP tree, List listobj) {
    //Rcout<<"Dodaje do drzewa " << endl;
    globaltree = _tree;
    MVPError err = mvptree_add(_tree->_tree, pointlist, points.size());
+   if(err != MVP_SUCCESS)
+      stop(std::to_string(err));
 }
 
 //' @rdname mvptree
@@ -211,7 +220,7 @@ void mvptree_build(SEXP tree, List listobj) {
 //' @param k a single integer, number of neighbours to find
 //' @param findItself boolean value, should results contain an given object?
 // [[Rcpp::export]]
-List mvptree_searchKNN(SEXP tree, RObject p, int k, double tau)
+List mvptree_searchKNN(SEXP tree, RObject p, int k, bool findItself = true)
 {
    XPtr< mvptree > _tree = Rcpp::as< XPtr< mvptree > > (tree);
    checkIsMvpTreeClass(_tree);
@@ -222,22 +231,22 @@ List mvptree_searchKNN(SEXP tree, RObject p, int k, double tau)
    unsigned int nbresults;
    MVPError err;
    globaltree = _tree;
-   MVPDP **results = mvptree_retrieve(_tree->_tree, p1 , k, tau, &nbresults, &err);
+   std::priority_queue<HeapItemMVPTree> results = mvptree_retrieve(_tree->_tree, p1 , k, std::numeric_limits<double>::max(), &nbresults, &err, findItself);
 
-   size_t resultsSize = nbresults;
+   size_t resultsSize = results.size();
 
-   List resultList(1);
+   List resultList(2);
    List elements(resultsSize);
-   //List distancesRcpp(resultsSize);
+   List distancesRcpp(resultsSize);
    int index = 0;
-   for(int i = 0; i < resultsSize; ++i)
-   {
-      elements[index] = *((RObject*)results[i]->data);
-      //distancesRcpp[index] = results[i].distance;
-      index++;
-   }
+   while( !results.empty() ) {
+         elements[resultsSize-index-1] = *results.top().obj;
+         distancesRcpp[resultsSize-index-1] = results.top().dist;
+         index++;
+         results.pop();
+      }
    resultList[0] = elements;
-   //resultList[1] = distancesRcpp;
+   resultList[1] = distancesRcpp;
    return resultList;
 }
 
@@ -268,21 +277,21 @@ List mvptree_searchRadius(SEXP tree, RObject p, double tau, bool findItself = tr
    unsigned int nbresults;
    MVPError err;
    globaltree = _tree;
-   MVPDP **results = mvptree_retrieve(_tree->_tree, p1 , std::numeric_limits<unsigned int>::max(), tau, &nbresults, &err);
+   std::priority_queue<HeapItemMVPTree> results = mvptree_retrieve(_tree->_tree, p1 , std::numeric_limits<unsigned int>::max(), tau, &nbresults, &err, findItself);
 
-   size_t resultsSize = nbresults;
+   size_t resultsSize = results.size();
 
-   List resultList(1);
+   List resultList(2);
    List elements(resultsSize);
-   //List distancesRcpp(resultsSize);
+   List distancesRcpp(resultsSize);
    int index = 0;
-   for(int i = 0; i < resultsSize; ++i)
-   {
-      elements[index] = *((RObject*)results[i]->data);
-      //distancesRcpp[index] = results[i].distance;
-      index++;
-   }
+   while( !results.empty() ) {
+         elements[resultsSize-index-1] = *results.top().obj;
+         distancesRcpp[resultsSize-index-1] = results.top().dist;
+         index++;
+         results.pop();
+      }
    resultList[0] = elements;
-   //resultList[1] = distancesRcpp;
+   resultList[1] = distancesRcpp;
    return resultList;
 }

@@ -119,8 +119,8 @@ mtree_searchRadius <- function(tree, p, tau, findItself = TRUE) {
 #' @param testPointsCount single integer, how many points are considered with
 #' a single candidate for vantage point in a node to assess a variance of
 #' distances
-mvptree_create <- function(distance, isSimilarity = FALSE) {
-    .Call('DataStructures_mvptree_create', PACKAGE = 'DataStructures', distance, isSimilarity)
+mvptree_create <- function(distance, isSimilarity = FALSE, mvp_branchfactor = 2L, mvp_pathlength = 5L, mvp_leafcap = 25L) {
+    .Call('DataStructures_mvptree_create', PACKAGE = 'DataStructures', distance, isSimilarity, mvp_branchfactor, mvp_pathlength, mvp_leafcap)
 }
 
 #' @rdname mvptree
@@ -167,8 +167,8 @@ mvptree_build <- function(tree, listobj) {
 #' @param p an R object for which neighbours are found
 #' @param k a single integer, number of neighbours to find
 #' @param findItself boolean value, should results contain an given object?
-mvptree_searchKNN <- function(tree, p, k, tau) {
-    .Call('DataStructures_mvptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k, tau)
+mvptree_searchKNN <- function(tree, p, k, findItself = TRUE) {
+    .Call('DataStructures_mvptree_searchKNN', PACKAGE = 'DataStructures', tree, p, k, findItself)
 }
 
 #' @rdname mvptree
