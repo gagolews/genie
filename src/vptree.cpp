@@ -1209,4 +1209,9 @@ void vptree_printCounters(SEXP vptree)
    checkIsVpTreeClass(_tree);
    _tree->printCounters();
 }
+#else
+void vptree_printCounters(SEXP vptree)
+{
+   stop("Please compile with DEBUG flag on, e.g. -DDEBUG.");
+}
 #endif
