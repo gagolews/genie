@@ -453,6 +453,28 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// hierarchical
+NumericMatrix hierarchical(Function distance, List listobj, bool isSimilarity = false, int m = 2, int minm = 4, int maxLeafPointsCount = 25, int vantageCandidatesCount = 5, int testPointsCount = 15);
+RcppExport SEXP DataStructures_hierarchical(SEXP distanceSEXP, SEXP listobjSEXP, SEXP isSimilaritySEXP, SEXP mSEXP, SEXP minmSEXP, SEXP maxLeafPointsCountSEXP, SEXP vantageCandidatesCountSEXP, SEXP testPointsCountSEXP) {
+BEGIN_RCPP
+    SEXP __sexp_result;
+    {
+        Rcpp::RNGScope __rngScope;
+        Rcpp::traits::input_parameter< Function >::type distance(distanceSEXP );
+        Rcpp::traits::input_parameter< List >::type listobj(listobjSEXP );
+        Rcpp::traits::input_parameter< bool >::type isSimilarity(isSimilaritySEXP );
+        Rcpp::traits::input_parameter< int >::type m(mSEXP );
+        Rcpp::traits::input_parameter< int >::type minm(minmSEXP );
+        Rcpp::traits::input_parameter< int >::type maxLeafPointsCount(maxLeafPointsCountSEXP );
+        Rcpp::traits::input_parameter< int >::type vantageCandidatesCount(vantageCandidatesCountSEXP );
+        Rcpp::traits::input_parameter< int >::type testPointsCount(testPointsCountSEXP );
+        NumericMatrix __result = hierarchical(distance, listobj, isSimilarity, m, minm, maxLeafPointsCount, vantageCandidatesCount, testPointsCount);
+        PROTECT(__sexp_result = Rcpp::wrap(__result));
+    }
+    UNPROTECT(1);
+    return __sexp_result;
+END_RCPP
+}
 // vptree_create
 SEXP vptree_create(Function distance, bool isSimilarity = false, int m = 2, int minm = 4, int maxLeafPointsCount = 25, int vantageCandidatesCount = 5, int testPointsCount = 15);
 RcppExport SEXP DataStructures_vptree_create(SEXP distanceSEXP, SEXP isSimilaritySEXP, SEXP mSEXP, SEXP minmSEXP, SEXP maxLeafPointsCountSEXP, SEXP vantageCandidatesCountSEXP, SEXP testPointsCountSEXP) {
