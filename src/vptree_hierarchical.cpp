@@ -19,6 +19,7 @@
 #include <fstream>
 #include <exception>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <string>
 
@@ -128,6 +129,52 @@ template<typename T>
    private:
    std::vector<int> neighborsCount;
    std::vector<queue<HeapItem>> nearestNeighbors;
+
+   IntegerMatrix hclust_merge_matrix(const IntegerMatrix x) const {
+      // x has 0-based indices
+      int n = x.nrow();
+      if (x.ncol() != 2) stop("x should have 2 columns");
+
+      IntegerMatrix y(n, 2);
+      std::vector< std::unordered_set<int> > curclust(n);
+
+      for (int k=0; k<n; ++k) {
+         int i = x(k,0)+1;
+         int j = x(k,1)+1;
+         int si=k-1, sj=k-1;
+         while (si >= 0 && curclust[si].find(i) == curclust[si].end()) si--;
+         while (sj >= 0 && curclust[sj].find(j) == curclust[sj].end()) sj--;
+         if (si < 0 && sj < 0) {
+            curclust[k].insert(i);
+            curclust[k].insert(j);
+            y(k,0) = -i;
+            y(k,1) = -j;
+         }
+         else if (si < 0 && sj >= 0) {
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[k].insert(i);
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = -i;
+            y(k,1) = sj+1;
+         }
+         else if (si >= 0 && sj < 0) {
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(j);
+            curclust[si].clear(); // no longer needed
+            y(k,0) = si+1;
+            y(k,1) = -j;
+         }
+         else { // if (si >= 0 && sj >= 0)
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[si].clear(); // no longer needed
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = si+1;
+            y(k,1) = sj+1;
+         }
+      }
+      return y;
+   }
 
    struct HeapHierarchicalItem {
       HeapHierarchicalItem( int index1, int index2, double dist) :
