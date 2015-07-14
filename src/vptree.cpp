@@ -38,7 +38,7 @@ template<typename T>
    public:
    static const char* ClassName;
 
-   VpTree(int m=4, int minM=2, size_t max_leaf_size=25, size_t vantage_point_candidates=5, size_t test_point_count=15)
+   VpTree(int m=16, int minM=8, size_t max_leaf_size=10, size_t vantage_point_candidates=3, size_t test_point_count=5)
       : _m(m), _minM(minM), _max_leaf_size(max_leaf_size), _vantage_point_candidates(vantage_point_candidates),
    _test_point_count(test_point_count), _root(NULL)
    {

@@ -454,7 +454,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // hierarchical
-NumericMatrix hierarchical(Function distance, List listobj, bool isSimilarity = false, int m = 2, int minm = 4, int maxLeafPointsCount = 25, int vantageCandidatesCount = 5, int testPointsCount = 15);
+IntegerMatrix hierarchical(Function distance, List listobj, bool isSimilarity = false, int m = 2, int minm = 4, int maxLeafPointsCount = 25, int vantageCandidatesCount = 5, int testPointsCount = 15);
 RcppExport SEXP DataStructures_hierarchical(SEXP distanceSEXP, SEXP listobjSEXP, SEXP isSimilaritySEXP, SEXP mSEXP, SEXP minmSEXP, SEXP maxLeafPointsCountSEXP, SEXP vantageCandidatesCountSEXP, SEXP testPointsCountSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
@@ -468,7 +468,7 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< int >::type maxLeafPointsCount(maxLeafPointsCountSEXP );
         Rcpp::traits::input_parameter< int >::type vantageCandidatesCount(vantageCandidatesCountSEXP );
         Rcpp::traits::input_parameter< int >::type testPointsCount(testPointsCountSEXP );
-        NumericMatrix __result = hierarchical(distance, listobj, isSimilarity, m, minm, maxLeafPointsCount, vantageCandidatesCount, testPointsCount);
+        IntegerMatrix __result = hierarchical(distance, listobj, isSimilarity, m, minm, maxLeafPointsCount, vantageCandidatesCount, testPointsCount);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

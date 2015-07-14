@@ -175,6 +175,7 @@ struct distClass
          got->second.incrementCounter();
          hashmapHit++;
 #endif
+         //Rcout << "trafilem"<<endl;
          return got->second.dist;
       }
    }
