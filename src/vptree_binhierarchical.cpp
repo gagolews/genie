@@ -161,7 +161,6 @@ class VpTreeHierarchical2
    }
 
 
-
    virtual ~VpTreeHierarchical2() {
       if(_root) delete _root;
    }
@@ -296,33 +295,45 @@ class VpTreeHierarchical2
 
       IndexComparator(int index ) : index(index) {}
       bool operator()(int a) {
-         return a < index;
+         return a <= index;
       }
    };
 
    Node* buildFromPoints(int left, int right)
    {
       const int maxNumberOfElementInLeaf = 4;
-      if(right - left < maxNumberOfElementInLeaf)
+      if(right - left <= maxNumberOfElementInLeaf)
       {
+//          printf("(%d,%d)\n", left, right);
+//          for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
+//          printf("\n");
          return new Node(left, right);
       }
 
-      int vpi = left;//(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
+      int vpi = _indices[left];//(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
 
-      int median = ( right + left ) / 2;
+      int median = ( right + left - 1 ) / 2;
       std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
                        DistanceComparator(vpi, &_distance ));
-      Node* node = new Node(vpi, _distance(_indices[left], _indices[median]));
+      // std::sort(_indices.begin() + left+1, _indices.begin() + right,
+                       // DistanceComparator(vpi, &_distance ));
+      // printf("(%d,%d,%d)\n", left, median, right);
+      // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
+      // printf("\n");
+      Node* node = new Node(vpi, _distance(vpi, _indices[median]));
 
 
       int middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
       int middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
+      // printf("(%d,%d,%d,%d,%d)\n", left, middle1, median, middle2, right);
+      // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
+      // printf("\n");
 
-      node->ll = buildFromPoints(left, middle1);
-      node->lr = buildFromPoints(middle1, median + 1);
-      node->rl = buildFromPoints(median + 1, middle2);
-      node->rr = buildFromPoints(middle2, right);
+
+      if (middle1 - left > 0)     node->ll = buildFromPoints(left, middle1);
+      if (median+1 - middle1 > 0) node->lr = buildFromPoints(middle1, median + 1);
+      if (middle2 - median-1 > 0) node->rl = buildFromPoints(median + 1, middle2);
+      if (right-middle2 > 0)      node->rr = buildFromPoints(middle2, right);
 
       return node;
    }
@@ -461,7 +472,52 @@ class VpTreeHierarchical2
       }
    }
    */
+
+
+public:
+   void print() {
+      Rprintf("digraph vptree {\n");
+      Rprintf("size=\"6,6\";\n");
+	   Rprintf("node [color=lightblue2, style=filled];");
+      print(_root);
+      Rprintf("}\n");
+   }
+
+
+protected:
+   void print(Node* n) {
+      if (n->ll) {
+         Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
+         print(n->ll);
+      }
+      if (n->lr) {
+         Rprintf("\"%llx\" -> \"%llx\" [label=\"LR\"];\n", (unsigned long long)n, (unsigned long long)(n->lr));
+         print(n->lr);
+      }
+      if (n->rl) {
+         Rprintf("\"%llx\" -> \"%llx\" [label=\"RL\"];\n", (unsigned long long)n, (unsigned long long)(n->rl));
+         print(n->rl);
+      }
+      if (n->rr) {
+         Rprintf("\"%llx\" -> \"%llx\" [label=\"RR\"];\n", (unsigned long long)n, (unsigned long long)(n->rr));
+         print(n->rr);
+      }
+      if (n->vpindex < 0) {
+         for (int i=n->left; i<n->right; ++i)
+            Rprintf("\"%llx\" -> \"%d\" [arrowhead = diamond];\n", (unsigned long long)n, _indices[i]+1);
+      }
+      else {
+         Rprintf("\"%llx\" [label=\"(%d, %g)\"];\n", (unsigned long long)n, n->vpindex+1, n->radius);
+      }
+   }
+
 };
+
+
+
+
+
+
 /*
 template <>
    void vptree<RObject>::findIndex(const RObject& target) // specialize only one member
@@ -487,6 +543,7 @@ IntegerMatrix hclust2(Function distance, List listobj) { //https://code.google.c
 
 
    VpTreeHierarchical2 _tree(&points, rf);
+   _tree.print();
    //IntegerMatrix im = _tree->hierarchicalClustering();
    delete rf;
    return IntegerMatrix(0,0);
