@@ -177,36 +177,44 @@ class VpTreeHierarchical2
       if(_root==NULL) return 0;
       return treeHeight_rec(_root);
    }*/
-/*
-   virtual void searchKNNKnownIndex(int index, int k, std::vector<RObject>* results,
-                            std::vector<double>* distances, bool findItself = true)
+
+   struct HeapItem {
+      HeapItem( int index, double dist) :
+      index(index), dist(dist) {}
+      HeapItem():index(-1), dist(0) {}
+      int index;
+      double dist;
+      bool operator<( const HeapItem& o ) const {
+         return dist < o.dist;
+      }
+   };
+
+   virtual vector<HeapItem> searchKNNKnownIndex(int index, int k, double minR)
    {
       if(index < 0 || index >= _items->size()) stop("Index out of bounds.");
       #ifdef DEBUG
       _distance.metricCalculated = 0;
       _distance.hashmapHit = 0;
       #endif
+
       std::priority_queue<HeapItem> heap;
-
       _tau = std::numeric_limits<double>::max();
-      search( _root, index, true, k, heap, findItself );
-
-      results->clear(); distances->clear();
+      search( _root, index, true, k, minR, heap );
+      vector<HeapItem> results(heap.size());
+      int i=results.size() - 1;
 
       while( !heap.empty() ) {
-         results->push_back( _items[heap.top().index] );
-         distances->push_back( heap.top().dist );
+         results[i] = heap.top();
+         i--;
          heap.pop();
       }
-
-      std::reverse( results->begin(), results->end() );
-      std::reverse( distances->begin(), distances->end() );
       #ifdef DEBUG
       Rcout << "metric calculated = " << _distance.metricCalculated << endl;
       Rcout << "hashmapHit = " << _distance.hashmapHit << endl;
       #endif
+      return results;
    }
-
+/*
    void searchRadiusKnownIndex(int index, double tau, std::vector<RObject>* results,
                                std::vector<double>* distances, bool findItself = true)
    {
@@ -227,7 +235,8 @@ class VpTreeHierarchical2
       std::reverse( results->begin(), results->end() );
       std::reverse( distances->begin(), distances->end() );
    }
-*/
+   */
+
    #ifdef DEBUG
    void printCounters()
    {
@@ -269,15 +278,7 @@ class VpTreeHierarchical2
 
 
 
-   struct HeapItem {
-      HeapItem( int index, double dist) :
-      index(index), dist(dist) {}
-      int index;
-      double dist;
-      bool operator<( const HeapItem& o ) const {
-         return dist < o.dist;
-      }
-   };
+
 
    struct DistanceComparator
    {
@@ -359,108 +360,77 @@ class VpTreeHierarchical2
       return maxH+1;
    }
 */
-   /*
-   void search( Node* node, const RObject& target, bool isKNN, int k,
-               std::priority_queue<HeapItem>& heap, bool findItself)
+
+   virtual void search( Node* node, int index, bool isKNN, int k, double minR,
+               std::priority_queue<HeapItem>& heap )
    {
       if ( node == NULL ) return;
 
-
-      //printf("dist=%g tau=%gn", dist, _tau );
-      if(node->isLeaf)
+      if(node->vpindex == -1)
       {
-         for(size_t i=0;i<node->points.size();i++)
+         for(size_t i=node->left;i<node->right;i++)
          {
-            double dist2 = _distance( _items[node->points[i]], target );
-            if(dist2 < 1e-6)
+            if(index < _indices[i])
             {
-                if(!findItself && R_compute_identical(_items[node->points[i]], target, 16))
-                   continue;
-            }
-            if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
-               if ( heap.size() == (size_t)k && isKNN) heap.pop();
-               heap.push( HeapItem(node->points[i], dist2) );
-               if ( heap.size() ==(size_t) k && isKNN)
+               double dist2 = _distance(_indices[i], index );
+               if ( (dist2 < _tau && isKNN && dist2 > minR) || (dist2 <= _tau && !isKNN) )
                {
-                  _tau = heap.top().dist;
-                  //Rcout << "current tau=" << _tau << endl;
+
+                     if ( heap.size() >=(size_t) k && isKNN) heap.pop();
+                     heap.push( HeapItem(_indices[i], dist2) );
+                     if ( heap.size() == (size_t) k && isKNN)
+                     {
+                        _tau = heap.top().dist;
+                        //Rcout << "current tau=" << _tau << endl;
+                     }
+
                }
             }
          }
       }
       else
       {
-         double dist = _distance( _items[node->vpindex], target );
-         vector<bool> visited(node->childCount, false);
 
-         for(int i=0;i<node->childCount-1;i++)
-         {
-            //if ( dist < node->radiuses[i] ) {
-            if ( dist - _tau <= node->radiuses[i] && !visited[i]) {
-               search( node->children[i], target, isKNN, k, heap, findItself );
-               visited[i]=true;
-            }
-            if ( dist + _tau >= node->radiuses[i] && !visited[i+1]) {
-               search( node->children[i+1], target, isKNN, k, heap, findItself );
-               visited[i+1]=true;
-            }
-            //}
-         }
-         /*if ( dist + _tau >= node->radiuses[node->childCount-2] ) {
-				search( node->children[node->childCount-1], target, k, heap );
-			}
-      }
-   }
 
-   virtual void search( Node* node, int index, bool isKNN, int k,
-               std::priority_queue<HeapItem>& heap, bool findItself )
-   {
-      if ( node == NULL ) return;
+         /*if ( node->ll == NULL && node->lr == NULL && node->rl == NULL && node->rr == NULL ) {
+            return;
+         }*/
+         double dist = _distance(_indices[node->vpindex], index);
+         if ( dist < node->radius ) {
+            if ( dist - _tau <= node->radius && dist + node->radius >= minR ) {
 
-      //printf("dist=%g tau=%gn", dist, _tau );
-      if(node->isLeaf)
-      {
-         for(size_t i=0;i<node->points.size();i++)
-         {
-            double dist2 = _distance(node->points[i], index );
-            if(dist2 < 1e-6)
-            {
-                if(!findItself && R_compute_identical(_items[node->points[i]], _items[index], 16))
-                   continue;
+               if(node->ll != NULL && index <= node->vpindex)
+                  search( node->ll, index, isKNN, k, minR, heap );
+               if(node->lr != NULL)
+                  search( node->lr, index, isKNN, k, minR, heap );
             }
-            if ( (dist2 < _tau && isKNN) || (dist2 <= _tau && !isKNN) ) {
-               if ( heap.size() ==(size_t) k && isKNN) heap.pop();
-               heap.push( HeapItem(node->points[i], dist2) );
-               if ( heap.size() == (size_t) k && isKNN)
-               {
-                  _tau = heap.top().dist;
-                  //Rcout << "current tau=" << _tau << endl;
-               }
-            }
-         }
-      }
-      else
-      {
-         double dist = _distance(node->vpindex, index);
-         vector<bool> visited(node->childCount, false);
 
-         for(int i=0;i<node->childCount-1;i++)
-         {
-            //if ( dist < node->radiuses[i] ) {
-            if ( dist - _tau <= node->radiuses[i] && !visited[i]) {
-               search( node->children[i], index, isKNN, k, heap, findItself );
-               visited[i]=true;
+            if ( dist + _tau >= node->radius ) {
+               if(node->rl && index <= node->vpindex)
+                  search( node->rl, index, isKNN, k, minR, heap );
+               if(node->rr != NULL)
+                  search( node->rr, index, isKNN, k, minR, heap );
             }
-            if ( dist + _tau >= node->radiuses[i] && !visited[i+1]) {
-               search( node->children[i+1], index, isKNN, k, heap, findItself );
-               visited[i+1]=true;
+
+         } else {
+            if ( dist + _tau >= node->radius ) {
+               if(node->rl && index <= node->vpindex)
+                  search( node->rl, index, isKNN, k, minR, heap );
+               if(node->rr != NULL)
+                  search( node->rr, index, isKNN, k, minR, heap );
             }
-            //}
+
+            if ( dist - _tau <= node->radius && dist + node->radius >= minR) {
+               if(node->ll != NULL && index <= node->vpindex)
+                  search( node->ll, index, isKNN, k, minR, heap );
+               if(node->lr != NULL)
+                  search( node->lr, index, isKNN, k, minR, heap );
+            }
          }
 
       }
    }
-   */
+
 };
 /*
 template <>
