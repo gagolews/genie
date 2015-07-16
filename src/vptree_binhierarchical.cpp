@@ -20,11 +20,14 @@
 #include <exception>
 #include <unordered_map>
 #include <string>
-
+#include <boost/pending/disjoint_sets.hpp>
+#include <boost/property_map/property_map.hpp>
+#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/functional/hash.hpp>
 
 using namespace Rcpp;
 using namespace std;
+using namespace boost;
 
 struct RFunction2 {
    RFunction2(const Function& _f) : f(_f) {
@@ -188,7 +191,182 @@ class VpTreeHierarchical2
       }
    };
 
-   virtual vector<HeapItem> searchKNNKnownIndex(int index, int k, double minR)
+   struct HeapHierarchicalItem {
+      HeapHierarchicalItem( int index1, int index2, double dist) :
+      index1(index1), index2(index2), dist(dist) {}
+      int index1;
+      int index2;
+      double dist;
+      bool operator<( const HeapHierarchicalItem& o ) const {
+         return dist >= o.dist;
+      }
+   };
+
+   IntegerMatrix hierarchicalClustering()
+   {
+      //Rcout << "wszedl do dobrego" << endl;
+      IntegerMatrix ret(_n-1, 2);
+      neighborsCount = vector<int>(_n, 0);
+      minRadiuses = vector<double>(_n, 0);
+      shouldFind = vector<bool>(this->_items->size(), true);
+      nearestNeighbors = vector<queue<HeapItem>>(_n);
+      //Rcout << "dociagam sasiadow. po raz pierwszy.." << endl;
+      priority_queue<HeapHierarchicalItem> pq;
+      //Rcout << "_items.size() = " << this->_items.size() << endl;
+      for(int i=0;i<_n;i++)
+      {
+         //Rcout << i << endl;
+         //stop("kazdemu na poczatek znajduje sasiada");
+         HeapItem hi=getNearestNeighbor(i);
+
+         if(hi.index != -1)
+         {
+            //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
+            pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
+         }
+         //stop("po pierwszym wstepnym");
+      }
+      //stop("po wstepnym zebraniu sasiadow");
+      std::map<int,int> rank;
+      std::map<int,int> parent;
+
+      boost::disjoint_sets<
+         associative_property_map<std::map<int,int>>,
+         associative_property_map<std::map<int,int>> > ds(
+            make_assoc_property_map(rank),
+            make_assoc_property_map(parent));
+
+      for(int i=0; i<_n; i++)
+          ds.make_set(i);
+      //stop("po stworzeniu union find");
+      //Rcout << "pq size = " << pq.size() << endl;
+      //stop(std::to_string(pq.size()));
+      int i = 0;
+      while(i < _n - 1)
+      //for(int i=0;i<this->_items.size() - 1 ; i++)
+      {
+         //Rcout << "iteracja " << i << endl;
+         //Rcout << "pq size = " << pq.size()<< endl;
+         HeapHierarchicalItem hhi = pq.top();
+         pq.pop();
+
+         int s1 = ds.find_set(hhi.index1);
+         int s2 = ds.find_set(hhi.index2);
+         if(s1 != s2)
+         {
+            ret(i,0)=hhi.index1;
+            ret(i,1)=hhi.index2;
+            //Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", i =" << i << endl;
+            i++;
+            ds.link(s1, s2);
+            //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
+
+         }
+         //stop("przed dociaganiem sasiadow");
+
+         HeapItem hi=getNearestNeighbor(hhi.index1);
+         if(hi.index != -1)
+            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+
+         //hi=getNearestNeighbor(hhi.index2);
+         //if(hi.index != -1)
+         //   pq.push(HeapHierarchicalItem(hhi.index2, hi.index, hi.dist));
+         //stop("po pierwszej iteracji");
+      }
+      return hclust_merge_matrix(ret);
+   }
+
+   IntegerMatrix hclust_merge_matrix(const IntegerMatrix x) const {
+      // x has 0-based indices
+      int n = x.nrow();
+      if (x.ncol() != 2) stop("x should have 2 columns");
+
+      IntegerMatrix y(n, 2);
+      std::vector< std::unordered_set<int> > curclust(n);
+
+      for (int k=0; k<n; ++k) {
+         int i = x(k,0)+1;
+         int j = x(k,1)+1;
+         int si=k-1, sj=k-1;
+         while (si >= 0 && curclust[si].find(i) == curclust[si].end()) si--;
+         while (sj >= 0 && curclust[sj].find(j) == curclust[sj].end()) sj--;
+         if (si < 0 && sj < 0) {
+            curclust[k].insert(i);
+            curclust[k].insert(j);
+            y(k,0) = -i;
+            y(k,1) = -j;
+         }
+         else if (si < 0 && sj >= 0) {
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[k].insert(i);
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = -i;
+            y(k,1) = sj+1;
+         }
+         else if (si >= 0 && sj < 0) {
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(j);
+            curclust[si].clear(); // no longer needed
+            y(k,0) = si+1;
+            y(k,1) = -j;
+         }
+         else { // if (si >= 0 && sj >= 0)
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[si].clear(); // no longer needed
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = si+1;
+            y(k,1) = sj+1;
+         }
+      }
+      return y;
+   }
+
+   HeapItem getNearestNeighbor(int index)
+   {
+      const int delta = 10;
+      //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
+      if(nearestNeighbors[index].empty() && shouldFind[index])
+      {
+         //Rcout << "kolejka pusta, trzeba dociagnac sasiadow..." << endl;
+
+         priority_queue<HeapItem> heap;
+         vector<HeapItem> res;
+         if(shouldFind[index])
+            res=searchKNNKnownIndex(index, neighborsCount[index]+delta, minRadiuses[index]);
+         if(neighborsCount[index]+delta > _n - index)
+            shouldFind[index] = false;
+
+         if(res.size() > 0)
+            minRadiuses[index] = res[res.size()-1].dist;
+
+         //Rcout << "index=" << index << endl;
+         for(int i=neighborsCount[index]; i < min(neighborsCount[index]+delta, (int)res.size()); i++)
+         {
+            //Rcout << "results[i]" << results[i] << endl;
+            //Rcout << "distances[i]" << distances[i] << endl;
+            nearestNeighbors[index].push(HeapItem(res[i].index, res[i].dist ));
+         }
+         //Rcout << "dociagnalem " << heap.size() << "sasiadow" << endl;
+         //nearestNeighbors[index] = heap;
+         neighborsCount[index] = min(neighborsCount[index]+delta, (int)_n);
+         //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
+      }
+
+      if(!nearestNeighbors[index].empty())
+      {
+         HeapItem hiret = nearestNeighbors[index].front();
+         nearestNeighbors[index].pop();
+         return hiret;
+      }
+      else
+      {
+         return HeapItem(-1,-1);
+         //stop("nie ma sasiadow!");
+      }
+   }
+
+   vector<HeapItem> searchKNNKnownIndex(int index, int k, double minR)
    {
       if(index < 0 || index >= _items->size()) stop("Index out of bounds.");
       #ifdef DEBUG
@@ -204,6 +382,7 @@ class VpTreeHierarchical2
 
       while( !heap.empty() ) {
          results[i] = heap.top();
+         //Rcout << "index = " << results[i].index << ", dist = " << results[i].dist << endl;
          i--;
          heap.pop();
       }
@@ -244,6 +423,11 @@ class VpTreeHierarchical2
    #endif
 
    protected:
+   std::vector<bool> shouldFind;
+   std::vector<int> neighborsCount;
+   std::vector<double> minRadiuses;
+   std::vector<queue<HeapItem>> nearestNeighbors;
+
    distClass2 _distance;
    std::vector<RObject>* _items;
    double _tau;
@@ -406,7 +590,7 @@ class VpTreeHierarchical2
          /*if ( node->ll == NULL && node->lr == NULL && node->rl == NULL && node->rr == NULL ) {
             return;
          }*/
-         double dist = _distance(_indices[node->vpindex], index);
+         double dist = _distance(node->vpindex, index);
          if ( dist < node->radius ) {
             if ( dist - _tau <= node->radius && dist + node->radius >= minR ) {
 
@@ -514,10 +698,11 @@ IntegerMatrix hclust2(Function distance, List listobj) { //https://code.google.c
 
 
    VpTreeHierarchical2 _tree(&points, rf);
-   _tree.print();
-   //IntegerMatrix im = _tree->hierarchicalClustering();
+   //_tree.searchKNNKnownIndex(438, 8, 5);
+   //_tree.print();
+   IntegerMatrix im = _tree.hierarchicalClustering();
    delete rf;
-   return IntegerMatrix(0,0);
+   return im;
 }
 
 
