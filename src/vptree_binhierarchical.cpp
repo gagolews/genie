@@ -17,6 +17,7 @@
 #include <limits>
 #include <numeric>
 #include <fstream>
+#include <deque>
 #include <exception>
 #include <unordered_map>
 #include <string>
@@ -29,25 +30,21 @@ using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-struct RFunction2 {
-   RFunction2(const Function& _f) : f(_f) {
-      R_PreserveObject(f);
-   }
+// #define HASHMAP_COUNTERS
+#define VERBOSE
 
-   ~RFunction2() {
-      R_ReleaseObject(f);
-   }
+namespace DataStructures{
+namespace HClustSingleBiVpTree{
 
-   Function f;
-};
-
-class SortedPoint
+struct SortedPoint
 {
-   public:
-   int i;
-   int j;
-   SortedPoint():i(0),j(0){}
-   SortedPoint(int _i, int _j)
+   size_t i;
+   size_t j;
+
+   SortedPoint()
+      :i(0),j(0) {}
+
+   SortedPoint(size_t _i, size_t _j)
    {
       if(_j < _i)
       {
@@ -67,13 +64,18 @@ class SortedPoint
    }
 };
 
+} // namespace HClustSingleBiVpTree
+} // namespace DataStructures
+
+
+
 
 namespace std {
 
    template <>
-      struct hash<SortedPoint>
+      struct hash<DataStructures::HClustSingleBiVpTree::SortedPoint>
    {
-      std::size_t operator()(const SortedPoint& k) const
+      std::size_t operator()(const DataStructures::HClustSingleBiVpTree::SortedPoint& k) const
       {
         std::size_t seed = 0;
         boost::hash_combine(seed, k.i);
@@ -83,36 +85,59 @@ namespace std {
    };
 }
 
-struct distClass2
-{
-   RFunction2* distance;
-   vector<RObject> *items;
 
-   unordered_map<SortedPoint, double> hashmap;
+namespace DataStructures{
+namespace HClustSingleBiVpTree{
 
-   distClass2(RFunction2* distance, vector<RObject> *items) : distance(distance), items(items)
-   {
-   #ifdef DEBUG
-    metricCalculated=0;
-    hashmapHit=0;
-   #endif
+struct RFunction {
+   RFunction(const Function& _f) : f(_f) {
+      R_PreserveObject(f);
    }
 
-   #ifdef DEBUG
-   int metricCalculated;
-   int hashmapHit;
-   #endif
+   ~RFunction() {
+      R_ReleaseObject(f);
+   }
 
-   double operator()(int v1, int v2)
-   {
-#ifdef DEBUG
-      metricCalculated++;
+   Function f;
+};
+
+struct Distance
+{
+#ifdef HASHMAP_COUNTERS
+   size_t hashmapHit;
+   size_t hashmapMiss;
 #endif
+   RFunction* distance;
+   vector<RObject> *items;
+   unordered_map<SortedPoint, double> hashmap;
+
+   Distance(RFunction* distance, vector<RObject> *items) : distance(distance), items(items)
+   {
+#ifdef HASHMAP_COUNTERS
+    hashmapHit=0;
+    hashmapMiss=0;
+#endif
+   }
+
+#ifdef HASHMAP_COUNTERS
+   ~Distance()
+   {
+      Rcout << "hashmap size  = " << hashmap.size() << endl;
+      Rcout << "hashmap #hits = " << hashmapHit << endl;
+      Rcout << "hashmap #miss = " << hashmapMiss << endl;
+   }
+#endif
+
+   double operator()(size_t v1, size_t v2)
+   {
       if(v1==v2) return 0;
       SortedPoint p(v1,v2);
       std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
       if ( got == hashmap.end() )
       {
+#ifdef HASHMAP_COUNTERS
+         ++hashmapMiss;
+#endif
          NumericVector res = distance->f((*items)[v1],(*items)[v2]);
          double d = res[0];
          hashmap.emplace(p, d);
@@ -120,336 +145,66 @@ struct distClass2
       }
       else
       {
-#ifdef DEBUG
-         got->second.incrementCounter();
-         hashmapHit++;
+#ifdef HASHMAP_COUNTERS
+         ++hashmapHit;
 #endif
-         //Rcout << "trafilem"<<endl;
          return got->second;
       }
    }
-
-#ifdef DEBUG
-   void printCounters()
-   {
-      for (auto it=hashmap.begin(); it != hashmap.end(); ++it)
-         Rcout << it->first << " => " << it->second.counter << endl;
-      Rcout << "hashmap count = " << hashmap.size() << endl;
-   }
-#endif
 };
 
 
-class VpTreeHierarchical2
+class HClustSingleBiVpTree
 {
-   public:
+protected:
 
-   VpTreeHierarchical2(vector<RObject>* items, RFunction2* rf)
-    : _root(NULL), _distance(rf, items), _items(items), _indices(items->size()), _n(items->size())
-   {
-      for(size_t i=0;i<_n;i++)
-         _indices[i] = i;
-
-      for(int i=_n-1; i>= 1; i--)
-      {
-         int j = (int)(unif_rand()*(i+1));
-         swap(_indices[i], _indices[j]);
-      }
-
-      _root = buildFromPoints(0, _n);
-      #ifdef DEBUG
-      Rcout << "metric calculated = " << _distance.metricCalculated << endl;
-      Rcout << "hashmapHit = " << _distance.hashmapHit << endl;
-      #endif
-   }
-
-
-   virtual ~VpTreeHierarchical2() {
-      if(_root) delete _root;
-   }
-
-   /*size_t treeSize()
-   {
-      if(_root==NULL) return sizeof(VpTree);
-      return sizeof(VpTree) + treeSize_rec(_root);
-   }
-
-   int treeHeight()
-   {
-      if(_root==NULL) return 0;
-      return treeHeight_rec(_root);
-   }*/
-
-   struct HeapItem {
-      HeapItem( int index, double dist) :
-      index(index), dist(dist) {}
-      HeapItem():index(-1), dist(0) {}
-      int index;
+   struct HeapNeighborItem {
+      size_t index;
       double dist;
-      bool operator<( const HeapItem& o ) const {
+
+      HeapNeighborItem(size_t index, double dist) :
+         index(index), dist(dist) {}
+
+      HeapNeighborItem() :
+         index(SIZE_MAX), dist(-INFINITY) {}
+
+      bool operator<( const HeapNeighborItem& o ) const {
          return dist < o.dist;
       }
    };
 
    struct HeapHierarchicalItem {
-      HeapHierarchicalItem( int index1, int index2, double dist) :
-      index1(index1), index2(index2), dist(dist) {}
-      int index1;
-      int index2;
+      size_t index1;
+      size_t index2;
       double dist;
+
+      HeapHierarchicalItem(size_t index1, size_t index2, double dist) :
+         index1(index1), index2(index2), dist(dist) {}
+
       bool operator<( const HeapHierarchicalItem& o ) const {
          return dist >= o.dist;
       }
    };
 
-   IntegerMatrix hierarchicalClustering()
-   {
-      //Rcout << "wszedl do dobrego" << endl;
-      IntegerMatrix ret(_n-1, 2);
-      neighborsCount = vector<int>(_n, 0);
-      minRadiuses = vector<double>(_n, 0);
-      shouldFind = vector<bool>(this->_items->size(), true);
-      nearestNeighbors = vector<queue<HeapItem>>(_n);
-      //Rcout << "dociagam sasiadow. po raz pierwszy.." << endl;
-      priority_queue<HeapHierarchicalItem> pq;
-      //Rcout << "_items.size() = " << this->_items.size() << endl;
-      for(int i=0;i<_n;i++)
-      {
-         //Rcout << i << endl;
-         //stop("kazdemu na poczatek znajduje sasiada");
-         HeapItem hi=getNearestNeighbor(i);
-
-         if(hi.index != -1)
-         {
-            //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
-            pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
-         }
-         //stop("po pierwszym wstepnym");
-      }
-      //stop("po wstepnym zebraniu sasiadow");
-      std::map<int,int> rank;
-      std::map<int,int> parent;
-
-      boost::disjoint_sets<
-         associative_property_map<std::map<int,int>>,
-         associative_property_map<std::map<int,int>> > ds(
-            make_assoc_property_map(rank),
-            make_assoc_property_map(parent));
-
-      for(int i=0; i<_n; i++)
-          ds.make_set(i);
-      //stop("po stworzeniu union find");
-      //Rcout << "pq size = " << pq.size() << endl;
-      //stop(std::to_string(pq.size()));
-      int i = 0;
-      while(i < _n - 1)
-      //for(int i=0;i<this->_items.size() - 1 ; i++)
-      {
-         //Rcout << "iteracja " << i << endl;
-         //Rcout << "pq size = " << pq.size()<< endl;
-         HeapHierarchicalItem hhi = pq.top();
-         pq.pop();
-
-         int s1 = ds.find_set(hhi.index1);
-         int s2 = ds.find_set(hhi.index2);
-         if(s1 != s2)
-         {
-            ret(i,0)=hhi.index1;
-            ret(i,1)=hhi.index2;
-            //Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", i =" << i << endl;
-            i++;
-            ds.link(s1, s2);
-            //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
-
-         }
-         //stop("przed dociaganiem sasiadow");
-
-         HeapItem hi=getNearestNeighbor(hhi.index1);
-         if(hi.index != -1)
-            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-
-         //hi=getNearestNeighbor(hhi.index2);
-         //if(hi.index != -1)
-         //   pq.push(HeapHierarchicalItem(hhi.index2, hi.index, hi.dist));
-         //stop("po pierwszej iteracji");
-      }
-      return hclust_merge_matrix(ret);
-   }
-
-   IntegerMatrix hclust_merge_matrix(const IntegerMatrix x) const {
-      // x has 0-based indices
-      int n = x.nrow();
-      if (x.ncol() != 2) stop("x should have 2 columns");
-
-      IntegerMatrix y(n, 2);
-      std::vector< std::unordered_set<int> > curclust(n);
-
-      for (int k=0; k<n; ++k) {
-         int i = x(k,0)+1;
-         int j = x(k,1)+1;
-         int si=k-1, sj=k-1;
-         while (si >= 0 && curclust[si].find(i) == curclust[si].end()) si--;
-         while (sj >= 0 && curclust[sj].find(j) == curclust[sj].end()) sj--;
-         if (si < 0 && sj < 0) {
-            curclust[k].insert(i);
-            curclust[k].insert(j);
-            y(k,0) = -i;
-            y(k,1) = -j;
-         }
-         else if (si < 0 && sj >= 0) {
-            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
-            curclust[k].insert(i);
-            curclust[sj].clear(); // no longer needed
-            y(k,0) = -i;
-            y(k,1) = sj+1;
-         }
-         else if (si >= 0 && sj < 0) {
-            curclust[k].insert(curclust[si].begin(), curclust[si].end());
-            curclust[k].insert(j);
-            curclust[si].clear(); // no longer needed
-            y(k,0) = si+1;
-            y(k,1) = -j;
-         }
-         else { // if (si >= 0 && sj >= 0)
-            curclust[k].insert(curclust[si].begin(), curclust[si].end());
-            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
-            curclust[si].clear(); // no longer needed
-            curclust[sj].clear(); // no longer needed
-            y(k,0) = si+1;
-            y(k,1) = sj+1;
-         }
-      }
-      return y;
-   }
-
-   HeapItem getNearestNeighbor(int index)
-   {
-      const int delta = 10;
-      //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
-      if(nearestNeighbors[index].empty() && shouldFind[index])
-      {
-         //Rcout << "kolejka pusta, trzeba dociagnac sasiadow..." << endl;
-
-         priority_queue<HeapItem> heap;
-         vector<HeapItem> res;
-         if(shouldFind[index])
-            res=searchKNNKnownIndex(index, neighborsCount[index]+delta, minRadiuses[index]);
-         if(neighborsCount[index]+delta > _n - index)
-            shouldFind[index] = false;
-
-         if(res.size() > 0)
-            minRadiuses[index] = res[res.size()-1].dist;
-
-         //Rcout << "index=" << index << endl;
-         for(int i=neighborsCount[index]; i < min(neighborsCount[index]+delta, (int)res.size()); i++)
-         {
-            //Rcout << "results[i]" << results[i] << endl;
-            //Rcout << "distances[i]" << distances[i] << endl;
-            nearestNeighbors[index].push(HeapItem(res[i].index, res[i].dist ));
-         }
-         //Rcout << "dociagnalem " << heap.size() << "sasiadow" << endl;
-         //nearestNeighbors[index] = heap;
-         neighborsCount[index] = min(neighborsCount[index]+delta, (int)_n);
-         //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
-      }
-
-      if(!nearestNeighbors[index].empty())
-      {
-         HeapItem hiret = nearestNeighbors[index].front();
-         nearestNeighbors[index].pop();
-         return hiret;
-      }
-      else
-      {
-         return HeapItem(-1,-1);
-         //stop("nie ma sasiadow!");
-      }
-   }
-
-   vector<HeapItem> searchKNNKnownIndex(int index, int k, double minR)
-   {
-      if(index < 0 || index >= _items->size()) stop("Index out of bounds.");
-      #ifdef DEBUG
-      _distance.metricCalculated = 0;
-      _distance.hashmapHit = 0;
-      #endif
-
-      std::priority_queue<HeapItem> heap;
-      _tau = std::numeric_limits<double>::max();
-      search( _root, index, true, k, minR, heap );
-      vector<HeapItem> results(heap.size());
-      int i=results.size() - 1;
-
-      while( !heap.empty() ) {
-         results[i] = heap.top();
-         //Rcout << "index = " << results[i].index << ", dist = " << results[i].dist << endl;
-         i--;
-         heap.pop();
-      }
-      #ifdef DEBUG
-      Rcout << "metric calculated = " << _distance.metricCalculated << endl;
-      Rcout << "hashmapHit = " << _distance.hashmapHit << endl;
-      #endif
-      return results;
-   }
-/*
-   void searchRadiusKnownIndex(int index, double tau, std::vector<RObject>* results,
-                               std::vector<double>* distances, bool findItself = true)
-   {
-      if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
-      std::priority_queue<HeapItem> heap;
-
-      _tau = tau;
-      search( _root, index, false, -1, heap, findItself );
-
-      results->clear(); distances->clear();
-
-      while( !heap.empty() ) {
-         results->push_back( _items[heap.top().index] );
-         distances->push_back( heap.top().dist );
-         heap.pop();
-      }
-
-      std::reverse( results->begin(), results->end() );
-      std::reverse( distances->begin(), distances->end() );
-   }
-   */
-
-   #ifdef DEBUG
-   void printCounters()
-   {
-      _distance.printCounters();
-   }
-   #endif
-
-   protected:
-   std::vector<bool> shouldFind;
-   std::vector<int> neighborsCount;
-   std::vector<double> minRadiuses;
-   std::vector<queue<HeapItem>> nearestNeighbors;
-
-   distClass2 _distance;
-   std::vector<RObject>* _items;
-   double _tau;
-   std::vector<int> _indices;
-   size_t _n;
-
    struct Node
    {
-      int vpindex;
+      size_t vpindex;
+      size_t left;
+      size_t right;
       double radius;
-      int left;
-      int right;
       Node *ll, *lr, *rl, *rr;
 
       Node() :
-      vpindex(-1), left(-1), right(-1), radius(-1), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
-      Node(int left, int right) :
-      vpindex(-1), left(left), right(right), radius(-1), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+      Node(size_t left, size_t right) :
+         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
-      Node(int vpindex, double radius) :
-      vpindex(vpindex), left(-1), right(-1), radius(radius), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+      Node(size_t vpindex, double radius) :
+         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
       ~Node() {
          if(ll) delete ll;
@@ -457,36 +212,50 @@ class VpTreeHierarchical2
          if(rl) delete rl;
          if(rr) delete rr;
       }
-   }* _root;
-
-
-
-
+   };
 
    struct DistanceComparator
    {
-      int index;
-      distClass2* distance;
+      size_t index;
+      Distance* distance;
 
-      DistanceComparator(int index, distClass2* distance ) : index(index), distance(distance) {}
-      bool operator()(int a, int b) {
+      DistanceComparator(size_t index, Distance* distance )
+         : index(index), distance(distance) {}
+
+      bool operator()(size_t a, size_t b) {
          return (*distance)( index, a ) < (*distance)( index, b );
       }
    };
 
    struct IndexComparator
    {
-      int index;
+      size_t index;
 
-      IndexComparator(int index ) : index(index) {}
-      bool operator()(int a) {
+      IndexComparator(size_t index)
+         : index(index) {}
+
+      bool operator()(size_t a) {
          return a <= index;
       }
    };
 
-   Node* buildFromPoints(int left, int right)
+   const size_t maxNumberOfElementInLeaf = 4;
+   const int maxNearestNeighborPrefetch = 10;
+
+   Node* _root;
+   std::vector<RObject>* _items;
+   size_t _n;
+   Distance _distance;
+   std::vector<size_t> _indices;
+   double _tau;
+
+   std::vector<size_t> neighborsCount;
+   std::vector<double> minRadiuses;
+   std::vector<bool> shouldFind;
+   std::vector< deque<HeapNeighborItem> > nearestNeighbors;
+
+   Node* buildFromPoints(size_t left, size_t right)
    {
-      const int maxNumberOfElementInLeaf = 4;
       if(right - left <= maxNumberOfElementInLeaf)
       {
 //          printf("(%d,%d)\n", left, right);
@@ -495,9 +264,9 @@ class VpTreeHierarchical2
          return new Node(left, right);
       }
 
-      int vpi = _indices[left];//(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
+      size_t vpi = _indices[left];//(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
 
-      int median = ( right + left - 1 ) / 2;
+      size_t median = ( right + left - 1 ) / 2;
       std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
                        DistanceComparator(vpi, &_distance ));
       // std::sort(_indices.begin() + left+1, _indices.begin() + right,
@@ -508,8 +277,8 @@ class VpTreeHierarchical2
       Node* node = new Node(vpi, _distance(vpi, _indices[median]));
 
 
-      int middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
-      int middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
+      size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
+      size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
       // printf("(%d,%d,%d,%d,%d)\n", left, middle1, median, middle2, right);
       // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
       // printf("\n");
@@ -556,34 +325,32 @@ class VpTreeHierarchical2
    }
 */
 
-   virtual void search( Node* node, int index, bool isKNN, int k, double minR,
-               std::priority_queue<HeapItem>& heap )
+   void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index, int k, double minR,
+               std::priority_queue<HeapNeighborItem>& heap )
    {
       if ( node == NULL ) return;
 
-      if(node->vpindex == -1)
+      if(node->vpindex == SIZE_MAX) // leaf
       {
-         for(size_t i=node->left;i<node->right;i++)
+         for(size_t i=node->left; i<node->right; i++)
          {
-            if(index < _indices[i])
-            {
-               double dist2 = _distance(_indices[i], index );
-               if ( (dist2 < _tau && isKNN && dist2 > minR) || (dist2 <= _tau && !isKNN) )
-               {
+            if(index >= _indices[i]) continue;
+            double dist2 = _distance(index, _indices[i]);
+            if (dist2 > _tau || dist2 < minR) continue;
 
-                     if ( heap.size() >=(size_t) k && isKNN) heap.pop();
-                     heap.push( HeapItem(_indices[i], dist2) );
-                     if ( heap.size() == (size_t) k && isKNN)
-                     {
-                        _tau = heap.top().dist;
-                        //Rcout << "current tau=" << _tau << endl;
-                     }
-
+            if (heap.size() >= (size_t) k) {
+               if (dist2 < _tau) {
+                  while (!heap.empty() && heap.top().dist == _tau) {
+                     heap.pop();
+                  }
                }
             }
+
+            heap.push( HeapNeighborItem(_indices[i], dist2) );
+            _tau = heap.top().dist;
          }
       }
-      else
+      else // not a leaf
       {
 
 
@@ -595,50 +362,37 @@ class VpTreeHierarchical2
             if ( dist - _tau <= node->radius && dist + node->radius >= minR ) {
 
                if(node->ll != NULL && index <= node->vpindex)
-                  search( node->ll, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, k, minR, heap );
                if(node->lr != NULL)
-                  search( node->lr, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, k, minR, heap );
             }
 
             if ( dist + _tau >= node->radius ) {
                if(node->rl && index <= node->vpindex)
-                  search( node->rl, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, k, minR, heap );
                if(node->rr != NULL)
-                  search( node->rr, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, k, minR, heap );
             }
 
          } else {
             if ( dist + _tau >= node->radius ) {
                if(node->rl && index <= node->vpindex)
-                  search( node->rl, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, k, minR, heap );
                if(node->rr != NULL)
-                  search( node->rr, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, k, minR, heap );
             }
 
             if ( dist - _tau <= node->radius && dist + node->radius >= minR) {
                if(node->ll != NULL && index <= node->vpindex)
-                  search( node->ll, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, k, minR, heap );
                if(node->lr != NULL)
-                  search( node->lr, index, isKNN, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, k, minR, heap );
             }
          }
 
       }
    }
 
-
-
-public:
-   void print() {
-      Rprintf("digraph vptree {\n");
-      Rprintf("size=\"6,6\";\n");
-	   Rprintf("node [color=lightblue2, style=filled];");
-      print(_root);
-      Rprintf("}\n");
-   }
-
-
-protected:
    void print(Node* n) {
       if (n->ll) {
          Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
@@ -656,17 +410,262 @@ protected:
          Rprintf("\"%llx\" -> \"%llx\" [label=\"RR\"];\n", (unsigned long long)n, (unsigned long long)(n->rr));
          print(n->rr);
       }
-      if (n->vpindex < 0) {
-         for (int i=n->left; i<n->right; ++i)
-            Rprintf("\"%llx\" -> \"%d\" [arrowhead = diamond];\n", (unsigned long long)n, _indices[i]+1);
+      if (n->vpindex == SIZE_MAX) {
+         for (size_t i=n->left; i<n->right; ++i)
+            Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)n, (unsigned long long)_indices[i]+1);
       }
       else {
-         Rprintf("\"%llx\" [label=\"(%d, %g)\"];\n", (unsigned long long)n, n->vpindex+1, n->radius);
+         Rprintf("\"%llx\" [label=\"(%llu, %g)\"];\n", (unsigned long long)n, (unsigned long long)n->vpindex+1, n->radius);
       }
    }
 
 
-};
+   NumericMatrix generateMergeMatrix(const NumericMatrix x) const {
+      // x has 0-based indices
+      size_t n = _n-1;
+      if (x.ncol() != 2) stop("x should have 2 columns");
+
+      NumericMatrix y(n, 2);
+      std::vector< std::unordered_set<size_t> > curclust(n);
+
+      for (size_t k=0; k<n; ++k) {
+         size_t i = (size_t)x(k,0)+1;
+         size_t j = (size_t)x(k,1)+1;
+         size_t si = (k > 0) ? k-1 : SIZE_MAX;
+         size_t sj = (k > 0) ? k-1 : SIZE_MAX;
+         while (si != SIZE_MAX && curclust[si].find(i) == curclust[si].end())
+            si = (si>0) ? si-1 : SIZE_MAX;
+         while (sj != SIZE_MAX && curclust[sj].find(j) == curclust[sj].end())
+            sj = (sj>0) ? sj-1 : SIZE_MAX;
+         if (si == SIZE_MAX && sj == SIZE_MAX) {
+            curclust[k].insert(i);
+            curclust[k].insert(j);
+            y(k,0) = -(double)i;
+            y(k,1) = -(double)j;
+         }
+         else if (si == SIZE_MAX && sj != SIZE_MAX) {
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[k].insert(i);
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = -(double)i;
+            y(k,1) = (double)sj+1;
+         }
+         else if (si != SIZE_MAX && sj == SIZE_MAX) {
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(j);
+            curclust[si].clear(); // no longer needed
+            y(k,0) = (double)si+1;
+            y(k,1) = -(double)j;
+         }
+         else {
+            curclust[k].insert(curclust[si].begin(), curclust[si].end());
+            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
+            curclust[si].clear(); // no longer needed
+            curclust[sj].clear(); // no longer needed
+            y(k,0) = (double)si+1;
+            y(k,1) = (double)sj+1;
+         }
+      }
+      return y;
+   }
+
+   HeapNeighborItem getNearestNeighbor(size_t index)
+   {
+#ifdef VERBOSE
+      // Rprintf(".");
+#endif
+      //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
+      if(shouldFind[index] && nearestNeighbors[index].empty())
+      {
+         std::priority_queue<HeapNeighborItem> heap;
+         _tau = INFINITY;
+         getNearestNeighborsFromMinRadiusRecursive( _root, index, maxNearestNeighborPrefetch, minRadiuses[index], heap );
+         while( !heap.empty() ) {
+            nearestNeighbors[index].push_front(heap.top());
+            heap.pop();
+         }
+
+         size_t newNeighborsCount = nearestNeighbors[index].size();
+
+         neighborsCount[index] += newNeighborsCount;
+         if(neighborsCount[index] > _n - index || newNeighborsCount == 0)
+            shouldFind[index] = false;
+
+         if(newNeighborsCount > 0)
+            minRadiuses[index] = nearestNeighbors[index].back().dist;
+      }
+
+      if(!nearestNeighbors[index].empty())
+      {
+         auto res = nearestNeighbors[index].front();
+         nearestNeighbors[index].pop_front();
+         return res;
+      }
+      else
+      {
+         return HeapNeighborItem(SIZE_MAX,-INFINITY);
+         //stop("nie ma sasiadow!");
+      }
+   }
+
+/*
+   void searchRadiusKnownIndex(int index, double tau, std::vector<RObject>* results,
+                               std::vector<double>* distances, bool findItself = true)
+   {
+      if(index < 0 || index >= _items.size()) stop("Index out of bounds.");
+      std::priority_queue<HeapNeighborItem> heap;
+
+      _tau = tau;
+      search( _root, index, false, -1, heap, findItself );
+
+      results->clear(); distances->clear();
+
+      while( !heap.empty() ) {
+         results->push_back( _items[heap.top().index] );
+         distances->push_back( heap.top().dist );
+         heap.pop();
+      }
+
+      std::reverse( results->begin(), results->end() );
+      std::reverse( distances->begin(), distances->end() );
+   }
+   */
+
+#ifdef DEBUG
+   void printCounters()
+   {
+      _distance.printCounters();
+   }
+#endif
+
+public:
+
+   HClustSingleBiVpTree(vector<RObject>* items, RFunction* rf) :
+      _root(NULL), _items(items), _n(items->size()),
+      _distance(rf, items), _indices(items->size()),
+      neighborsCount(vector<size_t>(items->size(), 0)),
+      minRadiuses(vector<double>(items->size(), -INFINITY)),
+      shouldFind(vector<bool>(items->size(), true)),
+      nearestNeighbors(vector< deque<HeapNeighborItem> >(items->size()))
+   {
+      // starting _indices: random permutation of {0,1,...,_n-1}
+      for(size_t i=0;i<_n;i++) _indices[i] = i;
+      for(size_t i=_n-1; i>= 1; i--)
+         swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+
+      _root = buildFromPoints(0, _n);
+   }
+
+
+   virtual ~HClustSingleBiVpTree() {
+      if(_root) delete _root;
+   }
+
+   /*size_t treeSize()
+   {
+      if(_root==NULL) return sizeof(VpTree);
+      return sizeof(VpTree) + treeSize_rec(_root);
+   }
+
+   int treeHeight()
+   {
+      if(_root==NULL) return 0;
+      return treeHeight_rec(_root);
+   }*/
+
+   void print() {
+      Rprintf("digraph vptree {\n");
+      Rprintf("size=\"6,6\";\n");
+	   Rprintf("node [color=lightblue2, style=filled];");
+      print(_root);
+      Rprintf("}\n");
+   }
+
+   NumericMatrix compute()
+   {
+      //Rcout << "wszedl do dobrego" << endl;
+      NumericMatrix ret(_n-1, 2);
+
+      //Rcout << "dociagam sasiadow. po raz pierwszy.." << endl;
+      priority_queue<HeapHierarchicalItem> pq;
+      //Rcout << "_items.size() = " << this->_items.size() << endl;
+
+      // INIT: Pre-fetch a few nearest neighbors for each point
+#ifdef VERBOSE
+   Rprintf("prefetch NN\n");
+#endif
+      for(size_t i=0;i<_n;i++)
+      {
+         //Rcout << i << endl;
+         //stop("kazdemu na poczatek znajduje sasiada");
+         HeapNeighborItem hi=getNearestNeighbor(i);
+
+         if(hi.index != SIZE_MAX)
+         {
+            //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
+            pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
+         }
+         //stop("po pierwszym wstepnym");
+      }
+
+
+      //stop("po wstepnym zebraniu sasiadow");
+      std::map<size_t,size_t> rank;
+      std::map<size_t,size_t> parent;
+
+      boost::disjoint_sets<
+         associative_property_map< std::map<size_t,size_t> >,
+         associative_property_map< std::map<size_t,size_t> > > ds(
+            make_assoc_property_map(rank),
+            make_assoc_property_map(parent));
+
+      for(size_t i=0; i<_n; i++)
+          ds.make_set(i);
+      //stop("po stworzeniu union find");
+      //Rcout << "pq size = " << pq.size() << endl;
+      //stop(std::to_string(pq.size()));
+      size_t i = 0;
+      while(i < _n - 1)
+      //for(int i=0;i<this->_items.size() - 1 ; i++)
+      {
+         //Rcout << "iteracja " << i << endl;
+         //Rcout << "pq size = " << pq.size()<< endl;
+         HeapHierarchicalItem hhi = pq.top();
+         pq.pop();
+
+         size_t s1 = ds.find_set(hhi.index1);
+         size_t s2 = ds.find_set(hhi.index2);
+         if(s1 != s2)
+         {
+#ifdef VERBOSE
+            Rprintf("\r%d / %d", i+1, _n-1);
+#endif
+            ret(i,0)=(double)hhi.index1;
+            ret(i,1)=(double)hhi.index2;
+            //Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", i =" << i << endl;
+            ++i;
+            ds.link(s1, s2);
+            //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
+
+         }
+         // else just ignore this priority queue item
+         //stop("przed dociaganiem sasiadow");
+
+         // ASSERT: hhi.index1 < hhi.index2
+         HeapNeighborItem hi=getNearestNeighbor(hhi.index1);
+         if(hi.index != SIZE_MAX)
+            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+
+         //hi=getNearestNeighbor(hhi.index2);
+         //if(hi.index != -1)
+         //   pq.push(HeapHierarchicalItem(hhi.index2, hi.index, hi.dist));
+         //stop("po pierwszej iteracji");
+      }
+
+      return generateMergeMatrix(ret);
+   }
+
+}; // class
 
 
 
@@ -689,19 +688,26 @@ template <>
 */
 
 
+} // namespace HClustSingleBiVpTree
+} // namespace DataStructures
+
 // [[Rcpp::export]]
-IntegerMatrix hclust2(Function distance, List listobj) { //https://code.google.com/p/vptree/source/browse/src/vptree/VpTreeNode.java
+NumericMatrix hclust2(Function distance, List listobj) { //https://code.google.com/p/vptree/source/browse/src/vptree/VpTreeNode.java
 
-   RFunction2 *rf = new RFunction2(distance);
+   DataStructures::HClustSingleBiVpTree::RFunction *rf = new DataStructures::HClustSingleBiVpTree::RFunction(distance);
    vector<RObject> points(listobj.begin(), listobj.end());
-   // prze
-
-
-   VpTreeHierarchical2 _tree(&points, rf);
-   //_tree.searchKNNKnownIndex(438, 8, 5);
-   //_tree.print();
-   IntegerMatrix im = _tree.hierarchicalClustering();
+#ifdef VERBOSE
+   Rprintf("tree build\n");
+#endif
+   DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(&points, rf);
+#ifdef VERBOSE
+   Rprintf("compute\n");
+#endif
+   NumericMatrix im = hclust.compute();
    delete rf;
+#ifdef VERBOSE
+   Rprintf("destruct\n");
+#endif
    return im;
 }
 
