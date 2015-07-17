@@ -31,7 +31,9 @@ using namespace std;
 using namespace boost;
 
 // #define HASHMAP_COUNTERS
-#define VERBOSE
+// #define VERBOSE
+
+// #define HARDCODE_EUCLIDEAN_DISTANCE
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -138,8 +140,19 @@ struct Distance
 #ifdef HASHMAP_COUNTERS
          ++hashmapMiss;
 #endif
+
+#ifndef HARDCODE_EUCLIDEAN_DISTANCE
          NumericVector res = distance->f((*items)[v1],(*items)[v2]);
          double d = res[0];
+#else
+         double d = 0.0;
+         int n = ((NumericVector)(*items)[v1]).size();
+         double* x = REAL((SEXP)(*items)[v1]);
+         double* y = REAL((SEXP)(*items)[v2]);
+         for (int i=0; i<n; ++i)
+            d += (x[i]-y[i])*(x[i]-y[i]);
+         d = sqrt(d);
+#endif
          hashmap.emplace(p, d);
          return d;
       }
@@ -239,8 +252,8 @@ protected:
       }
    };
 
-   const size_t maxNumberOfElementInLeaf = 4;
-   const int maxNearestNeighborPrefetch = 10;
+   const size_t maxNumberOfElementInLeaf = 16;
+   const int maxNearestNeighborPrefetch = 1;
 
    Node* _root;
    std::vector<RObject>* _items;
@@ -253,10 +266,10 @@ protected:
    std::vector<double> minRadiuses;
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
-   
+
    std::map<size_t,size_t> rank;
    std::map<size_t,size_t> parent;
-   
+
    boost::disjoint_sets<
      associative_property_map< std::map<size_t,size_t> >,
      associative_property_map< std::map<size_t,size_t> > > ds;
@@ -342,10 +355,9 @@ protected:
          for(size_t i=node->left; i<node->right; i++)
          {
             if(index >= _indices[i]) continue;
-            
-            size_t s = ds.find_set(_indices[i]);
-            if(clusterIndex==s) continue;
-            
+
+            if(clusterIndex==ds.find_set(_indices[i])) continue;
+
             double dist2 = _distance(index, _indices[i]);
             if (dist2 > _tau || dist2 < minR) continue;
 
@@ -483,7 +495,7 @@ protected:
    HeapNeighborItem getNearestNeighbor(size_t index)
    {
 #ifdef VERBOSE
-      lRprintf(".");
+      // Rprintf(".");
 #endif
       //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
       if(shouldFind[index] && nearestNeighbors[index].empty())
@@ -565,7 +577,7 @@ public:
       for(size_t i=0;i<_n;i++) _indices[i] = i;
       for(size_t i=_n-1; i>= 1; i--)
          swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
-      
+
       for(size_t i=0; i<_n; i++)
         ds.make_set(i);
 
@@ -609,9 +621,13 @@ public:
       // INIT: Pre-fetch a few nearest neighbors for each point
 #ifdef VERBOSE
    Rprintf("prefetch NN\n");
+   int misses = 0;
 #endif
       for(size_t i=0;i<_n;i++)
       {
+#ifdef VERBOSE
+   Rprintf("\rprefetch NN: %d/%d", i, _n);
+#endif
          //Rcout << i << endl;
          //stop("kazdemu na poczatek znajduje sasiada");
          HeapNeighborItem hi=getNearestNeighbor(i);
@@ -625,8 +641,11 @@ public:
       }
 
       // tu byla inicjaliza disjoint setow, ale ja zabralem
-      
-   
+
+#ifdef VERBOSE
+   Rprintf("\n");
+#endif
+
       size_t i = 0;
       while(i < _n - 1)
       //for(int i=0;i<this->_items.size() - 1 ; i++)
@@ -642,6 +661,7 @@ public:
          {
 #ifdef VERBOSE
             Rprintf("\r%d / %d", i+1, _n-1);
+            // misses = 0;
 #endif
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
@@ -651,6 +671,11 @@ public:
             //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
 
          }
+#ifdef VERBOSE
+         else
+            ++misses;
+         Rprintf("\r%d / %d / %d", i+1, _n-1, misses);
+#endif
          // else just ignore this priority queue item
          //stop("przed dociaganiem sasiadow");
 
