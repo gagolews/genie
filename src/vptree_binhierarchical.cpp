@@ -253,6 +253,13 @@ protected:
    std::vector<double> minRadiuses;
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
+   
+   std::map<size_t,size_t> rank;
+   std::map<size_t,size_t> parent;
+   
+   boost::disjoint_sets<
+     associative_property_map< std::map<size_t,size_t> >,
+     associative_property_map< std::map<size_t,size_t> > > ds;
 
    Node* buildFromPoints(size_t left, size_t right)
    {
@@ -325,7 +332,7 @@ protected:
    }
 */
 
-   void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index, int k, double minR,
+   void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index, size_t clusterIndex, int k, double minR,
                std::priority_queue<HeapNeighborItem>& heap )
    {
       if ( node == NULL ) return;
@@ -335,6 +342,10 @@ protected:
          for(size_t i=node->left; i<node->right; i++)
          {
             if(index >= _indices[i]) continue;
+            
+            size_t s = ds.find_set(_indices[i]);
+            if(clusterIndex==s) continue;
+            
             double dist2 = _distance(index, _indices[i]);
             if (dist2 > _tau || dist2 < minR) continue;
 
@@ -362,31 +373,31 @@ protected:
             if ( dist - _tau <= node->radius && dist + node->radius >= minR ) {
 
                if(node->ll != NULL && index <= node->vpindex)
-                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, k, minR, heap );
                if(node->lr != NULL)
-                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, k, minR, heap );
             }
 
             if ( dist + _tau >= node->radius ) {
                if(node->rl && index <= node->vpindex)
-                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, k, minR, heap );
                if(node->rr != NULL)
-                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, k, minR, heap );
             }
 
          } else {
             if ( dist + _tau >= node->radius ) {
                if(node->rl && index <= node->vpindex)
-                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, k, minR, heap );
                if(node->rr != NULL)
-                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, k, minR, heap );
             }
 
             if ( dist - _tau <= node->radius && dist + node->radius >= minR) {
                if(node->ll != NULL && index <= node->vpindex)
-                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, k, minR, heap );
                if(node->lr != NULL)
-                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, k, minR, heap );
+                  getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, k, minR, heap );
             }
          }
 
@@ -472,14 +483,15 @@ protected:
    HeapNeighborItem getNearestNeighbor(size_t index)
    {
 #ifdef VERBOSE
-      // Rprintf(".");
+      lRprintf(".");
 #endif
       //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
       if(shouldFind[index] && nearestNeighbors[index].empty())
       {
          std::priority_queue<HeapNeighborItem> heap;
          _tau = INFINITY;
-         getNearestNeighborsFromMinRadiusRecursive( _root, index, maxNearestNeighborPrefetch, minRadiuses[index], heap );
+         size_t clusterIndex = ds.find_set(index);
+         getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, maxNearestNeighborPrefetch, minRadiuses[index], heap );
          while( !heap.empty() ) {
             nearestNeighbors[index].push_front(heap.top());
             heap.pop();
@@ -546,12 +558,16 @@ public:
       neighborsCount(vector<size_t>(items->size(), 0)),
       minRadiuses(vector<double>(items->size(), -INFINITY)),
       shouldFind(vector<bool>(items->size(), true)),
-      nearestNeighbors(vector< deque<HeapNeighborItem> >(items->size()))
+      nearestNeighbors(vector< deque<HeapNeighborItem> >(items->size())),
+      ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
    {
       // starting _indices: random permutation of {0,1,...,_n-1}
       for(size_t i=0;i<_n;i++) _indices[i] = i;
       for(size_t i=_n-1; i>= 1; i--)
          swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+      
+      for(size_t i=0; i<_n; i++)
+        ds.make_set(i);
 
       _root = buildFromPoints(0, _n);
    }
@@ -608,22 +624,9 @@ public:
          //stop("po pierwszym wstepnym");
       }
 
-
-      //stop("po wstepnym zebraniu sasiadow");
-      std::map<size_t,size_t> rank;
-      std::map<size_t,size_t> parent;
-
-      boost::disjoint_sets<
-         associative_property_map< std::map<size_t,size_t> >,
-         associative_property_map< std::map<size_t,size_t> > > ds(
-            make_assoc_property_map(rank),
-            make_assoc_property_map(parent));
-
-      for(size_t i=0; i<_n; i++)
-          ds.make_set(i);
-      //stop("po stworzeniu union find");
-      //Rcout << "pq size = " << pq.size() << endl;
-      //stop(std::to_string(pq.size()));
+      // tu byla inicjaliza disjoint setow, ale ja zabralem
+      
+   
       size_t i = 0;
       while(i < _n - 1)
       //for(int i=0;i<this->_items.size() - 1 ; i++)
