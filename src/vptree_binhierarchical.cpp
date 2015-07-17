@@ -30,8 +30,8 @@ using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-// #define HASHMAP_COUNTERS
-// #define VERBOSE
+#define HASHMAP_COUNTERS
+#define VERBOSE
 
 // #define HARDCODE_EUCLIDEAN_DISTANCE
 
