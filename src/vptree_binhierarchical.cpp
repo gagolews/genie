@@ -30,9 +30,9 @@ using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
+// #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE
-
+#define VERBOSE 4
 // #define HARDCODE_EUCLIDEAN_DISTANCE
 
 namespace DataStructures{
@@ -111,9 +111,14 @@ struct Distance
 #endif
    RFunction* distance;
    vector<RObject> *items;
-   unordered_map<SortedPoint, double> hashmap;
+#ifndef HASHMAP_DISABLE
+   // unordered_map<SortedPoint, double> hashmap;
+   vector< unordered_map<size_t, double> > hashmap;
+#endif
 
-   Distance(RFunction* distance, vector<RObject> *items) : distance(distance), items(items)
+   Distance(RFunction* distance, vector<RObject> *items) :
+      distance(distance), items(items),
+      hashmap(vector< unordered_map<size_t, double> >(items->size()))
    {
 #ifdef HASHMAP_COUNTERS
     hashmapHit=0;
@@ -124,23 +129,25 @@ struct Distance
 #ifdef HASHMAP_COUNTERS
    ~Distance()
    {
-      Rcout << "hashmap size  = " << hashmap.size() << endl;
-      Rcout << "hashmap #hits = " << hashmapHit << endl;
-      Rcout << "hashmap #miss = " << hashmapMiss << endl;
+#if VERBOSE > 3
+      Rprintf("Distance Hashmap: #hits=%d, #miss=%d\n", hashmapHit, hashmapMiss);
+#endif
    }
 #endif
 
    double operator()(size_t v1, size_t v2)
    {
-      if(v1==v2) return 0;
+      if (v1 == v2) return 0;
+#ifndef HASHMAP_DISABLE
       SortedPoint p(v1,v2);
-      std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
-      if ( got == hashmap.end() )
+      // std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
+      auto got = hashmap[p.i].find(p.j);
+      if ( got == hashmap[p.i].end() )
       {
+#endif
 #ifdef HASHMAP_COUNTERS
          ++hashmapMiss;
 #endif
-
 #ifndef HARDCODE_EUCLIDEAN_DISTANCE
          NumericVector res = distance->f((*items)[v1],(*items)[v2]);
          double d = res[0];
@@ -153,8 +160,11 @@ struct Distance
             d += (x[i]-y[i])*(x[i]-y[i]);
          d = sqrt(d);
 #endif
-         hashmap.emplace(p, d);
+#ifndef HASHMAP_DISABLE
+         hashmap[p.i].emplace(p.j, d);
+#endif
          return d;
+#ifndef HASHMAP_DISABLE
       }
       else
       {
@@ -163,6 +173,7 @@ struct Distance
 #endif
          return got->second;
       }
+#endif
    }
 };
 
@@ -494,7 +505,7 @@ protected:
 
    HeapNeighborItem getNearestNeighbor(size_t index)
    {
-#ifdef VERBOSE
+#if VERBOSE > 5
       // Rprintf(".");
 #endif
       //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
@@ -619,13 +630,15 @@ public:
       //Rcout << "_items.size() = " << this->_items.size() << endl;
 
       // INIT: Pre-fetch a few nearest neighbors for each point
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("prefetch NN\n");
+#endif
+#if VERBOSE > 3
    int misses = 0;
 #endif
       for(size_t i=0;i<_n;i++)
       {
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("\rprefetch NN: %d/%d", i, _n);
 #endif
          //Rcout << i << endl;
@@ -642,7 +655,7 @@ public:
 
       // tu byla inicjaliza disjoint setow, ale ja zabralem
 
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("\n");
 #endif
 
@@ -659,7 +672,7 @@ public:
          size_t s2 = ds.find_set(hhi.index2);
          if(s1 != s2)
          {
-#ifdef VERBOSE
+#if VERBOSE > 5
             Rprintf("\r%d / %d", i+1, _n-1);
             // misses = 0;
 #endif
@@ -671,9 +684,11 @@ public:
             //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
 
          }
-#ifdef VERBOSE
+#if VERBOSE > 3
          else
             ++misses;
+#endif
+#if VERBOSE > 5
          Rprintf("\r%d / %d / %d", i+1, _n-1, misses);
 #endif
          // else just ignore this priority queue item
@@ -689,7 +704,9 @@ public:
          //   pq.push(HeapHierarchicalItem(hhi.index2, hi.index, hi.dist));
          //stop("po pierwszej iteracji");
       }
-
+#if VERBOSE > 3
+      Rprintf("Total ignored NNs: %d\n", misses);
+#endif
       return generateMergeMatrix(ret);
    }
 
@@ -724,16 +741,16 @@ NumericMatrix hclust2(Function distance, List listobj) { //https://code.google.c
 
    DataStructures::HClustSingleBiVpTree::RFunction *rf = new DataStructures::HClustSingleBiVpTree::RFunction(distance);
    vector<RObject> points(listobj.begin(), listobj.end());
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("tree build\n");
 #endif
    DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(&points, rf);
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("compute\n");
 #endif
    NumericMatrix im = hclust.compute();
    delete rf;
-#ifdef VERBOSE
+#if VERBOSE > 5
    Rprintf("destruct\n");
 #endif
    return im;
