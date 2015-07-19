@@ -215,21 +215,21 @@ protected:
       size_t vpindex;
       size_t left;
       size_t right;
-      bool sameCluster;
       double radius;
+      bool sameCluster;
       Node *ll, *lr, *rl, *rr;
 
       Node() :
-         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY), sameCluster(false),
-         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
       Node(size_t left, size_t right) :
-         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY), sameCluster(false),
-         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
       Node(size_t vpindex, double radius) :
-         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius), sameCluster(false),
-         ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
+         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
       ~Node() {
          if(ll) delete ll;
@@ -411,6 +411,7 @@ protected:
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
                      while (!heap.empty() && heap.top().dist == maxR) {
+                        // maxRadiuses[index] = maxR;
                         heap.pop();
                      }
                   }
@@ -573,7 +574,7 @@ protected:
       if(shouldFind[index] && nearestNeighbors[index].empty())
       {
          std::priority_queue<HeapNeighborItem> heap;
-         double _tau = maxRadiuses[index]; // used only in the first iteration (how to improve that?)
+         double _tau = maxRadiuses[index];
          size_t clusterIndex = ds.find_set(index);
          getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, minRadiuses[index], _tau, heap );
          while( !heap.empty() ) {
