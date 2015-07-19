@@ -32,8 +32,8 @@ using namespace boost;
 
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 4
-// #define HARDCODE_EUCLIDEAN_DISTANCE
+#define VERBOSE 6
+#define HARDCODE_EUCLIDEAN_DISTANCE
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -124,13 +124,16 @@ struct Distance
     hashmapHit=0;
     hashmapMiss=0;
 #endif
+#ifdef HARDCODE_EUCLIDEAN_DISTANCE
+    Rprintf("** NOTE: Hardcoded Euclidean distance **\n");
+#endif
    }
 
 #ifdef HASHMAP_COUNTERS
    ~Distance()
    {
 #if VERBOSE > 3
-      Rprintf("Distance Hashmap: #hits=%d, #miss=%d\n", hashmapHit, hashmapMiss);
+      Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB\n", hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f);
 #endif
    }
 #endif
@@ -525,6 +528,7 @@ protected:
       std::vector< std::unordered_set<size_t> > curclust(n);
 
       for (size_t k=0; k<n; ++k) {
+         if (k % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
          size_t i = (size_t)x(k,0)+1;
          size_t j = (size_t)x(k,1)+1;
          size_t si = (k > 0) ? k-1 : SIZE_MAX;
@@ -647,6 +651,9 @@ public:
       nearestNeighbors(vector< deque<HeapNeighborItem> >(items->size())),
       ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
    {
+#if VERBOSE > 5
+      Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
       // starting _indices: random permutation of {0,1,...,_n-1}
       for(size_t i=0;i<_n;i++) _indices[i] = i;
       for(size_t i=_n-1; i>= 1; i--)
@@ -660,6 +667,9 @@ public:
 
 
    virtual ~HClustSingleBiVpTree() {
+#if VERBOSE > 5
+      Rprintf("[%010.3f] destroying vp-tree and the hashmap\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
       if(_root) delete _root;
    }
 
@@ -694,16 +704,16 @@ public:
 
       // INIT: Pre-fetch a few nearest neighbors for each point
 #if VERBOSE > 5
-   Rprintf("prefetch NN\n");
+   Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 #if VERBOSE > 3
    int misses = 0;
 #endif
       for(size_t i=0;i<_n;i++)
       {
-//         if (i < _n-1) maxRadiuses[i] = _distance(i, i+1);
-#if VERBOSE > 5
-   Rprintf("\rprefetch NN: %d/%d", i, _n);
+         if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+#if VERBOSE > 7
+   Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
 #endif
          //Rcout << i << endl;
          //stop("kazdemu na poczatek znajduje sasiada");
@@ -716,11 +726,11 @@ public:
          }
          //stop("po pierwszym wstepnym");
       }
-
-      // tu byla inicjaliza disjoint setow, ale ja zabralem
-
-#if VERBOSE > 5
+#if VERBOSE > 7
    Rprintf("\n");
+#endif
+#if VERBOSE > 5
+   Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
       size_t i = 0;
@@ -736,24 +746,20 @@ public:
          size_t s2 = ds.find_set(hhi.index2);
          if(s1 != s2)
          {
-#if VERBOSE > 5
-            Rprintf("\r%d / %d", i+1, _n-1);
-            // misses = 0;
-#endif
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
             //Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", i =" << i << endl;
             ++i;
             ds.link(s1, s2);
             //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
-
+            if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
          }
 #if VERBOSE > 3
          else
             ++misses;
 #endif
-#if VERBOSE > 5
-         Rprintf("\r%d / %d / %d", i+1, _n-1, misses);
+#if VERBOSE > 7
+         Rprintf("\r             %d / %d / %d ", i+1, _n, misses);
 #endif
          // else just ignore this priority queue item
          //stop("przed dociaganiem sasiadow");
@@ -771,6 +777,10 @@ public:
 #if VERBOSE > 3
       Rprintf("Total ignored NNs: %d\n", misses);
 #endif
+#if VERBOSE > 5
+   Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
+      Rcpp::checkUserInterrupt();
       return generateMergeMatrix(ret);
    }
 
@@ -801,23 +811,23 @@ template <>
 } // namespace DataStructures
 
 // [[Rcpp::export]]
-NumericMatrix hclust2(Function distance, List listobj) { //https://code.google.com/p/vptree/source/browse/src/vptree/VpTreeNode.java
-
-   DataStructures::HClustSingleBiVpTree::RFunction *rf = new DataStructures::HClustSingleBiVpTree::RFunction(distance);
-   vector<RObject> points(listobj.begin(), listobj.end());
+SEXP hclust2(Function distance, List listobj) {
+   SEXP result;
+   Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
+   try {
+      /* Rcpp::checkUserInterrupt(); may throw an exception */
+      DataStructures::HClustSingleBiVpTree::RFunction rf(distance);
+      vector<RObject> points(listobj.begin(), listobj.end());
+      DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(&points, &rf);
+      result = (SEXP)hclust.compute();
+   }
+   catch(...) {
+      result = R_NilValue;
+   }
 #if VERBOSE > 5
-   Rprintf("tree build\n");
+   Rprintf("[%010.3f] done\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(&points, rf);
-#if VERBOSE > 5
-   Rprintf("compute\n");
-#endif
-   NumericMatrix im = hclust.compute();
-   delete rf;
-#if VERBOSE > 5
-   Rprintf("destruct\n");
-#endif
-   return im;
+   return result;
 }
 
 

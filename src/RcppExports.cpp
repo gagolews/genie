@@ -352,7 +352,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // hclust2
-NumericMatrix hclust2(Function distance, List listobj);
+SEXP hclust2(Function distance, List listobj);
 RcppExport SEXP DataStructures_hclust2(SEXP distanceSEXP, SEXP listobjSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
