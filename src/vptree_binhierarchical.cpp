@@ -32,7 +32,7 @@ using namespace boost;
 
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 0
+#define VERBOSE 5
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -469,6 +469,7 @@ protected:
                if(index >= _indices[i]) continue;
                // if(clusterIndex==ds.find_set(_indices[i])) continue;
                double dist2 = (*_distance)(index, _indices[i]);
+               // if(index == 23) Rcout << "DIST2: " << dist2 << endl;
                if (dist2 > maxR || dist2 <= minR) continue;
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -477,8 +478,15 @@ protected:
                      }
                   }
                }
+// #if VERBOSE > 5
+//                if(index == 32) Rcout << "DLA 32 ZNALEZIONO:" << dist2 << endl;
+//                if(index == 23) Rcout << "DLA 23 ZNALEZIONO:" << dist2 << endl;
+//                if(index == 23) Rcout << "PRZY MAXR: " << maxR << endl;
+//                if(index == 23) Rcout << "HEAP SIZE: " << heap.size() << endl;
+// #endif
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
+               // if(index == 23) Rcout << "HEAP TOP DIST: " << heap.top().dist << endl;
             }
          }
          else {
@@ -492,6 +500,7 @@ protected:
                if(index >= _indices[i]) continue;
 
                double dist2 = (*_distance)(index, _indices[i]);
+               // if(index == 23) Rcout << "DIST2: " << dist2 << endl;
                if (dist2 > maxR || dist2 <= minR) continue;
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
@@ -502,9 +511,17 @@ protected:
                      }
                   }
                }
-
+// #if VERBOSE > 5
+//                if(index == 32) Rcout << "DLA 32 ZNALEZIONO:" << dist2 << endl;
+//                if(index == 23) Rcout << "DLA 23 ZNALEZIONO:" << dist2 << endl;
+//                if(index == 23) Rcout << "PRZY MINR: " << minR << endl;
+//                if(index == 23) Rcout << "PRZY MAXR: " << maxR << endl;
+//                if(index == 23) Rcout << "HEAP SIZE: " << heap.size() << endl;
+// #endif
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
+               // if(index == 23) Rcout << "HEAP TOP DIST: " << heap.top().dist << endl;
+
             }
             if (commonCluster != SIZE_MAX) node->sameCluster = true;
          }
@@ -521,7 +538,7 @@ protected:
                getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
          }
 
-         if ( dist + maxR > node->radius ) {
+         if ( dist + maxR >= node->radius ) {
             if(node->rl && index <= node->vpindex)
                getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
             if(node->rr)
@@ -529,7 +546,7 @@ protected:
          }
 
       } else /* ( dist >= node->radius ) */ {
-         if ( dist + maxR > node->radius ) {
+         if ( dist + maxR >= node->radius ) {
             if(node->rl && index <= node->vpindex)
                getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
             if(node->rr)
@@ -553,22 +570,22 @@ protected:
          size_t commonCluster = SIZE_MAX;
          if (node->ll) {
             size_t currentCluster = ds.find_set((node->ll->vpindex == SIZE_MAX)?_indices[node->ll->left]:node->ll->vpindex);
-            if (commonCluster == SIZE_MAX) currentCluster = commonCluster;
+            if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
             else if (currentCluster != commonCluster) return;
          }
          if (node->lr) {
             size_t currentCluster = ds.find_set((node->lr->vpindex == SIZE_MAX)?_indices[node->lr->left]:node->lr->vpindex);
-            if (commonCluster == SIZE_MAX) currentCluster = commonCluster;
+            if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
             else if (currentCluster != commonCluster) return;
          }
          if (node->rl) {
             size_t currentCluster = ds.find_set((node->rl->vpindex == SIZE_MAX)?_indices[node->rl->left]:node->rl->vpindex);
-            if (commonCluster == SIZE_MAX) currentCluster = commonCluster;
+            if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
             else if (currentCluster != commonCluster) return;
          }
          if (node->rr) {
             size_t currentCluster = ds.find_set((node->rr->vpindex == SIZE_MAX)?_indices[node->rr->left]:node->rr->vpindex);
-            if (commonCluster == SIZE_MAX) currentCluster = commonCluster;
+            if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
             else if (currentCluster != commonCluster) return;
          }
          node->sameCluster = true;
@@ -835,7 +852,9 @@ public:
          {
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
-            //Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", i =" << i << endl;
+#if VERBOSE > 5
+            Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", hhi dist = " <<hhi.dist <<", i =" << i << endl;
+#endif
             ++i;
             ds.link(s1, s2);
             //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
@@ -947,6 +966,7 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
       if (!dist) stop("Incorrect input data");
       DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(dist);
       result = (SEXP)hclust.compute();
+      //hclust.print();
    }
    catch(...) {
       result = R_NilValue;
