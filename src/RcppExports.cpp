@@ -363,6 +363,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// generateMergeMatrix
+NumericMatrix generateMergeMatrix(NumericMatrix x);
+RcppExport SEXP DataStructures_generateMergeMatrix(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    __result = Rcpp::wrap(generateMergeMatrix(x));
+    return __result;
+END_RCPP
+}
 // hierarchical
 IntegerMatrix hierarchical(Function distance, List listobj, bool isSimilarity, int m, int minm, int maxLeafPointsCount, int vantageCandidatesCount, int testPointsCount);
 RcppExport SEXP DataStructures_hierarchical(SEXP distanceSEXP, SEXP listobjSEXP, SEXP isSimilaritySEXP, SEXP mSEXP, SEXP minmSEXP, SEXP maxLeafPointsCountSEXP, SEXP vantageCandidatesCountSEXP, SEXP testPointsCountSEXP) {

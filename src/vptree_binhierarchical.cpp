@@ -32,7 +32,7 @@ using namespace boost;
 
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 6
+#define VERBOSE 0
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -130,16 +130,17 @@ struct EuclideanDistance : public Distance
 #endif
 
    EuclideanDistance(const NumericMatrix& points) :
-      Distance(points.nrow()), robj1(points),
-      items(points.nrow()), m(points.ncol()),
-      hashmap(vector< unordered_map<size_t, double> >(points.nrow()))
+      Distance(points.ncol()), robj1(points),
+      items(points.ncol()), m(points.nrow()),
+      hashmap(vector< unordered_map<size_t, double> >(points.ncol()))
    {
       R_PreserveObject(robj1);
+        
 #ifdef HASHMAP_COUNTERS
       hashmapHit=0;
       hashmapMiss=0;
 #endif
-      const double* curptr = REAL((SEXP)points);
+      const double* curptr = REAL((SEXP)robj1);
       for (size_t i=0; i<n; ++i, curptr += m)
          items[i] = curptr;
    }
@@ -600,8 +601,8 @@ protected:
       }
    }
 
-
-   NumericMatrix generateMergeMatrix(const NumericMatrix x) const {
+public:
+    NumericMatrix  generateMergeMatrix(const NumericMatrix x) const {
       // x has 0-based indices
       size_t n = _n-1;
       if (x.ncol() != 2) stop("x should have 2 columns");
@@ -754,6 +755,12 @@ public:
 #endif
       if(_root) delete _root;
    }
+   
+   HClustSingleBiVpTree(int n) : _n(n), ds(make_assoc_property_map(rank), make_assoc_property_map(parent)), _root(NULL)
+   {
+      
+   }
+   
 
    /*size_t treeSize()
    {
@@ -808,6 +815,9 @@ public:
          }
          //stop("po pierwszym wstepnym");
       }
+#if VERBOSE > 5
+      Rprintf("[%010.3f] first distance in priority queue: %f\n", clock()/(float)CLOCKS_PER_SEC, pq.top().dist);
+#endif
 #if VERBOSE > 7
    Rprintf("\n");
 #endif
@@ -863,7 +873,8 @@ public:
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       Rcpp::checkUserInterrupt();
-      return generateMergeMatrix(ret);
+      //return generateMergeMatrix(ret);
+      return ret;
    }
 
 }; // class
@@ -892,6 +903,23 @@ template <>
 } // namespace HClustSingleBiVpTree
 } // namespace DataStructures
 
+NumericMatrix transpose(const NumericMatrix& matrix)
+{
+   size_t width = matrix.ncol();
+   size_t height = matrix.nrow();
+   NumericMatrix transposed(width, height);  
+      
+   for (size_t i = 0; i < width; i++)
+   {
+      for (size_t j = 0; j < height; j++)
+      {
+         transposed(i,j) = matrix(j,i);
+      }
+   }
+  
+   return transposed;  
+}
+
 // [[Rcpp::export]]
 SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
@@ -910,9 +938,12 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
       }
       else if (Rf_isMatrix(objects)) {
          NumericMatrix objects2(objects);
+        
+         NumericMatrix objects3 = transpose(objects2);
+        
          dist = (DataStructures::HClustSingleBiVpTree::Distance*)
             new DataStructures::HClustSingleBiVpTree::EuclideanDistance(
-               objects2
+               objects3
             );
       }
 
@@ -928,6 +959,12 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
    Rprintf("[%010.3f] done\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
    return result;
+}
+
+// [[Rcpp::export]]
+NumericMatrix generateMergeMatrix(NumericMatrix x) {
+   DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree tree(x.nrow());
+   return tree.generateMergeMatrix(x);
 }
 
 

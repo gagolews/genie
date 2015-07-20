@@ -415,6 +415,10 @@ hclust2 <- function(objects, distance = NULL) {
     .Call('DataStructures_hclust2', PACKAGE = 'DataStructures', objects, distance)
 }
 
+generateMergeMatrix <- function(x) {
+    .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
+}
+
 hierarchical <- function(distance, listobj, isSimilarity = FALSE, m = 2L, minm = 4L, maxLeafPointsCount = 25L, vantageCandidatesCount = 5L, testPointsCount = 15L) {
     .Call('DataStructures_hierarchical', PACKAGE = 'DataStructures', distance, listobj, isSimilarity, m, minm, maxLeafPointsCount, vantageCandidatesCount, testPointsCount)
 }
