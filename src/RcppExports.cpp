@@ -352,14 +352,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // hclust2
-SEXP hclust2(Function distance, List listobj);
-RcppExport SEXP DataStructures_hclust2(SEXP distanceSEXP, SEXP listobjSEXP) {
+SEXP hclust2(RObject objects, RObject distance);
+RcppExport SEXP DataStructures_hclust2(SEXP objectsSEXP, SEXP distanceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< Function >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< List >::type listobj(listobjSEXP);
-    __result = Rcpp::wrap(hclust2(distance, listobj));
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    __result = Rcpp::wrap(hclust2(objects, distance));
     return __result;
 END_RCPP
 }

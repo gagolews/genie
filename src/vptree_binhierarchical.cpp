@@ -33,7 +33,6 @@ using namespace boost;
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
 #define VERBOSE 6
-#define HARDCODE_EUCLIDEAN_DISTANCE
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -91,54 +90,149 @@ namespace std {
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
 
-struct RFunction {
-   RFunction(const Function& _f) : f(_f) {
-      R_PreserveObject(f);
-   }
+// struct RFunction {
+//    RFunction(const Function& _f) : f(_f) {
+//       R_PreserveObject(f);
+//    }
+//
+//    ~RFunction() {
+//       R_ReleaseObject(f);
+//    }
+//
+//    Function f;
+// };
 
-   ~RFunction() {
-      R_ReleaseObject(f);
-   }
+struct Distance {
+   size_t n;
 
-   Function f;
+   Distance(size_t n) :
+      n(n) { }
+
+   virtual ~Distance() { }
+
+   inline size_t getObjectCount() { return n; }
+
+   virtual double operator()(size_t v1, size_t v2) = 0;
 };
 
-struct Distance
+struct EuclideanDistance : public Distance
 {
-#ifdef HASHMAP_COUNTERS
-   size_t hashmapHit;
-   size_t hashmapMiss;
-#endif
-   RFunction* distance;
-   vector<RObject> *items;
+   SEXP robj1;
+   vector<const double*> items;
+   size_t m;
 #ifndef HASHMAP_DISABLE
    // unordered_map<SortedPoint, double> hashmap;
    vector< unordered_map<size_t, double> > hashmap;
 #endif
-
-   Distance(RFunction* distance, vector<RObject> *items) :
-      distance(distance), items(items),
-      hashmap(vector< unordered_map<size_t, double> >(items->size()))
-   {
 #ifdef HASHMAP_COUNTERS
-    hashmapHit=0;
-    hashmapMiss=0;
+   size_t hashmapHit;
+   size_t hashmapMiss;
 #endif
-#ifdef HARDCODE_EUCLIDEAN_DISTANCE
-    Rprintf("** NOTE: Hardcoded Euclidean distance **\n");
+
+   EuclideanDistance(const NumericMatrix& points) :
+      Distance(points.nrow()), robj1(points),
+      items(points.nrow()), m(points.ncol()),
+      hashmap(vector< unordered_map<size_t, double> >(points.nrow()))
+   {
+      R_PreserveObject(robj1);
+#ifdef HASHMAP_COUNTERS
+      hashmapHit=0;
+      hashmapMiss=0;
 #endif
+      const double* curptr = REAL((SEXP)points);
+      for (size_t i=0; i<n; ++i, curptr += m)
+         items[i] = curptr;
    }
 
 #ifdef HASHMAP_COUNTERS
-   ~Distance()
+   virtual ~EuclideanDistance()
    {
+#if VERBOSE > 5
+      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
 #if VERBOSE > 3
-      Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB\n", hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f);
+      Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB (vs %.1fMB)\n",
+         hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f,
+         8.0f*(items.size()-1)*(items.size()-1)*0.5f/1000.0f/1000.0f);
 #endif
+      R_ReleaseObject(robj1);
    }
 #endif
 
-   double operator()(size_t v1, size_t v2)
+   virtual double operator()(size_t v1, size_t v2)
+   {
+      if (v1 == v2) return 0;
+#ifndef HASHMAP_DISABLE
+      SortedPoint p(v1,v2);
+      // std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
+      auto got = hashmap[p.i].find(p.j);
+      if ( got == hashmap[p.i].end() )
+      {
+#endif
+         double d = 0.0;
+         for (size_t i=0; i<m; ++i)
+            d += (items[v1][i]-items[v2][i])*(items[v1][i]-items[v2][i]);
+         d = sqrt(d);
+#ifdef HASHMAP_COUNTERS
+         ++hashmapMiss;
+#endif
+#ifndef HASHMAP_DISABLE
+         hashmap[p.i].emplace(p.j, d);
+#endif
+         return d;
+#ifndef HASHMAP_DISABLE
+      }
+      else
+      {
+#ifdef HASHMAP_COUNTERS
+         ++hashmapHit;
+#endif
+         return got->second;
+      }
+#endif
+   }
+};
+
+struct GenericRDistance : public Distance
+{
+   Function distfun;
+   vector<RObject> items;
+#ifndef HASHMAP_DISABLE
+   // unordered_map<SortedPoint, double> hashmap;
+   vector< unordered_map<size_t, double> > hashmap;
+#endif
+#ifdef HASHMAP_COUNTERS
+   size_t hashmapHit;
+   size_t hashmapMiss;
+#endif
+
+   GenericRDistance(const Function& distfun, const vector<RObject>& items) :
+      Distance(items.size()), distfun(distfun), items(items),
+      hashmap(vector< unordered_map<size_t, double> >(items.size()))
+   {
+      R_PreserveObject(distfun);
+#ifdef HASHMAP_COUNTERS
+      hashmapHit=0;
+      hashmapMiss=0;
+#endif
+   }
+
+#ifdef HASHMAP_COUNTERS
+   virtual ~GenericRDistance()
+   {
+#if VERBOSE > 5
+      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
+#if VERBOSE > 3
+      Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB (vs %.1fMB)\n",
+         hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f,
+         8.0f*(items.size()-1)*(items.size()-1)*0.5f/1000.0f/1000.0f);
+#endif
+      R_ReleaseObject(distfun);
+   }
+#endif
+
+   virtual double operator()(size_t v1, size_t v2)
    {
       if (v1 == v2) return 0;
 #ifndef HASHMAP_DISABLE
@@ -151,18 +245,7 @@ struct Distance
 #ifdef HASHMAP_COUNTERS
          ++hashmapMiss;
 #endif
-#ifndef HARDCODE_EUCLIDEAN_DISTANCE
-         NumericVector res = distance->f((*items)[v1],(*items)[v2]);
-         double d = res[0];
-#else
-         double d = 0.0;
-         int n = ((NumericVector)(*items)[v1]).size();
-         double* x = REAL((SEXP)(*items)[v1]);
-         double* y = REAL((SEXP)(*items)[v2]);
-         for (int i=0; i<n; ++i)
-            d += (x[i]-y[i])*(x[i]-y[i]);
-         d = sqrt(d);
-#endif
+         double d = ((NumericVector)distfun(items[v1],items[v2]))[0];
 #ifndef HASHMAP_DISABLE
          hashmap[p.i].emplace(p.j, d);
 #endif
@@ -271,9 +354,8 @@ protected:
    const size_t maxNearestNeighborPrefetch = 1;
 
    Node* _root;
-   std::vector<RObject>* _items;
    size_t _n;
-   Distance _distance;
+   Distance* _distance;
    std::vector<size_t> _indices;
 
    std::vector<size_t> neighborsCount;
@@ -296,7 +378,7 @@ protected:
          for (size_t i=left; i<right; ++i) {
             size_t j = _indices[(i+1 < right)?(i+1):left];
             if (_indices[i] < j)
-               maxRadiuses[ _indices[i] ] = _distance(_indices[i], j);
+               maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
          }
 
          return new Node(left, right);
@@ -306,13 +388,13 @@ protected:
 
       size_t median = ( right + left - 1 ) / 2;
       std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
-                       DistanceComparator(vpi, &_distance ));
+                       DistanceComparator(vpi, _distance));
       // std::sort(_indices.begin() + left+1, _indices.begin() + right,
                        // DistanceComparator(vpi, &_distance ));
       // printf("(%d,%d,%d)\n", left, median, right);
       // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
       // printf("\n");
-      Node* node = new Node(vpi, _distance(vpi, _indices[median]));
+      Node* node = new Node(vpi, (*_distance)(vpi, _indices[median]));
 
 
       size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
@@ -385,7 +467,7 @@ protected:
             {
                if(index >= _indices[i]) continue;
                // if(clusterIndex==ds.find_set(_indices[i])) continue;
-               double dist2 = _distance(index, _indices[i]);
+               double dist2 = (*_distance)(index, _indices[i]);
                if (dist2 > maxR || dist2 <= minR) continue;
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -408,7 +490,7 @@ protected:
 
                if(index >= _indices[i]) continue;
 
-               double dist2 = _distance(index, _indices[i]);
+               double dist2 = (*_distance)(index, _indices[i]);
                if (dist2 > maxR || dist2 <= minR) continue;
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
@@ -428,7 +510,7 @@ protected:
          return;
       }
       // else // not a leaf
-      double dist = _distance(node->vpindex, index);
+      double dist = (*_distance)(node->vpindex, index);
       if ( dist < node->radius ) {
          if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 
@@ -641,14 +723,14 @@ protected:
 
 public:
 
-   HClustSingleBiVpTree(vector<RObject>* items, RFunction* rf) :
-      _root(NULL), _items(items), _n(items->size()),
-      _distance(rf, items), _indices(items->size()),
-      neighborsCount(vector<size_t>(items->size(), 0)),
-      minRadiuses(vector<double>(items->size(), -INFINITY)),
-      maxRadiuses(vector<double>(items->size(), INFINITY)),
-      shouldFind(vector<bool>(items->size(), true)),
-      nearestNeighbors(vector< deque<HeapNeighborItem> >(items->size())),
+   HClustSingleBiVpTree(Distance* dist) :
+      _root(NULL), _n(dist->getObjectCount()), _distance(dist),
+      _indices(dist->getObjectCount()),
+      neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
+      minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
+      maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
+      shouldFind(vector<bool>(dist->getObjectCount(), true)),
+      nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
       ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
    {
 #if VERBOSE > 5
@@ -668,7 +750,7 @@ public:
 
    virtual ~HClustSingleBiVpTree() {
 #if VERBOSE > 5
-      Rprintf("[%010.3f] destroying vp-tree and the hashmap\n", clock()/(float)CLOCKS_PER_SEC);
+      Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       if(_root) delete _root;
    }
@@ -811,19 +893,37 @@ template <>
 } // namespace DataStructures
 
 // [[Rcpp::export]]
-SEXP hclust2(Function distance, List listobj) {
-   SEXP result;
+SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
+   SEXP result;
+   DataStructures::HClustSingleBiVpTree::Distance* dist = NULL;
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustSingleBiVpTree::RFunction rf(distance);
-      vector<RObject> points(listobj.begin(), listobj.end());
-      DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(&points, &rf);
+      if (Rf_isVectorList(objects) && Rf_isFunction(distance)) {
+         Function distance2(distance);
+         List objects2(objects);
+         dist = (DataStructures::HClustSingleBiVpTree::Distance*)
+            new DataStructures::HClustSingleBiVpTree::GenericRDistance(
+               distance2,
+               vector<RObject>(objects2.begin(), objects2.end())
+            );
+      }
+      else if (Rf_isMatrix(objects)) {
+         NumericMatrix objects2(objects);
+         dist = (DataStructures::HClustSingleBiVpTree::Distance*)
+            new DataStructures::HClustSingleBiVpTree::EuclideanDistance(
+               objects2
+            );
+      }
+
+      if (!dist) stop("Incorrect input data");
+      DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(dist);
       result = (SEXP)hclust.compute();
    }
    catch(...) {
       result = R_NilValue;
    }
+   if (dist) delete dist;
 #if VERBOSE > 5
    Rprintf("[%010.3f] done\n", clock()/(float)CLOCKS_PER_SEC);
 #endif

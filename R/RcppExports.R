@@ -411,8 +411,8 @@ vector_set_at <- function(vec, i, obj) {
     invisible(.Call('DataStructures_vector_set_at', PACKAGE = 'DataStructures', vec, i, obj))
 }
 
-hclust2 <- function(distance, listobj) {
-    .Call('DataStructures_hclust2', PACKAGE = 'DataStructures', distance, listobj)
+hclust2 <- function(objects, distance = NULL) {
+    .Call('DataStructures_hclust2', PACKAGE = 'DataStructures', objects, distance)
 }
 
 hierarchical <- function(distance, listobj, isSimilarity = FALSE, m = 2L, minm = 4L, maxLeafPointsCount = 25L, vantageCandidatesCount = 5L, testPointsCount = 15L) {
