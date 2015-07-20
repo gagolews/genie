@@ -32,7 +32,7 @@ using namespace boost;
 
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 5
+#define VERBOSE 6
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -118,7 +118,7 @@ struct Distance {
 struct EuclideanDistance : public Distance
 {
    SEXP robj1;
-   vector<const double*> items;
+   const double* items;
    size_t m;
 #ifndef HASHMAP_DISABLE
    // unordered_map<SortedPoint, double> hashmap;
@@ -130,9 +130,9 @@ struct EuclideanDistance : public Distance
 #endif
 
    EuclideanDistance(const NumericMatrix& points) :
-      Distance(points.ncol()), robj1(points),
-      items(points.ncol()), m(points.nrow()),
-      hashmap(vector< unordered_map<size_t, double> >(points.ncol()))
+      Distance(points.nrow()), robj1(points),
+      items(REAL((SEXP)points)), m(points.ncol()),
+      hashmap(vector< unordered_map<size_t, double> >(points.nrow()))
    {
       R_PreserveObject(robj1);
 
@@ -140,9 +140,9 @@ struct EuclideanDistance : public Distance
       hashmapHit=0;
       hashmapMiss=0;
 #endif
-      const double* curptr = REAL((SEXP)robj1);
-      for (size_t i=0; i<n; ++i, curptr += m)
-         items[i] = curptr;
+//       const double* curptr = REAL((SEXP)robj1);
+//       for (size_t i=0; i<n; ++i, curptr += m)
+//          items[i] = curptr;
    }
 
 #ifdef HASHMAP_COUNTERS
@@ -154,7 +154,7 @@ struct EuclideanDistance : public Distance
 #if VERBOSE > 3
       Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB (vs %.1fMB)\n",
          hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f,
-         8.0f*(items.size()-1)*(items.size()-1)*0.5f/1000.0f/1000.0f);
+         8.0f*(n-1)*(n-1)*0.5f/1000.0f/1000.0f);
 #endif
       R_ReleaseObject(robj1);
    }
@@ -172,7 +172,7 @@ struct EuclideanDistance : public Distance
 #endif
          double d = 0.0;
          for (size_t i=0; i<m; ++i)
-            d += (items[v1][i]-items[v2][i])*(items[v1][i]-items[v2][i]);
+            d += (items[v1+i*n]-items[v2+i*n])*(items[v1+i*n]-items[v2+i*n]);
          d = sqrt(d);
 #ifdef HASHMAP_COUNTERS
          ++hashmapMiss;
@@ -506,7 +506,6 @@ protected:
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
                      while (!heap.empty() && heap.top().dist == maxR) {
-                        // maxRadiuses[index] = maxR;
                         heap.pop();
                      }
                   }
@@ -626,6 +625,7 @@ public:
 
       NumericMatrix y(n, 2);
       std::vector< std::unordered_set<size_t> > curclust(n);
+      std::vector< bool > alreadyInSomeCluster(n+1, false);
 
       for (size_t k=0; k<n; ++k) {
          if (k % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
@@ -633,15 +633,23 @@ public:
          size_t j = (size_t)x(k,1)+1;
          size_t si = (k > 0) ? k-1 : SIZE_MAX;
          size_t sj = (k > 0) ? k-1 : SIZE_MAX;
-         while (si != SIZE_MAX && curclust[si].find(i) == curclust[si].end())
-            si = (si>0) ? si-1 : SIZE_MAX;
-         while (sj != SIZE_MAX && curclust[sj].find(j) == curclust[sj].end())
-            sj = (sj>0) ? sj-1 : SIZE_MAX;
+         if (alreadyInSomeCluster[i])
+            while (si != SIZE_MAX && curclust[si].find(i) == curclust[si].end())
+               si = (si>0) ? si-1 : SIZE_MAX;
+         else si = SIZE_MAX;
+
+         if (alreadyInSomeCluster[j])
+            while (sj != SIZE_MAX && curclust[sj].find(j) == curclust[sj].end())
+               sj = (sj>0) ? sj-1 : SIZE_MAX;
+         else sj = SIZE_MAX;
+
          if (si == SIZE_MAX && sj == SIZE_MAX) {
             curclust[k].insert(i);
             curclust[k].insert(j);
             y(k,0) = -(double)i;
             y(k,1) = -(double)j;
+            alreadyInSomeCluster[i] = true;
+            alreadyInSomeCluster[j] = true;
          }
          else if (si == SIZE_MAX && sj != SIZE_MAX) {
             curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
@@ -649,6 +657,7 @@ public:
             curclust[sj].clear(); // no longer needed
             y(k,0) = -(double)i;
             y(k,1) = (double)sj+1;
+            alreadyInSomeCluster[i] = true;
          }
          else if (si != SIZE_MAX && sj == SIZE_MAX) {
             curclust[k].insert(curclust[si].begin(), curclust[si].end());
@@ -656,6 +665,7 @@ public:
             curclust[si].clear(); // no longer needed
             y(k,0) = (double)si+1;
             y(k,1) = -(double)j;
+            alreadyInSomeCluster[j] = true;
          }
          else {
             curclust[k].insert(curclust[si].begin(), curclust[si].end());
@@ -827,9 +837,9 @@ public:
          }
          //stop("po pierwszym wstepnym");
       }
-#if VERBOSE > 5
-      Rprintf("[%010.3f] first distance in priority queue: %f\n", clock()/(float)CLOCKS_PER_SEC, pq.top().dist);
-#endif
+// #if VERBOSE > 5
+      // Rprintf("[%010.3f] first distance in priority queue: %f\n", clock()/(float)CLOCKS_PER_SEC, pq.top().dist);
+// #endif
 #if VERBOSE > 7
    Rprintf("\n");
 #endif
@@ -852,9 +862,9 @@ public:
          {
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
-#if VERBOSE > 5
-            Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", hhi dist = " <<hhi.dist <<", i =" << i << endl;
-#endif
+// #if VERBOSE > 5
+            // Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", hhi dist = " <<hhi.dist <<", i =" << i << endl;
+// #endif
             ++i;
             ds.link(s1, s2);
             //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
@@ -917,6 +927,7 @@ template <>
 } // namespace HClustSingleBiVpTree
 } // namespace DataStructures
 
+
 NumericMatrix transpose(const NumericMatrix& matrix)
 {
    size_t width = matrix.ncol();
@@ -933,6 +944,7 @@ NumericMatrix transpose(const NumericMatrix& matrix)
 
    return transposed;
 }
+
 
 // [[Rcpp::export]]
 SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
@@ -954,12 +966,10 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
       }
       else if (Rf_isMatrix(objects)) {
          NumericMatrix objects2(objects);
-
-         NumericMatrix objects3 = transpose(objects2);
-
+         // NumericMatrix objects3 = transpose(objects2);
          dist = (DataStructures::HClustSingleBiVpTree::Distance*)
             new DataStructures::HClustSingleBiVpTree::EuclideanDistance(
-               objects3
+               objects2
             );
       }
 
