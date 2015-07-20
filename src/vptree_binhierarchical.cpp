@@ -622,8 +622,48 @@ public:
       // x has 0-based indices
       size_t n = x.nrow();
       if (x.ncol() != 2) stop("x should have 2 columns");
-
       NumericMatrix y(n, 2);
+
+
+//       std::vector< size_t* > currentClusterNumber(n+2, NULL);
+//       size_t* clusterIDs = new size_t[n+2];
+//
+//       for (size_t k=0; k<n; ++k) {
+//          if (k % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+//          size_t i = (size_t)x(k,0)+1;
+//          size_t j = (size_t)x(k,1)+1;
+//
+//          if (!currentClusterNumber[i] && !currentClusterNumber[j]) {
+//             y(k,0) = -(double)i;
+//             y(k,1) = -(double)j;
+//             currentClusterNumber[i] = currentClusterNumber[j] = (clusterIDs+k);
+//             *(currentClusterNumber[i]) = k+1;
+//          }
+//          else if (currentClusterNumber[i] && !currentClusterNumber[j]) {
+//             y(k,0) =  (double)(*(currentClusterNumber[i]));
+//             y(k,1) = -(double)j;
+//             currentClusterNumber[j] = currentClusterNumber[i];
+//             *(currentClusterNumber[i]) = k+1;
+//          }
+//          else if (!currentClusterNumber[i] && currentClusterNumber[j]) {
+//             y(k,0) = -(double)i;
+//             y(k,1) =  (double)(*(currentClusterNumber[j]));
+//             currentClusterNumber[i] = currentClusterNumber[j];
+//             *(currentClusterNumber[i]) = k+1;
+//          }
+//          else {
+//             y(k,0) =  (double)(*(currentClusterNumber[i]));
+//             y(k,1) =  (double)(*(currentClusterNumber[j]));
+//             currentClusterNumber[j] = currentClusterNumber[i];
+//             *(currentClusterNumber[i]) = k+1;
+//          }
+//       }
+//
+//       delete [] clusterIDs;
+//       return y;
+
+
+
       std::vector< std::unordered_set<size_t> > curclust(n);
       std::vector< bool > alreadyInSomeCluster(n+1, false);
 
@@ -688,8 +728,14 @@ public:
       if(shouldFind[index] && nearestNeighbors[index].empty())
       {
          std::priority_queue<HeapNeighborItem> heap;
-         double _tau = maxRadiuses[index];
          size_t clusterIndex = ds.find_set(index);
+
+         double _tau = maxRadiuses[index];
+//       THIS IS SLOWER:
+//          size_t test = (size_t)(index+unif_rand()*(_n-index));
+//          if (ds.find_set(test) != clusterIndex)
+//             _tau = (*_distance)(index, test);
+
          getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, minRadiuses[index], _tau, heap );
          while( !heap.empty() ) {
             nearestNeighbors[index].push_front(heap.top());
