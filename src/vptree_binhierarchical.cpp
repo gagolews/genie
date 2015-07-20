@@ -610,7 +610,7 @@ protected:
       std::vector< std::unordered_set<size_t> > curclust(n);
 
       for (size_t k=0; k<n; ++k) {
-         if (k % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+         if (k % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
          size_t i = (size_t)x(k,0)+1;
          size_t j = (size_t)x(k,1)+1;
          size_t si = (k > 0) ? k-1 : SIZE_MAX;
@@ -793,7 +793,7 @@ public:
 #endif
       for(size_t i=0;i<_n;i++)
       {
-         if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+         if (i % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
 #if VERBOSE > 7
    Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
 #endif
