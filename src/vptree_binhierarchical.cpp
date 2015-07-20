@@ -135,7 +135,7 @@ struct EuclideanDistance : public Distance
       hashmap(vector< unordered_map<size_t, double> >(points.ncol()))
    {
       R_PreserveObject(robj1);
-        
+
 #ifdef HASHMAP_COUNTERS
       hashmapHit=0;
       hashmapMiss=0;
@@ -602,9 +602,9 @@ protected:
    }
 
 public:
-    NumericMatrix  generateMergeMatrix(const NumericMatrix x) const {
+    static NumericMatrix generateMergeMatrix(const NumericMatrix& x) {
       // x has 0-based indices
-      size_t n = _n-1;
+      size_t n = x.nrow();
       if (x.ncol() != 2) stop("x should have 2 columns");
 
       NumericMatrix y(n, 2);
@@ -755,12 +755,7 @@ public:
 #endif
       if(_root) delete _root;
    }
-   
-   HClustSingleBiVpTree(int n) : _n(n), ds(make_assoc_property_map(rank), make_assoc_property_map(parent)), _root(NULL)
-   {
-      
-   }
-   
+
 
    /*size_t treeSize()
    {
@@ -873,8 +868,8 @@ public:
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       Rcpp::checkUserInterrupt();
-      //return generateMergeMatrix(ret);
-      return ret;
+      return generateMergeMatrix(ret);
+      // return ret;
    }
 
 }; // class
@@ -907,8 +902,8 @@ NumericMatrix transpose(const NumericMatrix& matrix)
 {
    size_t width = matrix.ncol();
    size_t height = matrix.nrow();
-   NumericMatrix transposed(width, height);  
-      
+   NumericMatrix transposed(width, height);
+
    for (size_t i = 0; i < width; i++)
    {
       for (size_t j = 0; j < height; j++)
@@ -916,13 +911,15 @@ NumericMatrix transpose(const NumericMatrix& matrix)
          transposed(i,j) = matrix(j,i);
       }
    }
-  
-   return transposed;  
+
+   return transposed;
 }
 
 // [[Rcpp::export]]
 SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
+#if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
    SEXP result;
    DataStructures::HClustSingleBiVpTree::Distance* dist = NULL;
    try {
@@ -938,9 +935,9 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
       }
       else if (Rf_isMatrix(objects)) {
          NumericMatrix objects2(objects);
-        
+
          NumericMatrix objects3 = transpose(objects2);
-        
+
          dist = (DataStructures::HClustSingleBiVpTree::Distance*)
             new DataStructures::HClustSingleBiVpTree::EuclideanDistance(
                objects3
@@ -963,8 +960,7 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
 
 // [[Rcpp::export]]
 NumericMatrix generateMergeMatrix(NumericMatrix x) {
-   DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree tree(x.nrow());
-   return tree.generateMergeMatrix(x);
+   return DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree::generateMergeMatrix(x);
 }
 
 
