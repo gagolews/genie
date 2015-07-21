@@ -1080,7 +1080,7 @@ public:
 #if VERBOSE > 5
       Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-      maxNumberOfElementsInLeaves = 12; //(size_t)log2(_n);
+      maxNumberOfElementsInLeaves = (size_t)log2(_n);
 
       // starting _indices: random permutation of {0,1,...,_n-1}
       for(size_t i=0;i<_n;i++) _indices[i] = i;
