@@ -90,17 +90,6 @@ namespace std {
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
 
-// struct RFunction {
-//    RFunction(const Function& _f) : f(_f) {
-//       R_PreserveObject(f);
-//    }
-//
-//    ~RFunction() {
-//       R_ReleaseObject(f);
-//    }
-//
-//    Function f;
-// };
 
 struct Distance {
    size_t n;
@@ -121,7 +110,6 @@ struct EuclideanDistance : public Distance
    const double* items;
    size_t m;
 #ifndef HASHMAP_DISABLE
-   // unordered_map<SortedPoint, double> hashmap;
    vector< unordered_map<size_t, double> > hashmap;
 #endif
 #ifdef HASHMAP_COUNTERS
@@ -140,9 +128,6 @@ struct EuclideanDistance : public Distance
       hashmapHit=0;
       hashmapMiss=0;
 #endif
-//       const double* curptr = REAL((SEXP)robj1);
-//       for (size_t i=0; i<n; ++i, curptr += m)
-//          items[i] = curptr;
    }
 
 #ifdef HASHMAP_COUNTERS
@@ -162,12 +147,13 @@ struct EuclideanDistance : public Distance
 
    virtual double operator()(size_t v1, size_t v2)
    {
-      if (v1 == v2) return 0;
+      if (v1 == v2) return 0.0;
 #ifndef HASHMAP_DISABLE
-      SortedPoint p(v1,v2);
+      if (v1 > v2) std::swap(v1, v2);
+
       // std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
-      auto got = hashmap[p.i].find(p.j);
-      if ( got == hashmap[p.i].end() )
+      auto got = hashmap[v1].find(v2);
+      if ( got == hashmap[v1].end() )
       {
 #endif
          double d = 0.0;
@@ -178,7 +164,7 @@ struct EuclideanDistance : public Distance
          ++hashmapMiss;
 #endif
 #ifndef HASHMAP_DISABLE
-         hashmap[p.i].emplace(p.j, d);
+         hashmap[v1].emplace(v2, d);
 #endif
          return d;
 #ifndef HASHMAP_DISABLE
@@ -199,7 +185,6 @@ struct GenericRDistance : public Distance
    Function distfun;
    vector<RObject> items;
 #ifndef HASHMAP_DISABLE
-   // unordered_map<SortedPoint, double> hashmap;
    vector< unordered_map<size_t, double> > hashmap;
 #endif
 #ifdef HASHMAP_COUNTERS
@@ -351,7 +336,7 @@ protected:
       }
    };
 
-   const size_t maxNumberOfElementInLeaf = 12;
+   size_t maxNumberOfElementsInLeaves; // set in the constructor
    const size_t maxNearestNeighborPrefetch = 1;
 
    Node* _root;
@@ -374,7 +359,7 @@ protected:
 
    Node* buildFromPoints(size_t left, size_t right)
    {
-      if(right - left <= maxNumberOfElementInLeaf)
+      if(right - left <= maxNumberOfElementsInLeaves)
       {
          for (size_t i=left; i<right; ++i) {
             size_t j = _indices[(i+1 < right)?(i+1):left];
@@ -451,7 +436,7 @@ protected:
       std::priority_queue<HeapNeighborItem>& heap )
    {
       // search within (minR, maxR]
-      if(node == NULL) return;
+      if (node == NULL) return;
 
       if (node->sameCluster) {
          if (node->vpindex == SIZE_MAX) {
@@ -467,9 +452,7 @@ protected:
             for(size_t i=node->left; i<node->right; i++)
             {
                if(index >= _indices[i]) continue;
-               // if(clusterIndex==ds.find_set(_indices[i])) continue;
                double dist2 = (*_distance)(index, _indices[i]);
-               // if(index == 23) Rcout << "DIST2: " << dist2 << endl;
                if (dist2 > maxR || dist2 <= minR) continue;
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -478,15 +461,8 @@ protected:
                      }
                   }
                }
-// #if VERBOSE > 5
-//                if(index == 32) Rcout << "DLA 32 ZNALEZIONO:" << dist2 << endl;
-//                if(index == 23) Rcout << "DLA 23 ZNALEZIONO:" << dist2 << endl;
-//                if(index == 23) Rcout << "PRZY MAXR: " << maxR << endl;
-//                if(index == 23) Rcout << "HEAP SIZE: " << heap.size() << endl;
-// #endif
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
-               // if(index == 23) Rcout << "HEAP TOP DIST: " << heap.top().dist << endl;
             }
          }
          else {
@@ -497,10 +473,9 @@ protected:
                if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
                if (currentCluster == clusterIndex) continue;
 
-               if(index >= _indices[i]) continue;
+               if (index >= _indices[i]) continue;
 
                double dist2 = (*_distance)(index, _indices[i]);
-               // if(index == 23) Rcout << "DIST2: " << dist2 << endl;
                if (dist2 > maxR || dist2 <= minR) continue;
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
@@ -510,17 +485,8 @@ protected:
                      }
                   }
                }
-// #if VERBOSE > 5
-//                if(index == 32) Rcout << "DLA 32 ZNALEZIONO:" << dist2 << endl;
-//                if(index == 23) Rcout << "DLA 23 ZNALEZIONO:" << dist2 << endl;
-//                if(index == 23) Rcout << "PRZY MINR: " << minR << endl;
-//                if(index == 23) Rcout << "PRZY MAXR: " << maxR << endl;
-//                if(index == 23) Rcout << "HEAP SIZE: " << heap.size() << endl;
-// #endif
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
-               // if(index == 23) Rcout << "HEAP TOP DIST: " << heap.top().dist << endl;
-
             }
             if (commonCluster != SIZE_MAX) node->sameCluster = true;
          }
@@ -624,45 +590,13 @@ public:
       if (x.ncol() != 2) stop("x should have 2 columns");
       NumericMatrix y(n, 2);
 
-
-//       std::vector< size_t* > currentClusterNumber(n+2, NULL);
-//       size_t* clusterIDs = new size_t[n+2];
-//
-//       for (size_t k=0; k<n; ++k) {
-//          if (k % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
-//          size_t i = (size_t)x(k,0)+1;
-//          size_t j = (size_t)x(k,1)+1;
-//
-//          if (!currentClusterNumber[i] && !currentClusterNumber[j]) {
-//             y(k,0) = -(double)i;
-//             y(k,1) = -(double)j;
-//             currentClusterNumber[i] = currentClusterNumber[j] = (clusterIDs+k);
-//             *(currentClusterNumber[i]) = k+1;
-//          }
-//          else if (currentClusterNumber[i] && !currentClusterNumber[j]) {
-//             y(k,0) =  (double)(*(currentClusterNumber[i]));
-//             y(k,1) = -(double)j;
-//             currentClusterNumber[j] = currentClusterNumber[i];
-//             *(currentClusterNumber[i]) = k+1;
-//          }
-//          else if (!currentClusterNumber[i] && currentClusterNumber[j]) {
-//             y(k,0) = -(double)i;
-//             y(k,1) =  (double)(*(currentClusterNumber[j]));
-//             currentClusterNumber[i] = currentClusterNumber[j];
-//             *(currentClusterNumber[i]) = k+1;
-//          }
-//          else {
-//             y(k,0) =  (double)(*(currentClusterNumber[i]));
-//             y(k,1) =  (double)(*(currentClusterNumber[j]));
-//             currentClusterNumber[j] = currentClusterNumber[i];
-//             *(currentClusterNumber[i]) = k+1;
-//          }
-//       }
-//
-//       delete [] clusterIDs;
-//       return y;
+      /* -------------------------------------------------------------- */
+      /* TO DO: new method, O(n)                                        */
 
 
+
+
+      /* -------------------------------------------------------------- */
 
       std::vector< std::unordered_set<size_t> > curclust(n);
       std::vector< bool > alreadyInSomeCluster(n+1, false);
@@ -724,7 +658,6 @@ public:
 #if VERBOSE > 5
       // Rprintf(".");
 #endif
-      //Rcout << "nearestNeighbors[index] = " << nearestNeighbors[index].size() << endl;
       if(shouldFind[index] && nearestNeighbors[index].empty())
       {
          std::priority_queue<HeapNeighborItem> heap;
@@ -797,6 +730,7 @@ public:
 
 public:
 
+   // constructor (OK, we all know what this is, but I label it for faster in-code search)
    HClustSingleBiVpTree(Distance* dist) :
       _root(NULL), _n(dist->getObjectCount()), _distance(dist),
       _indices(dist->getObjectCount()),
@@ -810,6 +744,8 @@ public:
 #if VERBOSE > 5
       Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
+      maxNumberOfElementsInLeaves = 12; //(size_t)log2(_n);
+
       // starting _indices: random permutation of {0,1,...,_n-1}
       for(size_t i=0;i<_n;i++) _indices[i] = i;
       for(size_t i=_n-1; i>= 1; i--)
@@ -852,28 +788,22 @@ public:
 
    NumericMatrix compute()
    {
-      //Rcout << "wszedl do dobrego" << endl;
       NumericMatrix ret(_n-1, 2);
-
-      //Rcout << "dociagam sasiadow. po raz pierwszy.." << endl;
       priority_queue<HeapHierarchicalItem> pq;
-      //Rcout << "_items.size() = " << this->_items.size() << endl;
 
       // INIT: Pre-fetch a few nearest neighbors for each point
 #if VERBOSE > 5
-   Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
+      Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 #if VERBOSE > 3
-   int misses = 0;
+      int misses = 0;
 #endif
       for(size_t i=0;i<_n;i++)
       {
          if (i % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
 #if VERBOSE > 7
-   Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
+      Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
 #endif
-         //Rcout << i << endl;
-         //stop("kazdemu na poczatek znajduje sasiada");
          HeapNeighborItem hi=getNearestNeighbor(i);
 
          if(hi.index != SIZE_MAX)
@@ -881,21 +811,16 @@ public:
             //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
             pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
          }
-         //stop("po pierwszym wstepnym");
       }
-// #if VERBOSE > 5
-      // Rprintf("[%010.3f] first distance in priority queue: %f\n", clock()/(float)CLOCKS_PER_SEC, pq.top().dist);
-// #endif
 #if VERBOSE > 7
-   Rprintf("\n");
+      Rprintf("\n");
 #endif
 #if VERBOSE > 5
-   Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
+      Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
       size_t i = 0;
       while(i < _n - 1)
-      //for(int i=0;i<this->_items.size() - 1 ; i++)
       {
          //Rcout << "iteracja " << i << endl;
          //Rcout << "pq size = " << pq.size()<< endl;
@@ -908,12 +833,8 @@ public:
          {
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
-// #if VERBOSE > 5
-            // Rcout << "el1="<<ret(i,0)<< "el2=" <<ret(i,1)<< ", hhi dist = " <<hhi.dist <<", i =" << i << endl;
-// #endif
             ++i;
             ds.link(s1, s2);
-            //Rcout << "el1="<<hhi.index1+1<< "el2=" <<hhi.index2 +1<< endl;
             if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
          }
 #if VERBOSE > 3
@@ -923,18 +844,11 @@ public:
 #if VERBOSE > 7
          Rprintf("\r             %d / %d / %d ", i+1, _n, misses);
 #endif
-         // else just ignore this priority queue item
-         //stop("przed dociaganiem sasiadow");
 
          // ASSERT: hhi.index1 < hhi.index2
          HeapNeighborItem hi=getNearestNeighbor(hhi.index1);
          if(hi.index != SIZE_MAX)
             pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-
-         //hi=getNearestNeighbor(hhi.index2);
-         //if(hi.index != -1)
-         //   pq.push(HeapHierarchicalItem(hhi.index2, hi.index, hi.dist));
-         //stop("po pierwszej iteracji");
       }
 #if VERBOSE > 3
       Rprintf("Total ignored NNs: %d\n", misses);
@@ -944,7 +858,6 @@ public:
 #endif
       Rcpp::checkUserInterrupt();
       return generateMergeMatrix(ret);
-      // return ret;
    }
 
 }; // class
@@ -1012,7 +925,6 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
       }
       else if (Rf_isMatrix(objects)) {
          NumericMatrix objects2(objects);
-         // NumericMatrix objects3 = transpose(objects2);
          dist = (DataStructures::HClustSingleBiVpTree::Distance*)
             new DataStructures::HClustSingleBiVpTree::EuclideanDistance(
                objects2
@@ -1031,6 +943,8 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] done\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
+   if (Rf_isNull(result))
+      stop("error or stop");
    return result;
 }
 
