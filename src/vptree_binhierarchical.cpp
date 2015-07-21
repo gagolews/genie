@@ -30,9 +30,9 @@ using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-// #define HASHMAP_DISABLE
-#define HASHMAP_COUNTERS
-#define VERBOSE 6
+#define HASHMAP_DISABLE
+// #define HASHMAP_COUNTERS
+#define VERBOSE 0
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -107,11 +107,11 @@ struct Distance {
 struct EuclideanDistance : public Distance
 {
    SEXP robj1;
-   const double* items;
-   size_t m;
 #ifndef HASHMAP_DISABLE
    vector< unordered_map<size_t, double> > hashmap;
 #endif
+   const double* items;
+   size_t m;
 #ifdef HASHMAP_COUNTERS
    size_t hashmapHit;
    size_t hashmapMiss;
@@ -119,8 +119,10 @@ struct EuclideanDistance : public Distance
 
    EuclideanDistance(const NumericMatrix& points) :
       Distance(points.nrow()), robj1(points),
-      items(REAL((SEXP)points)), m(points.ncol()),
-      hashmap(vector< unordered_map<size_t, double> >(points.nrow()))
+#ifndef HASHMAP_DISABLE
+      hashmap(vector< unordered_map<size_t, double> >(points.nrow())),
+#endif
+      items(REAL((SEXP)points)), m(points.ncol())
    {
       R_PreserveObject(robj1);
 
@@ -183,18 +185,21 @@ struct EuclideanDistance : public Distance
 struct GenericRDistance : public Distance
 {
    Function distfun;
-   vector<RObject> items;
 #ifndef HASHMAP_DISABLE
    vector< unordered_map<size_t, double> > hashmap;
 #endif
+   vector<RObject> items;
 #ifdef HASHMAP_COUNTERS
    size_t hashmapHit;
    size_t hashmapMiss;
 #endif
 
    GenericRDistance(const Function& distfun, const vector<RObject>& items) :
-      Distance(items.size()), distfun(distfun), items(items),
-      hashmap(vector< unordered_map<size_t, double> >(items.size()))
+      Distance(items.size()), distfun(distfun),
+#ifndef HASHMAP_DISABLE
+      hashmap(vector< unordered_map<size_t, double> >(items.size())),
+#endif
+      items(items)
    {
       R_PreserveObject(distfun);
 #ifdef HASHMAP_COUNTERS
