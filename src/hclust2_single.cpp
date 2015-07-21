@@ -34,7 +34,7 @@ using namespace boost;
 
 // #define HASHMAP_DISABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 5
+#define VERBOSE 7
 #define VANTAGE_POINT_SELECT_SCHEME 2
 
 namespace DataStructures{
@@ -844,7 +844,7 @@ public:
       size_t n;
       vector<size_t> elements;
       vector<size_t> parents;
-      
+
       size_t i;
       size_t j;
       size_t si;
@@ -855,13 +855,13 @@ public:
            i(SIZE_MAX), j(SIZE_MAX), si(SIZE_MAX), sj(SIZE_MAX)
          {
          }
-      
+
       NumericMatrix generateMergeMatrix(const NumericMatrix& x)
       {
          // x has 0-based indices
          if (x.ncol() != 2) stop("x should have 2 columns");
          NumericMatrix y(n, 2);
-         
+
          size_t clusterNumber = 1;
          for (size_t k=0; k<n; ++k, ++clusterNumber)
          {
@@ -871,7 +871,7 @@ public:
             sj = findMyParent(sj, clusterNumber);
             writeRowIfClusterElements(y,k);
          }
-         
+
          return y;
       }
    private:
@@ -889,24 +889,24 @@ public:
       {
          if(si == 0)
             y(k,0)=-(double)i;
-         
+
          if(sj == 0)
             y(k,1)=-(double)j;
       }
-      
+
       void writeRowIfClusterElements(NumericMatrix& y, size_t k)
       {
          if(y(k,0) == 0)
          {
             y(k,0) = (double)si;
          }
-         
+
          if(y(k,1) == 0)
          {
             y(k,1) = (double)sj;
          }
       }
-      
+
       size_t findMyParent(size_t s, size_t clusterNumber)
       {
          while(parents[s] != 0)
@@ -919,7 +919,7 @@ public:
          return s;
       }
    };
-   
+
     static NumericMatrix generateMergeMatrix(const NumericMatrix& x) {
       // x has 0-based indices
       size_t n = x.nrow();
@@ -1193,7 +1193,7 @@ public:
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       Rcpp::checkUserInterrupt();
-      
+
       MergeMatrixGenerator mmg(ret.nrow());
       return mmg.generateMergeMatrix(ret);
    }
