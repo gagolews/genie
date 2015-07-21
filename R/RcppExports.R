@@ -9,6 +9,10 @@ generateMergeMatrix <- function(x) {
     .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
 }
 
+generateMergeMatrix2 <- function(x) {
+    .Call('DataStructures_generateMergeMatrix2', PACKAGE = 'DataStructures', x)
+}
+
 #' @rdname mtree
 #' @details
 #' \code{mtree_create} creates an empty m-tree instance. Please use

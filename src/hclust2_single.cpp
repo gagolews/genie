@@ -839,6 +839,87 @@ protected:
    }
 
 public:
+   class MergeMatrixGenerator
+   {
+      size_t n;
+      vector<size_t> elements;
+      vector<size_t> parents;
+      
+      size_t i;
+      size_t j;
+      size_t si;
+      size_t sj;
+   public:
+      MergeMatrixGenerator(size_t n)
+         : n(n), elements(n+2,0), parents(n+2,0),
+           i(SIZE_MAX), j(SIZE_MAX), si(SIZE_MAX), sj(SIZE_MAX)
+         {
+         }
+      
+      NumericMatrix generateMergeMatrix(const NumericMatrix& x)
+      {
+         // x has 0-based indices
+         if (x.ncol() != 2) stop("x should have 2 columns");
+         NumericMatrix y(n, 2);
+         
+         size_t clusterNumber = 1;
+         for (size_t k=0; k<n; ++k, ++clusterNumber)
+         {
+            initialize(x, k, clusterNumber);
+            writeRowIfSingleElements(y,k);
+            si = findMyParent(si, clusterNumber);
+            sj = findMyParent(sj, clusterNumber);
+            writeRowIfClusterElements(y,k);
+         }
+         
+         return y;
+      }
+   private:
+      void initialize(const NumericMatrix& x, size_t k, size_t clusterNumber)
+      {
+         if(x(k,0) < 0 || x(k,1) < 0) stop("There are negative values. You probably gave merged matrix.");
+         i = (size_t)x(k,0)+1;
+         j = (size_t)x(k,1)+1;
+         si = elements[i];
+         sj = elements[j];
+         elements[i] = clusterNumber;
+         elements[j] = clusterNumber;
+      }
+      void writeRowIfSingleElements(NumericMatrix& y, size_t k)
+      {
+         if(si == 0)
+            y(k,0)=-(double)i;
+         
+         if(sj == 0)
+            y(k,1)=-(double)j;
+      }
+      
+      void writeRowIfClusterElements(NumericMatrix& y, size_t k)
+      {
+         if(y(k,0) == 0)
+         {
+            y(k,0) = (double)si;
+         }
+         
+         if(y(k,1) == 0)
+         {
+            y(k,1) = (double)sj;
+         }
+      }
+      
+      size_t findMyParent(size_t s, size_t clusterNumber)
+      {
+         while(parents[s] != 0)
+         {
+            size_t sinew = parents[s];
+            parents[s] = clusterNumber;
+            s = sinew;
+         }
+         if(s != 0) parents[s] = clusterNumber;
+         return s;
+      }
+   };
+   
     static NumericMatrix generateMergeMatrix(const NumericMatrix& x) {
       // x has 0-based indices
       size_t n = x.nrow();
@@ -1112,7 +1193,9 @@ public:
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       Rcpp::checkUserInterrupt();
-      return generateMergeMatrix(ret);
+      
+      MergeMatrixGenerator mmg(ret.nrow());
+      return mmg.generateMergeMatrix(ret);
    }
 
 }; // class
@@ -1178,12 +1261,12 @@ SEXP hclust2(RObject objects, RObject distance=R_NilValue) {
                vector<RObject>(objects2.begin(), objects2.end())
             );
       }
-      else if (Rf_isMatrix(objects) && (Rf_isString(distance) || Rf_isNull(R_NilValue))) {
+      else if (Rf_isMatrix(objects) && (Rf_isNull(distance) || Rf_isString(distance))) {
          NumericMatrix objects2(objects);
          CharacterVector distance2 =
-            ((Rf_isNull(R_NilValue))?CharacterVector("euclidean"):CharacterVector(distance));
+            ((Rf_isNull(distance))?CharacterVector("euclidean"):CharacterVector(distance));
 
-         const char* distance3 = CHAR(STRING_ELT((SEXP)distance, 0));
+         const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
          if (!strcmp(distance3, "euclidean")) {
             dist = (DataStructures::HClustSingleBiVpTree::Distance*)
                new DataStructures::HClustSingleBiVpTree::EuclideanDistance(

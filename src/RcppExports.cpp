@@ -28,6 +28,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// generateMergeMatrix2
+NumericMatrix generateMergeMatrix2(NumericMatrix x);
+RcppExport SEXP DataStructures_generateMergeMatrix2(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    __result = Rcpp::wrap(generateMergeMatrix2(x));
+    return __result;
+END_RCPP
+}
 // mtree_create
 SEXP mtree_create(Function distance, bool isSimilarity);
 RcppExport SEXP DataStructures_mtree_create(SEXP distanceSEXP, SEXP isSimilaritySEXP) {
