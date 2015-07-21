@@ -5,6 +5,29 @@
 
 using namespace Rcpp;
 
+// hclust2
+SEXP hclust2(RObject objects, RObject distance);
+RcppExport SEXP DataStructures_hclust2(SEXP objectsSEXP, SEXP distanceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    __result = Rcpp::wrap(hclust2(objects, distance));
+    return __result;
+END_RCPP
+}
+// generateMergeMatrix
+NumericMatrix generateMergeMatrix(NumericMatrix x);
+RcppExport SEXP DataStructures_generateMergeMatrix(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
+    __result = Rcpp::wrap(generateMergeMatrix(x));
+    return __result;
+END_RCPP
+}
 // mtree_create
 SEXP mtree_create(Function distance, bool isSimilarity);
 RcppExport SEXP DataStructures_mtree_create(SEXP distanceSEXP, SEXP isSimilaritySEXP) {
@@ -349,29 +372,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< RObject >::type obj(objSEXP);
     vector_set_at(vec, i, obj);
     return R_NilValue;
-END_RCPP
-}
-// hclust2
-SEXP hclust2(RObject objects, RObject distance);
-RcppExport SEXP DataStructures_hclust2(SEXP objectsSEXP, SEXP distanceSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    __result = Rcpp::wrap(hclust2(objects, distance));
-    return __result;
-END_RCPP
-}
-// generateMergeMatrix
-NumericMatrix generateMergeMatrix(NumericMatrix x);
-RcppExport SEXP DataStructures_generateMergeMatrix(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
-    __result = Rcpp::wrap(generateMergeMatrix(x));
-    return __result;
 END_RCPP
 }
 // hierarchical

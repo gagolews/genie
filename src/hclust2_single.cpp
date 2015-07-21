@@ -1,5 +1,5 @@
-#ifndef VPTREEBINHIERARCHICAL_H_
-#define VPTREEBINHIERARCHICAL_H_
+#ifndef HCLUST2_SINGLE_H_
+#define HCLUST2_SINGLE_H_
 #include <iostream>
 #include <Rcpp.h>
 #define USE_RINTERNALS
@@ -25,14 +25,17 @@
 #include <boost/property_map/property_map.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/functional/hash.hpp>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
 
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-#define HASHMAP_DISABLE
-// #define HASHMAP_COUNTERS
-#define VERBOSE 0
+// #define HASHMAP_DISABLE
+#define HASHMAP_COUNTERS
+#define VERBOSE 5
+#define VANTAGE_POINT_SELECT_SCHEME 2
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -362,6 +365,70 @@ protected:
      associative_property_map< std::map<size_t,size_t> >,
      associative_property_map< std::map<size_t,size_t> > > ds;
 
+
+   int chooseNewVantagePoint(size_t left, size_t right)
+   {
+#if VANTAGE_POINT_SELECT_SCHEME == 1
+      // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
+      //    search given pair-wise distances"
+      size_t numCandidates = 5;
+      size_t numTest = 12;
+
+      if (left + numCandidates + numTest > right )
+         return left;
+
+      // maximize variance
+      size_t bestIndex = -1;
+      double bestSigma = -INFINITY;
+      for(size_t i=left; i<left+numCandidates; i++) {
+         accumulators::accumulator_set< double,
+            accumulators::features<accumulators::tag::variance> > acc;
+         for (size_t j = left+numCandidates; j < left+numCandidates+numTest; ++j)
+            acc( (*_distance)( _indices[i], _indices[j] ) );
+         double curSigma = accumulators::variance(acc);
+         if (curSigma > bestSigma) {
+            bestSigma = curSigma;
+            bestIndex = i;
+         }
+      }
+
+      return bestIndex;
+#elif VANTAGE_POINT_SELECT_SCHEME == 2
+      // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
+      //      for similarity search queries"
+
+      // which one maximizes dist to _indices[left]?
+      size_t bestIndex = left;
+      double bestDist  = 0.0;
+      for (size_t i=left+1; i<right; ++i) {
+         double curDist = (*_distance)(_indices[left], _indices[i]);
+         if (curDist > bestDist) {
+            bestDist = curDist;
+            bestIndex = i;
+         }
+      }
+//       for (size_t i=left+2; i<right; ++i) {
+//          double curDist = (*_distance)(_indices[left+1], _indices[i]);
+//          if (curDist > bestDist) {
+//             bestDist = curDist;
+//             bestIndex = i;
+//          }
+//       }
+//       for (size_t i=left+3; i<right; ++i) {
+//          double curDist = (*_distance)(_indices[left+2], _indices[i]);
+//          if (curDist > bestDist) {
+//             bestDist = curDist;
+//             bestIndex = i;
+//          }
+//       }
+      return bestIndex;
+#else
+      // return random index == left one (sample is randomized already)
+      return left;
+#endif
+   }
+
+
    Node* buildFromPoints(size_t left, size_t right)
    {
       if(right - left <= maxNumberOfElementsInLeaves)
@@ -375,7 +442,9 @@ protected:
          return new Node(left, right);
       }
 
-      size_t vpi = _indices[left];//(int)((double)rand() / RAND_MAX * (upper - lower - 1) ) + lower;
+      size_t vpi_idx = chooseNewVantagePoint(left, right);
+      std::swap(_indices[left], _indices[vpi_idx]);
+      size_t vpi = _indices[left];
 
       size_t median = ( right + left - 1 ) / 2;
       std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
