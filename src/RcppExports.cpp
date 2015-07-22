@@ -6,14 +6,15 @@
 using namespace Rcpp;
 
 // hclust2
-SEXP hclust2(RObject objects, RObject distance);
-RcppExport SEXP DataStructures_hclust2(SEXP objectsSEXP, SEXP distanceSEXP) {
+SEXP hclust2(RObject objects, RObject distance, int maxNumberOfElementsInLeaves);
+RcppExport SEXP DataStructures_hclust2(SEXP objectsSEXP, SEXP distanceSEXP, SEXP maxNumberOfElementsInLeavesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
     Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    __result = Rcpp::wrap(hclust2(objects, distance));
+    Rcpp::traits::input_parameter< int >::type maxNumberOfElementsInLeaves(maxNumberOfElementsInLeavesSEXP);
+    __result = Rcpp::wrap(hclust2(objects, distance, maxNumberOfElementsInLeaves));
     return __result;
 END_RCPP
 }
