@@ -113,8 +113,17 @@ double EuclideanDistance::compute(size_t v1, size_t v2) const
    if (v1 == v2) return 0.0;
    double d = 0.0;
    for (size_t i=0; i<m; ++i)
-      d += (items[v1+i*n]-items[v2+i*n])*(items[v1+i*n]-items[v2+i*n]);
+      d += (items[v1*m+i]-items[v2*m+i])*(items[v1*m+i]-items[v2*m+i]);
    return sqrt(d);
+
+// this is not faster:
+//    double d = sqobs[v1]+sqobs[v2]; // already multiplied by 0.5
+//    // sum((x-y)^2) == 2*(sum(x^2)/2 + sum(y^2)/2 - sum(x*y))
+//    const double* items1_ptr = items+v1*m;
+//    const double* items2_ptr = items+v2*m;
+//    for (size_t i=0; i<m; ++i)
+//       d -= (*(items1_ptr++))*(*(items2_ptr++));
+//    return sqrt(2.0*d);
 }
 
 
@@ -123,7 +132,7 @@ double ManhattanDistance::compute(size_t v1, size_t v2) const
    if (v1 == v2) return 0.0;
    double d = 0.0;
    for (size_t i=0; i<m; ++i)
-      d += std::abs(items[v1+i*n]-items[v2+i*n]);
+      d += std::abs(items[v1*m+i]-items[v2*m+i]);
    return d;
 }
 
@@ -133,7 +142,7 @@ double MaximumDistance::compute(size_t v1, size_t v2) const
    if (v1 == v2) return 0.0;
    double d = 0.0;
    for (size_t i=0; i<m; ++i) {
-      double d2 = std::abs(items[v1+i*n]-items[v2+i*n]);
+      double d2 = std::abs(items[v1*m+i]-items[v2*m+i]);
       if (d2 > d) d = d2;
    }
    return d;
@@ -142,6 +151,6 @@ double MaximumDistance::compute(size_t v1, size_t v2) const
 
 double GenericRDistance::compute(size_t v1, size_t v2) const
 {
-   if (v1 == v2) return 0;
-   return ((Rcpp::NumericVector)distfun(items[v1],items[v2]))[0];
+   if (v1 == v2) return 0.0;
+   return ((Rcpp::NumericVector)distfun(items[v1], items[v2]))[0];
 }

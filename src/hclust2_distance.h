@@ -69,7 +69,8 @@ namespace std {
 
 namespace DataStructures {
 
-struct Distance {
+class Distance {
+private:
 #ifndef HASHMAP_DISABLE
    std::vector< std::unordered_map<size_t, double> > hashmap;
 #ifdef HASHMAP_COUNTERS
@@ -77,12 +78,14 @@ struct Distance {
    size_t hashmapMiss;
 #endif
 #endif
+protected:
    size_t n;
+   virtual double compute(size_t v1, size_t v2)  const = 0;
 
+public:
    Distance(size_t n);
    virtual ~Distance();
    inline size_t getObjectCount() { return n; }
-   virtual double compute(size_t v1, size_t v2)  const = 0;
    static Distance* createDistance(Rcpp::RObject objects, Rcpp::RObject distance);
 
 #ifndef HASHMAP_DISABLE
@@ -94,91 +97,97 @@ struct Distance {
 #endif
 };
 
-struct EuclideanDistance : public Distance
+
+class GenericMatrixDistance : public Distance
 {
+protected:
    SEXP robj1;
-   const double* items;
+   double* items;
    size_t m;
 
+public:
+   GenericMatrixDistance(const Rcpp::NumericMatrix& points) :
+      Distance(points.nrow()),
+      items(REAL((SEXP)points)), m(points.ncol())
+   {
+      // act on a transposed matrix to avoid many L1/L... cache misses
+      items = new double[m*n];
+      const double* items2 = REAL((SEXP)points);
+      double* items_ptr = items;
+      for (size_t i=0; i<n; ++i)
+         for (size_t j=0; j<m; ++j)
+            *(items_ptr++) = items2[j*n+i];
+      // R_PreserveObject(robj1);
+   }
+
+   virtual ~GenericMatrixDistance()
+   {
+#if VERBOSE > 5
+      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
+      delete [] items;
+      // R_ReleaseObject(robj1);
+   }
+};
+
+
+class EuclideanDistance : public GenericMatrixDistance
+{
+// private:
+//    std::vector<double> sqobs;
+
+protected:
+   virtual double compute(size_t v1, size_t v2) const;
+
+public:
    EuclideanDistance(const Rcpp::NumericMatrix& points) :
-      Distance(points.nrow()), robj1(points),
-      items(REAL((SEXP)points)), m(points.ncol())
+      GenericMatrixDistance(points)
    {
-      R_PreserveObject(robj1);
+//       const double* items_ptr = items;
+//       for (size_t i=0; i<n; ++i) {
+//          double sqobs_cur = 0.0;
+//          for (size_t j=0; j<m; ++j) {
+//             sqobs_cur += (*items_ptr)*(*items_ptr);
+//             ++items_ptr;
+//          }
+//          sqobs[i] = sqobs_cur*0.5;
+//       }
    }
-
-#ifdef HASHMAP_COUNTERS
-   virtual ~EuclideanDistance()
-   {
-#if VERBOSE > 5
-      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-      R_ReleaseObject(robj1);
-   }
-#endif
-
-   virtual double compute(size_t v1, size_t v2) const;
 };
 
 
-struct ManhattanDistance : public Distance
+class ManhattanDistance : public GenericMatrixDistance
 {
-   SEXP robj1;
-   const double* items;
-   size_t m;
-
-   ManhattanDistance(const Rcpp::NumericMatrix& points) :
-      Distance(points.nrow()), robj1(points),
-      items(REAL((SEXP)points)), m(points.ncol())
-   {
-      R_PreserveObject(robj1);
-   }
-
-   virtual ~ManhattanDistance()
-   {
-#if VERBOSE > 5
-      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-      R_ReleaseObject(robj1);
-   }
-
+protected:
    double compute(size_t v1, size_t v2) const;
+
+public:
+   ManhattanDistance(const Rcpp::NumericMatrix& points) :
+      GenericMatrixDistance(points)  {   }
 };
 
 
-struct MaximumDistance : public Distance
+class MaximumDistance : public GenericMatrixDistance
 {
-   SEXP robj1;
-   const double* items;
-   size_t m;
-#ifdef HASHMAP_COUNTERS
-   size_t hashmapHit;
-   size_t hashmapMiss;
-#endif
+protected:
+   double compute(size_t v1, size_t v2) const;
 
+public:
    MaximumDistance(const Rcpp::NumericMatrix& points) :
-      Distance(points.nrow()), robj1(points),
-      items(REAL((SEXP)points)), m(points.ncol())
-   {
-      R_PreserveObject(robj1);
-   }
-
-   virtual ~MaximumDistance()
-   {
-#if VERBOSE > 5
-      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-      R_ReleaseObject(robj1);
-   }
-
-   virtual double compute(size_t v1, size_t v2) const;
+      GenericMatrixDistance(points)  {   }
 };
 
-struct GenericRDistance : public Distance
+
+class GenericRDistance : public Distance
 {
+private:
    Rcpp::Function distfun;
    std::vector<Rcpp::RObject> items;
 
+protected:
+   virtual double compute(size_t v1, size_t v2) const;
+
+public:
    GenericRDistance(const Rcpp::Function& distfun, const std::vector<Rcpp::RObject>& items) :
       Distance(items.size()),
       distfun(distfun),
@@ -191,13 +200,9 @@ struct GenericRDistance : public Distance
    {
       R_ReleaseObject(distfun);
    }
-
-   virtual double compute(size_t v1, size_t v2) const;
-};
-
 };
 
 
-
+} // namespace DataStructures
 
 #endif
