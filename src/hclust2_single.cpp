@@ -32,7 +32,7 @@ using namespace std;
 using namespace boost;
 
 #define VANTAGE_POINT_SELECT_SCHEME 2
-//#define MB_IMPROVEMENT
+#define MB_IMPROVEMENT
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -395,6 +395,11 @@ protected:
       }
       // else // not a leaf
       double dist = (*_distance)(node->vpindex, index);
+      if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
+
+         heap.push( HeapNeighborItem(node->vpindex, dist) );
+         maxR = heap.top().dist;
+      }
       if ( dist < node->radius ) {
          if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 
