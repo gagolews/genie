@@ -1,5 +1,35 @@
+/* ************************************************************************* *
+ *   This file is part of the `DataStructures` package.                      *
+ *                                                                           *
+ *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
+ *                                                                           *
+ *   Parts of the code are taken from the 'CITAN' R package by M. Gagolewski *
+ *                                                                           *
+ *   'DataStructures' is free software: you can redistribute it and/or       *
+ *   modify it under the terms of the GNU Lesser General Public License      *
+ *   as published by the Free Software Foundation, either version 3          *
+ *   of the License, or (at your option) any later version.                  *
+ *                                                                           *
+ *   'DataStructures' is distributed in the hope that it will be useful,     *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   GNU Lesser General Public License for more details.                     *
+ *                                                                           *
+ *   You should have received a copy of the GNU Lesser General Public        *
+ *   License along with 'DataStructures'.                                    *
+ *   If not, see <http://www.gnu.org/licenses/>.                             *
+ * ************************************************************************* */
+
+
 #ifndef HCLUST2_COMPLETE_H_
 #define HCLUST2_COMPLETE_H_
+
+
+#define VANTAGE_POINT_SELECT_SCHEME 2
+// #define MB_IMPROVEMENT
+
+
+
 #include <Rcpp.h>
 #define USE_RINTERNALS
 #define R_NO_REMAP
@@ -10,9 +40,6 @@
 #include <R_ext/Rdynload.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include "hclust2_distance.h"
-#include "mergeMatrixGenerator.h"
 #include <unordered_set>
 #include <algorithm>
 #include <queue>
@@ -20,22 +47,23 @@
 #include <deque>
 #include <exception>
 #include <string>
-#include <boost/pending/disjoint_sets.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
+
+
+#include "hclust2_distance.h"
+#include "hclust2_merge.h"
+#include <boost/pending/disjoint_sets.hpp>
+
+
 
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-#define VANTAGE_POINT_SELECT_SCHEME 2
-//#undef MB_IMPROVEMENT
-
 namespace DataStructures{
-namespace HClustCompleteBiVpTree{
 
 class HClustCompleteBiVpTree
 {
@@ -942,8 +970,10 @@ public:
 }; // class
 
 
-}
-}
+} // namespace DataStructures
+
+
+
 // [[Rcpp::export(".hclust2_complete")]]
 RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
 #if VERBOSE > 5
@@ -954,7 +984,7 @@ RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfEleme
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustCompleteBiVpTree::HClustCompleteBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
+      DataStructures::HClustCompleteBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,

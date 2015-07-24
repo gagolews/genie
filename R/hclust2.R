@@ -2,7 +2,7 @@
 #' Faster Hierarchical Clustering in Pseudometric Spaces
 #'
 #' @param method a single string,
-#'        one of \code{single}, TO BE DONE: \code{complete}, ...
+#'        one of \code{single}, \code{complete}
 #' @param d an object of class \code{\link{dist}},
 #' \code{NULL}, an R function or a single string
 #' @param objects \code{NULL}, numeric matrix or a list

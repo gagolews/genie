@@ -1,5 +1,34 @@
+/* ************************************************************************* *
+ *   This file is part of the `DataStructures` package.                      *
+ *                                                                           *
+ *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
+ *                                                                           *
+ *   'DataStructures' is free software: you can redistribute it and/or       *
+ *   modify it under the terms of the GNU Lesser General Public License      *
+ *   as published by the Free Software Foundation, either version 3          *
+ *   of the License, or (at your option) any later version.                  *
+ *                                                                           *
+ *   'DataStructures' is distributed in the hope that it will be useful,     *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   GNU Lesser General Public License for more details.                     *
+ *                                                                           *
+ *   You should have received a copy of the GNU Lesser General Public        *
+ *   License along with 'DataStructures'.                                    *
+ *   If not, see <http://www.gnu.org/licenses/>.                             *
+ * ************************************************************************* */
+
+
 #ifndef HCLUST2_SINGLE_H_
 #define HCLUST2_SINGLE_H_
+
+#define VANTAGE_POINT_SELECT_SCHEME 2
+// #define MB_IMPROVEMENT
+// #define USE_BOOST_DISJOINT_SETS
+
+
+
+
 #include <Rcpp.h>
 #define USE_RINTERNALS
 #define R_NO_REMAP
@@ -10,9 +39,6 @@
 #include <R_ext/Rdynload.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include "hclust2_distance.h"
-#include "mergeMatrixGenerator.h"
 #include <unordered_set>
 #include <algorithm>
 #include <queue>
@@ -20,22 +46,27 @@
 #include <deque>
 #include <exception>
 #include <string>
-#include <boost/pending/disjoint_sets.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
-
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
+
+
+#include "hclust2_distance.h"
+#include "hclust2_merge.h"
+#ifdef USE_BOOST_DISJOINT_SETS
+#include <boost/pending/disjoint_sets.hpp>
+#else
+#include "disjoint_sets.h"
+#endif
+
 
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
 
-#define VANTAGE_POINT_SELECT_SCHEME 2
-#define MB_IMPROVEMENT
 
 namespace DataStructures{
-namespace HClustSingleBiVpTree{
 
 
 class HClustSingleBiVpTree
@@ -141,9 +172,14 @@ protected:
    std::map<size_t,size_t> rank;
    std::map<size_t,size_t> parent;
 
+#ifdef USE_BOOST_DISJOINT_SETS
    boost::disjoint_sets<
      associative_property_map< std::map<size_t,size_t> >,
      associative_property_map< std::map<size_t,size_t> > > ds;
+#else
+   DisjointSets ds;
+#endif
+
 #ifdef MB_IMPROVEMENT
    unordered_map<SortedPoint, double> distClust;
    unordered_set<size_t> clusters;
@@ -395,11 +431,15 @@ protected:
       }
       // else // not a leaf
       double dist = (*_distance)(node->vpindex, index);
-      /*if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
 
-         heap.push( HeapNeighborItem(node->vpindex, dist) );
-         maxR = heap.top().dist;
-      }*/
+// this MB's improvement is not well-tested:
+//       if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
+//
+//          heap.push( HeapNeighborItem(node->vpindex, dist) );
+//          maxR = heap.top().dist;
+//       }
+
+
       if ( dist < node->radius ) {
          if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 
@@ -489,77 +529,8 @@ protected:
       }
    }
 
+
 public:
-
-
-    static NumericMatrix generateMergeMatrix(const NumericMatrix& x) {
-      // x has 0-based indices
-      size_t n = x.nrow();
-      if (x.ncol() != 2) stop("x should have 2 columns");
-      NumericMatrix y(n, 2);
-
-      /* -------------------------------------------------------------- */
-      /* TO DO: new method, O(n)                                        */
-
-
-
-
-      /* -------------------------------------------------------------- */
-
-      std::vector< std::unordered_set<size_t> > curclust(n);
-      std::vector< bool > alreadyInSomeCluster(n+1, false);
-
-      for (size_t k=0; k<n; ++k) {
-         if (k % 1000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
-         size_t i = (size_t)x(k,0)+1;
-         size_t j = (size_t)x(k,1)+1;
-         size_t si = (k > 0) ? k-1 : SIZE_MAX;
-         size_t sj = (k > 0) ? k-1 : SIZE_MAX;
-         if (alreadyInSomeCluster[i])
-            while (si != SIZE_MAX && curclust[si].find(i) == curclust[si].end())
-               si = (si>0) ? si-1 : SIZE_MAX;
-         else si = SIZE_MAX;
-
-         if (alreadyInSomeCluster[j])
-            while (sj != SIZE_MAX && curclust[sj].find(j) == curclust[sj].end())
-               sj = (sj>0) ? sj-1 : SIZE_MAX;
-         else sj = SIZE_MAX;
-
-         if (si == SIZE_MAX && sj == SIZE_MAX) {
-            curclust[k].insert(i);
-            curclust[k].insert(j);
-            y(k,0) = -(double)i;
-            y(k,1) = -(double)j;
-            alreadyInSomeCluster[i] = true;
-            alreadyInSomeCluster[j] = true;
-         }
-         else if (si == SIZE_MAX && sj != SIZE_MAX) {
-            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
-            curclust[k].insert(i);
-            curclust[sj].clear(); // no longer needed
-            y(k,0) = -(double)i;
-            y(k,1) = (double)sj+1;
-            alreadyInSomeCluster[i] = true;
-         }
-         else if (si != SIZE_MAX && sj == SIZE_MAX) {
-            curclust[k].insert(curclust[si].begin(), curclust[si].end());
-            curclust[k].insert(j);
-            curclust[si].clear(); // no longer needed
-            y(k,0) = (double)si+1;
-            y(k,1) = -(double)j;
-            alreadyInSomeCluster[j] = true;
-         }
-         else {
-            curclust[k].insert(curclust[si].begin(), curclust[si].end());
-            curclust[k].insert(curclust[sj].begin(), curclust[sj].end());
-            curclust[si].clear(); // no longer needed
-            curclust[sj].clear(); // no longer needed
-            y(k,0) = (double)si+1;
-            y(k,1) = (double)sj+1;
-         }
-      }
-      return y;
-   }
 
    HeapNeighborItem getNearestNeighbor(size_t index)
    {
@@ -648,7 +619,11 @@ public:
       maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
       shouldFind(vector<bool>(dist->getObjectCount(), true)),
       nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
+#ifdef USE_BOOST_DISJOINT_SETS
       ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
+#else
+      ds(dist->getObjectCount())
+#endif
    {
 #if VERBOSE > 5
       Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
@@ -662,7 +637,9 @@ public:
 
       for(size_t i=0; i<_n; i++)
       {
+#ifdef USE_BOOST_DISJOINT_SETS
         ds.make_set(i);
+#endif
 #ifdef MB_IMPROVEMENT
         clusters.emplace(i);
 #endif
@@ -733,8 +710,11 @@ public:
       Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
+#ifdef MB_IMPROVEMENT
+      int nsqrt = (int)sqrt((double)_n);
+#endif
+
       size_t i = 0;
-      int nsqrt = sqrt((double)_n);
       while(i < _n - 1)
       {
          //Rcout << "iteracja " << i << endl;
@@ -850,7 +830,6 @@ template <>
 */
 
 
-} // namespace HClustSingleBiVpTree
 } // namespace DataStructures
 
 
@@ -882,7 +861,7 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
+      DataStructures::HClustSingleBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,
@@ -908,9 +887,11 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
    return result;
 }
 
+
 // [[Rcpp::export]]
 NumericMatrix generateMergeMatrix(NumericMatrix x) {
-   return DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree::generateMergeMatrix(x);
+   DataStructures::MergeMatrixGenerator mmg(x.nrow());
+   return mmg.generateMergeMatrix(x);
 }
 
 

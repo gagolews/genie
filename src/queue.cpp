@@ -3,8 +3,6 @@
  *                                                                           *
  *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
  *                                                                           *
- *   Parts of the code are taken from the 'CITAN' R package by M. Gagolewski *
- *                                                                           *
  *   'DataStructures' is free software: you can redistribute it and/or       *
  *   modify it under the terms of the GNU Lesser General Public License      *
  *   as published by the Free Software Foundation, either version 3          *
