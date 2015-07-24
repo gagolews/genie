@@ -86,7 +86,7 @@ public:
    Distance(size_t n);
    virtual ~Distance();
    inline size_t getObjectCount() { return n; }
-   static Distance* createDistance(Rcpp::RObject objects, Rcpp::RObject distance);
+   static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
 #ifndef HASHMAP_DISABLE
    double operator()(size_t v1, size_t v2);

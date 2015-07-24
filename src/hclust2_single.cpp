@@ -872,22 +872,32 @@ NumericMatrix transpose(const NumericMatrix& matrix)
 }
 
 
-// [[Rcpp::export]]
-SEXP hclust2(RObject objects, RObject distance=R_NilValue, int maxNumberOfElementsInLeaves=2) {
+// [[Rcpp::export(".hclust2_single")]]
+RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   SEXP result;
-   DataStructures::Distance* dist = DataStructures::Distance::createDistance(objects, distance);
+   RObject result(R_NilValue);
+   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
       DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
-      result = (SEXP)hclust.compute();
+      RObject merge = hclust.compute();
+      result = Rcpp::as<RObject>(List::create(
+         _["merge"]  = merge,
+         _["height"] = R_NilValue,
+         _["order"]  = R_NilValue,
+         _["labels"] = R_NilValue,
+         _["call"]   = R_NilValue,
+         _["method"] = "single",
+         _["dist.method"] = R_NilValue
+      ));
+      result.attr("class") = "hclust";
       //hclust.print();
    }
    catch(...) {
-      result = R_NilValue;
+
    }
 
    if (dist) delete dist;
