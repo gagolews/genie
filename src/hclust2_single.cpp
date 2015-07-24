@@ -13,7 +13,7 @@
 
 #include "hclust2_distance.h"
 #include "mergeMatrixGenerator.h"
-
+#include <unordered_set>
 #include <algorithm>
 #include <queue>
 #include <fstream>
@@ -32,6 +32,7 @@ using namespace std;
 using namespace boost;
 
 #define VANTAGE_POINT_SELECT_SCHEME 2
+#define MB_IMPROVEMENT
 
 namespace DataStructures{
 namespace HClustSingleBiVpTree{
@@ -143,6 +144,11 @@ protected:
    boost::disjoint_sets<
      associative_property_map< std::map<size_t,size_t> >,
      associative_property_map< std::map<size_t,size_t> > > ds;
+#ifdef MB_IMPROVEMENT
+   unordered_map<SortedPoint, double> distClust;
+   unordered_set<size_t> clusters;
+   bool mbimprovement = false;
+#endif
 
 
    int chooseNewVantagePoint(size_t left, size_t right)
@@ -306,11 +312,30 @@ protected:
       if(node->vpindex == SIZE_MAX) // leaf
       {
          if (node->sameCluster) {
+#ifdef MB_IMPROVEMENT
+         size_t s = SIZE_MAX;
+         if(mbimprovement)
+            s = ds.find_set(_indices[node->left]);
+         std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
+         if(mbimprovement)
+            distToClusterIterator = distClust.find(SortedPoint(s, clusterIndex));
+         double distToCluster = INFINITY;
+         if(mbimprovement && distToClusterIterator != distClust.end())
+            distToCluster = distToClusterIterator->second;
+#endif
             for(size_t i=node->left; i<node->right; i++)
             {
                if(index >= _indices[i]) continue;
                double dist2 = (*_distance)(index, _indices[i]);
                if (dist2 > maxR || dist2 <= minR) continue;
+
+#ifdef MB_IMPROVEMENT
+               if(mbimprovement && dist2 > distToCluster) {
+                  //Rcout << "odrzucam!" << endl;
+                  continue;
+               }
+#endif
+
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
                      while (!heap.empty() && heap.top().dist == maxR) {
@@ -320,6 +345,10 @@ protected:
                }
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
+#ifdef MB_IMPROVEMENT
+               if(mbimprovement)
+                  distClust.emplace(SortedPoint(s, clusterIndex), dist2);
+#endif
             }
          }
          else {
@@ -327,6 +356,14 @@ protected:
             for(size_t i=node->left; i<node->right; i++)
             {
                size_t currentCluster = ds.find_set(_indices[i]);
+#ifdef MB_IMPROVEMENT
+               std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
+               if(mbimprovement)
+                  distToClusterIterator = distClust.find(SortedPoint(currentCluster, clusterIndex));
+               double distToCluster = INFINITY;
+               if(mbimprovement && distToClusterIterator != distClust.end())
+                  distToCluster = distToClusterIterator->second;
+#endif
                if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
                if (currentCluster == clusterIndex) continue;
 
@@ -334,6 +371,9 @@ protected:
 
                double dist2 = (*_distance)(index, _indices[i]);
                if (dist2 > maxR || dist2 <= minR) continue;
+#ifdef MB_IMPROVEMENT
+               if(mbimprovement && dist2 > distToCluster) continue;
+#endif
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -344,6 +384,10 @@ protected:
                }
                heap.push( HeapNeighborItem(_indices[i], dist2) );
                maxR = heap.top().dist;
+#ifdef MB_IMPROVEMENT
+               if(mbimprovement)
+                  distClust.emplace(SortedPoint(currentCluster, clusterIndex), dist2);
+#endif
             }
             if (commonCluster != SIZE_MAX) node->sameCluster = true;
          }
@@ -351,6 +395,11 @@ protected:
       }
       // else // not a leaf
       double dist = (*_distance)(node->vpindex, index);
+      if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
+
+         heap.push( HeapNeighborItem(node->vpindex, dist) );
+         maxR = heap.top().dist;
+      }
       if ( dist < node->radius ) {
          if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 
@@ -612,7 +661,12 @@ public:
          swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
 
       for(size_t i=0; i<_n; i++)
+      {
         ds.make_set(i);
+#ifdef MB_IMPROVEMENT
+        clusters.emplace(i);
+#endif
+      }
 
       _root = buildFromPoints(0, _n);
    }
@@ -680,6 +734,7 @@ public:
 #endif
 
       size_t i = 0;
+      int nsqrt = sqrt((double)_n);
       while(i < _n - 1)
       {
          //Rcout << "iteracja " << i << endl;
@@ -695,6 +750,56 @@ public:
             ret(i,1)=(double)hhi.index2;
             ++i;
             ds.link(s1, s2);
+#ifdef MB_IMPROVEMENT
+            size_t s_new = ds.find_set(s1);
+            size_t s_old;
+            //Rcout << "przed usuwaniem z clusters" << endl;
+            if(s1==s_new)
+            {
+            	clusters.erase(s2);
+            	s_old = s2;
+            }
+            else
+            {
+            	clusters.erase(s1);
+            	s_old = s1;
+            }
+            //Rcout << "clusters size = " << clusters.size() << endl;
+            if(i >= _n - nsqrt)
+            {
+               //Rcout << "po sqrt" << endl;
+               mbimprovement = true;
+               //Rcout << "aktualizuje clusters dist" << endl;
+               for ( auto it = clusters.begin(); it != clusters.end(); ++it )
+               {
+                  if(*it == s_new || *it == s_old) continue;
+                  SortedPoint spold = SortedPoint(*it, s_old);
+                  SortedPoint spnew = SortedPoint(*it, s_new);
+                  auto dold = distClust.find(spold);
+                  auto dnew = distClust.find(spnew);
+                  if(dold != distClust.end() && dnew != distClust.end())
+                  {
+                     //Rcout << "znaleziono obie" << endl;
+                     dnew->second = min(dnew->second, dold->second);
+                     //Rcout << "po aktu" << endl;
+                  }
+                  else if(dold != distClust.end())
+                  {
+                     //Rcout << "znaleziono tylko stara" << endl;
+                     distClust.emplace(spnew, dold->second);
+                     //Rcout << "po aktu2" << endl;
+                  }
+
+                  if(dold != distClust.end())
+                  {
+                     //Rcout << "znaleziono stara" << endl;
+                     distClust.erase(spold);
+                     //Rcout << "po aktu3" << endl;
+                  }
+               }
+               //Rcout << "po aktualizacji clusters dist" << endl;
+            }
+#endif
             if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
          }
 #if VERBOSE > 3
@@ -767,22 +872,32 @@ NumericMatrix transpose(const NumericMatrix& matrix)
 }
 
 
-// [[Rcpp::export]]
-SEXP hclust2(RObject objects, RObject distance=R_NilValue, int maxNumberOfElementsInLeaves=2) {
+// [[Rcpp::export(".hclust2_single")]]
+RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   SEXP result;
-   DataStructures::Distance* dist = DataStructures::Distance::createDistance(objects, distance);
+   RObject result(R_NilValue);
+   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
       DataStructures::HClustSingleBiVpTree::HClustSingleBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
-      result = (SEXP)hclust.compute();
+      RObject merge = hclust.compute();
+      result = Rcpp::as<RObject>(List::create(
+         _["merge"]  = merge,
+         _["height"] = R_NilValue,
+         _["order"]  = R_NilValue,
+         _["labels"] = R_NilValue,
+         _["call"]   = R_NilValue,
+         _["method"] = "single",
+         _["dist.method"] = R_NilValue
+      ));
+      result.attr("class") = "hclust";
       //hclust.print();
    }
    catch(...) {
-      result = R_NilValue;
+
    }
 
    if (dist) delete dist;

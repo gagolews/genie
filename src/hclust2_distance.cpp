@@ -59,7 +59,7 @@ double Distance::operator()(size_t v1, size_t v2)
 
 
 
-Distance* Distance::createDistance(Rcpp::RObject objects, Rcpp::RObject distance)
+Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects)
 {
    if (Rf_isVectorList(objects) && Rf_isFunction(distance))
    {
@@ -70,6 +70,13 @@ Distance* Distance::createDistance(Rcpp::RObject objects, Rcpp::RObject distance
             distance2,
             std::vector<Rcpp::RObject>(objects2.begin(), objects2.end())
          );
+   }
+   else if (Rf_isNumeric(distance) && Rf_isObject(distance) && !strcmp(distance.attr("class"), "dist") && Rf_isNull(objects))
+   {
+      return (DataStructures::Distance*)
+            new DataStructures::DistObjectDistance(
+               (Rcpp::NumericVector)distance
+            );
    }
    else if (Rf_isMatrix(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
@@ -154,3 +161,18 @@ double GenericRDistance::compute(size_t v1, size_t v2) const
    if (v1 == v2) return 0.0;
    return ((Rcpp::NumericVector)distfun(items[v1], items[v2]))[0];
 }
+
+
+double DistObjectDistance::compute(size_t v1, size_t v2) const
+{
+   if (v1 == v2) return 0.0;
+
+   size_t i;
+   if (v1 < v2)
+      i = n*v1-((v1+1)*(v1))/2+v2-v1-1;
+   else
+      i = n*v2-((v2+1)*(v2))/2+v1-v2-1;
+
+   return items[i];
+}
+

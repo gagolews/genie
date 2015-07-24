@@ -86,7 +86,7 @@ public:
    Distance(size_t n);
    virtual ~Distance();
    inline size_t getObjectCount() { return n; }
-   static Distance* createDistance(Rcpp::RObject objects, Rcpp::RObject distance);
+   static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
 #ifndef HASHMAP_DISABLE
    double operator()(size_t v1, size_t v2);
@@ -101,7 +101,6 @@ public:
 class GenericMatrixDistance : public Distance
 {
 protected:
-   SEXP robj1;
    double* items;
    size_t m;
 
@@ -117,7 +116,6 @@ public:
       for (size_t i=0; i<n; ++i)
          for (size_t j=0; j<m; ++j)
             *(items_ptr++) = items2[j*n+i];
-      // R_PreserveObject(robj1);
    }
 
    virtual ~GenericMatrixDistance()
@@ -126,7 +124,6 @@ public:
       Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       delete [] items;
-      // R_ReleaseObject(robj1);
    }
 };
 
@@ -202,6 +199,32 @@ public:
    }
 };
 
+
+class DistObjectDistance : public Distance
+{
+protected:
+   SEXP robj1;
+   const double* items;
+
+protected:
+   virtual double compute(size_t v1, size_t v2) const;
+
+public:
+   DistObjectDistance(const Rcpp::NumericVector& distobj) :
+      Distance((size_t)((Rcpp::NumericVector)distobj.attr("Size"))[0]),
+      robj1(distobj),
+      items(REAL((SEXP)distobj))
+   {
+      if ((size_t)XLENGTH((SEXP)distobj) != n*(n-1)/2)
+         Rcpp::stop("incorrect dist object length.");
+      R_PreserveObject(robj1);
+   }
+
+   virtual ~DistObjectDistance()
+   {
+      R_ReleaseObject(robj1);
+   }
+};
 
 } // namespace DataStructures
 
