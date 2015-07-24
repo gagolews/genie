@@ -1,0 +1,45 @@
+KK <- HashMap odleglosci miedzy klastrami
+PQmin <- kolejka priorytetowa dla najmniejszych odleglosci
+PQmax <- kolejka priorytetowa dla najwiekszych odleglosci
+timestamp <- hashmap kiedy dany klaster byl aktualizowany
+
+1. Prefetch()
+2. Petla, poki liczba klastrow > 1:
+   i <- numer iteracji algorytmu;
+   (pi, pj, dij1) <- PQmin.top();
+   (uk, ul, dlk, i) <- PQmax.top();
+   if((uk, ul, d, i) nieaktualne)
+   {
+      przelicz i wrzuc do PQmax jeszcze raz; //uzyj moze poprzednich wynikow i je tylko uaktualnij majac numer iteracji
+      continue;
+   }
+
+   if(dij1 < dlk) //przetwarzamy element z PQmin
+   {
+      if(|pi| == 1 && |pj| == 1)
+      {
+         połącz pi i pj;
+      }
+      else
+      {
+         ui <- find(pi);
+         uj <- find(pj);
+         if(ui i uj sa juz w KK i timestamp(ui) < KK(ui,uj).timestamp && timestamp(uj) < KK(ui,uj).timestamp)
+            nic nie rob, continue;
+         (ui, uj, dij2, i) <- findCluster2ClusterMaxDistance(pi,pj); //z uzyciem drzew
+         KK.push((ui, uj, dij2, i));
+         PQmax.push((ui, uj, dij2, i));
+      }
+      znajdz najblizszego sasiada dla pi i wrzuc do PQmin; // nie znajduj tego sasiada w klastrze, do ktorego mamy obliczona odleglosc miedzyklastrowa!
+   }
+   else
+   {
+      if(rekord (pi, pj, dij1) i (uk, ul, dlk, i) to te same rekordy)
+      {
+         usun (pi, pj, dij1);
+      }
+      połącz uk i ul;
+      jakoś sprytnie uaktualnij odległości w KK do połączonego uk i ul; ???
+      timestamp(uk) <- i;
+      timestamp(ul) <- i;
+   }
