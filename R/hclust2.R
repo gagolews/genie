@@ -24,10 +24,11 @@
 #' A named list of class \code{hclust}, see \code{\link{hclust}}.
 #'
 #' @export
-hclust2 <- function(d=NULL, method=c("single"), objects=NULL, ...) {
+hclust2 <- function(d=NULL, method=c("single", "complete"), objects=NULL, ...) {
    method <- match.arg(method)
    result <- switch(method,
-      single=.hclust2_single(d, objects, ...)
+      single=.hclust2_single(d, objects, ...),
+      complete=.hclust2_complete(d, objects, ...)
    )
    result[["call"]] <- match.call()
    result
