@@ -298,38 +298,6 @@ protected:
    }
 
 
-
-   /*
-
-   size_t calculateNodeSize(Node* node)
-   {
-      return node->radiuses.size()*sizeof(double)
-         + node->points.size()*sizeof(int)
-         + node->children.size()*sizeof(Node*)
-         + sizeof(Node);
-   }
-
-   size_t treeSize_rec(Node* node)
-   {
-      size_t size = calculateNodeSize(node);
-      for(int i=0;i<node->childCount;i++)
-      {
-         size += treeSize_rec(node->children[i]);
-      }
-      return size;
-   }
-
-   int treeHeight_rec(Node* node)
-   {
-      int maxH = 0;
-      for(int i=0;i<node->childCount;i++)
-      {
-         maxH = max(treeHeight_rec(node->children[i]), maxH);
-      }
-      return maxH+1;
-   }
-*/
-
    void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index,
       size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap )
@@ -657,18 +625,6 @@ public:
    }
 
 
-   /*size_t treeSize()
-   {
-      if(_root==NULL) return sizeof(VpTree);
-      return sizeof(VpTree) + treeSize_rec(_root);
-   }
-
-   int treeHeight()
-   {
-      if(_root==NULL) return 0;
-      return treeHeight_rec(_root);
-   }*/
-
    void print() {
       Rprintf("digraph vptree {\n");
       Rprintf("size=\"6,6\";\n");
@@ -676,6 +632,7 @@ public:
       print(_root);
       Rprintf("}\n");
    }
+
 
    NumericMatrix compute()
    {
@@ -799,7 +756,7 @@ public:
       Rprintf("Total ignored NNs: %d\n", misses);
 #endif
 #if VERBOSE > 5
-   Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
+      Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
       Rcpp::checkUserInterrupt();
 
@@ -809,46 +766,7 @@ public:
 
 }; // class
 
-
-
-
-
-
-/*
-template <>
-   void vptree<RObject>::findIndex(const RObject& target) // specialize only one member
-   {
-      Rcout << "specialized" << endl;
-      for(int i = 0; i<_items.size(); i++)
-      {
-         if(Rcpp::all(_items[i] == target))
-            //if(_items[i] == target)
-            return i;
-      }
-      stop("There is no such element in the tree.");
-   }
-*/
-
-
 } // namespace DataStructures
-
-
-NumericMatrix transpose(const NumericMatrix& matrix)
-{
-   size_t width = matrix.ncol();
-   size_t height = matrix.nrow();
-   NumericMatrix transposed(width, height);
-
-   for (size_t i = 0; i < width; i++)
-   {
-      for (size_t j = 0; j < height; j++)
-      {
-         transposed(i,j) = matrix(j,i);
-      }
-   }
-
-   return transposed;
-}
 
 
 // [[Rcpp::export(".hclust2_single")]]
@@ -885,13 +803,6 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
 #endif
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;
-}
-
-
-// [[Rcpp::export]]
-NumericMatrix generateMergeMatrix(NumericMatrix x) {
-   DataStructures::MergeMatrixGenerator mmg(x.nrow());
-   return mmg.generateMergeMatrix(x);
 }
 
 

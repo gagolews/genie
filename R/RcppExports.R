@@ -5,12 +5,12 @@
     .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
 
-.hclust2_single <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
-    .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
-}
-
 generateMergeMatrix <- function(x) {
     .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
+}
+
+.hclust2_single <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
+    .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
 
 #' @rdname queue

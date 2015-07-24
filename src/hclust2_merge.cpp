@@ -91,3 +91,10 @@ size_t MergeMatrixGenerator::findMyParent(size_t s, size_t clusterNumber)
  if(s != 0) parents[s] = clusterNumber;
  return s;
 }
+
+
+// [[Rcpp::export]]
+NumericMatrix generateMergeMatrix(NumericMatrix x) {
+   DataStructures::MergeMatrixGenerator mmg(x.nrow());
+   return mmg.generateMergeMatrix(x);
+}
