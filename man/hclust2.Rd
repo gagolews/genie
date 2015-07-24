@@ -11,7 +11,7 @@ hclust2(d = NULL, method = c("single", "complete"), objects = NULL, ...)
 \code{NULL}, an R function or a single string}
 
 \item{method}{a single string,
-one of \code{single}, TO BE DONE: \code{complete}, ...}
+one of \code{single}, \code{complete}}
 
 \item{objects}{\code{NULL}, numeric matrix or a list}
 
