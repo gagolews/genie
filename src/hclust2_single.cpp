@@ -22,7 +22,7 @@
 #ifndef HCLUST2_SINGLE_H_
 #define HCLUST2_SINGLE_H_
 
-#define VANTAGE_POINT_SELECT_SCHEME 2
+#define VANTAGE_POINT_SELECT_SCHEME 3
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
 
@@ -661,6 +661,7 @@ public:
          }
       }
 #if VERBOSE > 7
+      Rprintf("\r             prefetch NN: %d/%d", _n-1, _n-1);
       Rprintf("\n");
 #endif
 #if VERBOSE > 5
@@ -752,6 +753,9 @@ public:
          if(hi.index != SIZE_MAX)
             pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
       }
+#if VERBOSE > 7
+      Rprintf("\r             %d / %d / %d ", _n, _n, misses);
+#endif
 #if VERBOSE > 3
       Rprintf("Total ignored NNs: %d\n", misses);
 #endif
