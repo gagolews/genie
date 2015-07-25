@@ -19,8 +19,7 @@
  * ************************************************************************* */
 
 
-#ifndef HCLUST2_SINGLE_H_
-#define HCLUST2_SINGLE_H_
+// ************************************************************************
 
 #define DEFAULT_MAX_NUM_ELEMS_LEAVES 2
 #define DEFAULT_MAX_NN_PREFETCH 2
@@ -29,7 +28,14 @@
 #define VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST 12
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
+#define NN_COUNTERS
 
+
+// ************************************************************************
+
+#if VERBOSE > 7 && !defined(NN_COUNTERS)
+#define NN_COUNTERS
+#endif
 
 /* improvement idea:
  * add custom sort of _indices
@@ -66,7 +72,7 @@
 
 #ifdef MB_IMPROVEMENT
 #include <unordered_set>
-#endif
+#endif // MB_IMPROVEMENT
 
 using namespace Rcpp;
 using namespace std;
@@ -191,7 +197,7 @@ protected:
    unordered_map<SortedPoint, double> distClust;
    unordered_set<size_t> clusters;
    bool mbimprovement = false;
-#endif
+#endif  // MB_IMPROVEMENT
 
 
    int chooseNewVantagePoint(size_t left, size_t right)
@@ -333,7 +339,7 @@ protected:
          double distToCluster = INFINITY;
          if(mbimprovement && distToClusterIterator != distClust.end())
             distToCluster = distToClusterIterator->second;
-#endif
+#endif // MB_IMPROVEMENT
             for(size_t i=node->left; i<node->right; i++)
             {
                if(index >= _indices[i]) continue;
@@ -345,7 +351,7 @@ protected:
                   //Rcout << "odrzucam!" << endl;
                   continue;
                }
-#endif
+#endif // MB_IMPROVEMENT
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -359,7 +365,7 @@ protected:
 #ifdef MB_IMPROVEMENT
                if(mbimprovement)
                   distClust.emplace(SortedPoint(s, clusterIndex), dist2);
-#endif
+#endif // MB_IMPROVEMENT
             }
          }
          else {
@@ -374,7 +380,7 @@ protected:
                double distToCluster = INFINITY;
                if(mbimprovement && distToClusterIterator != distClust.end())
                   distToCluster = distToClusterIterator->second;
-#endif
+#endif // MB_IMPROVEMENT
                if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
                if (currentCluster == clusterIndex) continue;
 
@@ -384,7 +390,7 @@ protected:
                if (dist2 > maxR || dist2 <= minR) continue;
 #ifdef MB_IMPROVEMENT
                if(mbimprovement && dist2 > distToCluster) continue;
-#endif
+#endif // MB_IMPROVEMENT
 
                if (heap.size() >= maxNearestNeighborPrefetch) {
                   if (dist2 < maxR) {
@@ -398,7 +404,7 @@ protected:
 #ifdef MB_IMPROVEMENT
                if(mbimprovement)
                   distClust.emplace(SortedPoint(currentCluster, clusterIndex), dist2);
-#endif
+#endif // MB_IMPROVEMENT
             }
             if (commonCluster != SIZE_MAX) node->sameCluster = true;
          }
@@ -512,6 +518,20 @@ public:
 #if VERBOSE > 5
       // Rprintf(".");
 #endif
+//   This is not faster:
+//       while(!nearestNeighbors[index].empty())
+//       {
+//          size_t sx = ds.find_set(index);
+//          auto res = nearestNeighbors[index].front();
+//          size_t sy = ds.find_set(res.index);
+//          nearestNeighbors[index].pop_front();
+//          if (sx != sy) {
+//             return res;
+//          }
+//          // else just go on removing items
+//       }
+
+
       if(shouldFind[index] && nearestNeighbors[index].empty())
       {
          std::priority_queue<HeapNeighborItem> heap;
@@ -606,6 +626,9 @@ public:
       ds(dist->getObjectCount())
 #endif
    {
+#ifdef NN_COUNTERS
+      Rcpp::Rcout << "Warning: NN_COUNTERS is defined in hclust2_single.cpp\n";
+#endif
 #if VERBOSE > 5
       Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
@@ -623,7 +646,7 @@ public:
 #endif
 #ifdef MB_IMPROVEMENT
         clusters.emplace(i);
-#endif
+#endif // MB_IMPROVEMENT
       }
 
       _root = buildFromPoints(0, _n);
@@ -631,9 +654,9 @@ public:
 
 
    virtual ~HClustSingleBiVpTree() {
-#if VERBOSE > 5
-      Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
+// #if VERBOSE > 5
+//       Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
+// #endif
       if(_root) delete _root;
    }
 
@@ -656,26 +679,24 @@ public:
 #if VERBOSE > 5
       Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-#if VERBOSE > 3
+#ifdef NN_COUNTERS
       int misses = 0;
 #endif
-      for(size_t i=0;i<_n;i++)
+      for (size_t i=0;i<_n;i++)
       {
-         if (i % 1024 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
 #if VERBOSE > 7
          if (i % 1024 == 0) Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
 #endif
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op
          HeapNeighborItem hi=getNearestNeighbor(i);
 
-         if(hi.index != SIZE_MAX)
+         if (hi.index != SIZE_MAX)
          {
-            //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
             pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
          }
       }
 #if VERBOSE > 7
-      Rprintf("\r             prefetch NN: %d/%d", _n-1, _n-1);
-      Rprintf("\n");
+      Rprintf("\r             prefetch NN: %d/%d\n", _n-1, _n-1);
 #endif
 #if VERBOSE > 5
       Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
@@ -683,7 +704,7 @@ public:
 
 #ifdef MB_IMPROVEMENT
       int nsqrt = (int)sqrt((double)_n);
-#endif
+#endif  // MB_IMPROVEMENT
 
       size_t i = 0;
       while(i < _n - 1)
@@ -695,8 +716,10 @@ public:
 
          size_t s1 = ds.find_set(hhi.index1);
          size_t s2 = ds.find_set(hhi.index2);
-         if(s1 != s2)
+         if (s1 != s2)
          {
+            Rcpp::checkUserInterrupt(); // may throw an exception, fast op
+
             ret(i,0)=(double)hhi.index1;
             ret(i,1)=(double)hhi.index2;
             ++i;
@@ -750,15 +773,15 @@ public:
                }
                //Rcout << "po aktualizacji clusters dist" << endl;
             }
-#endif
-            if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+#endif // MB_IMPROVEMENT
          }
-#if VERBOSE > 3
-         else
+#ifdef NN_COUNTERS
+         else {
             ++misses;
+         }
 #endif
 #if VERBOSE > 7
-         if (i % 1024 == 0) Rprintf("\r             %d / %d / %d ", i+1, _n, misses);
+         if (i % 1024 == 0) Rprintf("\r             %d / %d / %.0f ", i+1, _n, (double)misses);
 #endif
 
          // ASSERT: hhi.index1 < hhi.index2
@@ -767,10 +790,11 @@ public:
             pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
       }
 #if VERBOSE > 7
-      Rprintf("\r             %d / %d / %d ", _n, _n, misses);
+      Rprintf("\r             %d / %d / %f \n", _n, _n, (double)misses);
 #endif
-#if VERBOSE > 3
-      Rprintf("Total ignored NNs: %d\n", misses);
+#if VERBOSE > 0 && defined(NN_COUNTERS)
+      Rprintf("             total ignored NNs: %.0f (i.e., %.2f x %.0f)\n",
+         (double)misses, (double)(misses)/(double)_n, (double)_n);
 #endif
 #if VERBOSE > 5
       Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
@@ -821,6 +845,3 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;
 }
-
-
-#endif /* VPTREEBINHIERARCHICAL_H_ */

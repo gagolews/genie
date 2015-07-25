@@ -24,17 +24,23 @@ using namespace DataStructures;
 
 
 Distance::Distance(size_t n) :
-#ifdef HASHMAP_ENABLE
+#ifdef HASHMAP_ENABLED
       hashmap(std::vector< std::unordered_map<size_t, double> >(n)),
-#ifdef HASHMAP_COUNTERS
+#endif
+#ifdef DIST_COUNTERS
+#ifdef HASHMAP_ENABLED
       hashmapHit(0),
       hashmapMiss(0),
 #endif
+      distCallCount(0),
 #endif
       n(n)
 {
-#ifdef HASHMAP_ENABLE
-   Rcpp::Rcout << "Warning: HASHMAP_ENABLE is defined in hclust2_distance.h"
+#ifdef HASHMAP_ENABLED
+   Rcpp::Rcout << "Warning: HASHMAP_ENABLED is defined in hclust2_distance.h\n";
+#endif
+#ifdef DIST_COUNTERS
+   Rcpp::Rcout << "Warning: DIST_COUNTERS is defined in hclust2_distance.h\n";
 #endif
 }
 
@@ -44,25 +50,37 @@ Distance::~Distance()
 // #if VERBOSE > 5
 //    Rprintf("[%010.3f] destroying distance object (base)\n", clock()/(float)CLOCKS_PER_SEC);
 // #endif
-#if VERBOSE > 3 && defined(HASHMAP_ENABLE) && defined(HASHMAP_COUNTERS)
-   Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB (vs %.1fMB)\n",
-      hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f,
+#if VERBOSE > 3 && defined(HASHMAP_ENABLED) && defined(DIST_COUNTERS)
+   Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
+      (double)hashmapHit, (double)hashmapMiss,
+      8.0f*hashmapMiss/1000.0f/1000.0f,
       8.0f*(n-1)*(n-1)*0.5f/1000.0f/1000.0f);
+#endif
+#if VERBOSE > 0 && defined(DIST_COUNTERS)
+   Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
+      (double)distCallCount,
+      (double)distCallCount*100.0/(0.5*n*(n-1.0)),
+      0.5*n*(n-1.0)
+   );
 #endif
 }
 
 
-#ifdef HASHMAP_ENABLE
+#ifdef HASHMAP_ENABLED
 double Distance::operator()(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    if (v1 > v2) std::swap(v1, v2);
 
+#ifdef DIST_COUNTERS
+   ++distCallCount;
+#endif
+
    // std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
    auto got = hashmap[v1].find(v2);
    if ( got == hashmap[v1].end() )
    {
-#ifdef HASHMAP_COUNTERS
+#ifdef DIST_COUNTERS
       ++hashmapMiss;
 #endif
       double d = compute(v1, v2);
@@ -71,7 +89,7 @@ double Distance::operator()(size_t v1, size_t v2)
    }
    else
    {
-#ifdef HASHMAP_COUNTERS
+#ifdef DIST_COUNTERS
       ++hashmapHit;
 #endif
       return got->second;

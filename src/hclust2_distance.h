@@ -25,9 +25,9 @@
 #define __HCLUST2_DISTANCE_H
 
 // ---------------------------------------------------------------------
-// #define HASHMAP_ENABLE
-#define HASHMAP_COUNTERS
-#define VERBOSE 0
+// #define HASHMAP_ENABLED
+#define DIST_COUNTERS
+#define VERBOSE 1
 // ---------------------------------------------------------------------
 
 
@@ -38,7 +38,6 @@
 #include <numeric>
 #include <unordered_map>
 #include <Rcpp.h>
-
 
 
 namespace DataStructures{
@@ -94,13 +93,17 @@ namespace DataStructures {
 
 class Distance {
 private:
-#ifdef HASHMAP_ENABLE
+#ifdef HASHMAP_ENABLED
    std::vector< std::unordered_map<size_t, double> > hashmap;
-#ifdef HASHMAP_COUNTERS
+#endif
+#ifdef DIST_COUNTERS
+#ifdef HASHMAP_ENABLED
    size_t hashmapHit;
    size_t hashmapMiss;
 #endif
+   size_t distCallCount;
 #endif
+
 protected:
    size_t n;
    virtual double compute(size_t v1, size_t v2)  const = 0;
@@ -111,10 +114,18 @@ public:
    inline size_t getObjectCount() { return n; }
    static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
-#ifdef HASHMAP_ENABLE
+#ifdef HASHMAP_ENABLED
    double operator()(size_t v1, size_t v2);
 #else
-   inline double operator()(size_t v1, size_t v2)  const {
+#ifndef DIST_COUNTERS
+#define DIST_COUNTERS_CONST const
+#else
+#define DIST_COUNTERS_CONST /* const */
+#endif
+   inline double operator()(size_t v1, size_t v2) DIST_COUNTERS_CONST {
+#ifdef DIST_COUNTERS
+      ++distCallCount;
+#endif
       return compute(v1, v2);
    }
 #endif
@@ -143,9 +154,9 @@ public:
 
    virtual ~GenericMatrixDistance()
    {
-#if VERBOSE > 5
-      Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
+// #if VERBOSE > 5
+//       Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
+// #endif
       delete [] items;
    }
 };
