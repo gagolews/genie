@@ -22,34 +22,38 @@
 #ifndef HCLUST2_SINGLE_H_
 #define HCLUST2_SINGLE_H_
 
+#define DEFAULT_MAX_NUM_ELEMS_LEAVES 2
+#define DEFAULT_MAX_NN_PREFETCH 2
 #define VANTAGE_POINT_SELECT_SCHEME 3
+#define VANTAGE_POINT_SELECT_SCHEME_1_NUMCANDIDATES 5
+#define VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST 12
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
 
 
+/* improvement idea:
+ * add custom sort of _indices
+ *
+ * useful for Levenshtein distance
+ * long strings should be put at the end
+ * ?
+ */
+
 
 
 #include <Rcpp.h>
-#define USE_RINTERNALS
-#define R_NO_REMAP
 #include <R.h>
-#include <Rinternals.h>
 #include <Rmath.h>
-#include <Rdefines.h>
-#include <R_ext/Rdynload.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unordered_set>
-#include <algorithm>
 #include <queue>
-#include <fstream>
-#include <deque>
-#include <exception>
-#include <string>
-#include <boost/property_map/property_map.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
+// #include <fstream>
+// #include <deque>
+// #include <exception>
+// #include <string>
+// #include <boost/property_map/property_map.hpp>
+// #include <boost/tuple/tuple_comparison.hpp>
+// #include <algorithm>
 
 
 #include "hclust2_distance.h"
@@ -60,6 +64,9 @@
 #include "disjoint_sets.h"
 #endif
 
+#ifdef MB_IMPROVEMENT
+#include <unordered_set>
+#endif
 
 using namespace Rcpp;
 using namespace std;
@@ -156,7 +163,7 @@ protected:
    };
 
    size_t maxNumberOfElementsInLeaves; // set in the constructor
-   const size_t maxNearestNeighborPrefetch = 1;
+   const size_t maxNearestNeighborPrefetch = DEFAULT_MAX_NN_PREFETCH;
 
    Node* _root;
    size_t _n;
@@ -165,7 +172,7 @@ protected:
 
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
-   std::vector<double> maxRadiuses;
+   // std::vector<double> maxRadiuses;
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
@@ -177,7 +184,7 @@ protected:
      associative_property_map< std::map<size_t,size_t> >,
      associative_property_map< std::map<size_t,size_t> > > ds;
 #else
-   DisjointSets ds;
+   PhatDisjointSets ds;
 #endif
 
 #ifdef MB_IMPROVEMENT
@@ -192,8 +199,8 @@ protected:
 #if VANTAGE_POINT_SELECT_SCHEME == 1
       // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
       //    search given pair-wise distances"
-      size_t numCandidates = 5;
-      size_t numTest = 12;
+      size_t numCandidates = VANTAGE_POINT_SELECT_SCHEME_1_NUMCANDIDATES;
+      size_t numTest = VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST;
 
       if (left + numCandidates + numTest > right )
          return left;
@@ -254,11 +261,11 @@ protected:
    {
       if(right - left <= maxNumberOfElementsInLeaves)
       {
-         for (size_t i=left; i<right; ++i) {
-            size_t j = _indices[(i+1 < right)?(i+1):left];
-            if (_indices[i] < j)
-               maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
-         }
+         // for (size_t i=left; i<right; ++i) {
+            // size_t j = _indices[(i+1 < right)?(i+1):left];
+            // if (_indices[i] < j)
+               // maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
+         // }
 
          return new Node(left, right);
       }
@@ -510,8 +517,14 @@ public:
          std::priority_queue<HeapNeighborItem> heap;
          size_t clusterIndex = ds.find_set(index);
 
-         double _tau = maxRadiuses[index];
+         double _tau = INFINITY;//maxRadiuses[index];
+
 //       THIS IS SLOWER:
+//          double _tau = (*_distance)(index,
+//             *(ds.getClusterMembers(ds.getClusterNext(clusterIndex)).cbegin())
+//          );
+
+//       THIS IS SLOWER TOO:
 //          size_t test = (size_t)(index+unif_rand()*(_n-index));
 //          if (ds.find_set(test) != clusterIndex)
 //             _tau = (*_distance)(index, test);
@@ -521,7 +534,7 @@ public:
             nearestNeighbors[index].push_front(heap.top());
             heap.pop();
          }
-         maxRadiuses[index] = INFINITY;
+         // maxRadiuses[index] = INFINITY;
          size_t newNeighborsCount = nearestNeighbors[index].size();
 
          neighborsCount[index] += newNeighborsCount;
@@ -584,7 +597,7 @@ public:
       _indices(dist->getObjectCount()),
       neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
       minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
-      maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
+      // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
       shouldFind(vector<bool>(dist->getObjectCount(), true)),
       nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
 #ifdef USE_BOOST_DISJOINT_SETS
@@ -774,7 +787,7 @@ public:
 
 
 // [[Rcpp::export(".hclust2_single")]]
-RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
+RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=DEFAULT_MAX_NUM_ELEMS_LEAVES) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
 #endif

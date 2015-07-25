@@ -24,7 +24,7 @@ using namespace DataStructures;
 
 
 Distance::Distance(size_t n) :
-#ifndef HASHMAP_DISABLE
+#ifdef HASHMAP_ENABLE
       hashmap(std::vector< std::unordered_map<size_t, double> >(n)),
 #ifdef HASHMAP_COUNTERS
       hashmapHit(0),
@@ -33,7 +33,9 @@ Distance::Distance(size_t n) :
 #endif
       n(n)
 {
-
+#ifdef HASHMAP_ENABLE
+   Rcpp::Rcout << "Warning: HASHMAP_ENABLE is defined in hclust2_distance.h"
+#endif
 }
 
 
@@ -42,7 +44,7 @@ Distance::~Distance()
 // #if VERBOSE > 5
 //    Rprintf("[%010.3f] destroying distance object (base)\n", clock()/(float)CLOCKS_PER_SEC);
 // #endif
-#if VERBOSE > 3 && !defined(HASHMAP_DISABLE) && defined(HASHMAP_COUNTERS)
+#if VERBOSE > 3 && defined(HASHMAP_ENABLE) && defined(HASHMAP_COUNTERS)
    Rprintf("Distance Hashmap: #hits=%d, #miss=%d, est.mem.used>=%.1fMB (vs %.1fMB)\n",
       hashmapHit, hashmapMiss, 8.0f*hashmapMiss/1000.0f/1000.0f,
       8.0f*(n-1)*(n-1)*0.5f/1000.0f/1000.0f);
@@ -50,7 +52,7 @@ Distance::~Distance()
 }
 
 
-#ifndef HASHMAP_DISABLE
+#ifdef HASHMAP_ENABLE
 double Distance::operator()(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;

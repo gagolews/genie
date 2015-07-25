@@ -25,9 +25,9 @@
 #define __HCLUST2_DISTANCE_H
 
 // ---------------------------------------------------------------------
-#define HASHMAP_DISABLE
+// #define HASHMAP_ENABLE
 #define HASHMAP_COUNTERS
-#define VERBOSE 6
+#define VERBOSE 0
 // ---------------------------------------------------------------------
 
 
@@ -94,7 +94,7 @@ namespace DataStructures {
 
 class Distance {
 private:
-#ifndef HASHMAP_DISABLE
+#ifdef HASHMAP_ENABLE
    std::vector< std::unordered_map<size_t, double> > hashmap;
 #ifdef HASHMAP_COUNTERS
    size_t hashmapHit;
@@ -111,7 +111,7 @@ public:
    inline size_t getObjectCount() { return n; }
    static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
-#ifndef HASHMAP_DISABLE
+#ifdef HASHMAP_ENABLE
    double operator()(size_t v1, size_t v2);
 #else
    inline double operator()(size_t v1, size_t v2)  const {

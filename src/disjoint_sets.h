@@ -23,28 +23,33 @@
 #define __DISJOINT_SETS_H
 
 #include <vector>
+#include <list>
 #include <cstdint>
+#include <Rcpp.h>
+
+#define DISJOINT_SETS_DEBUG
+
+#ifndef DISJOINT_SETS_DEBUG
+#define DISJOINT_SETS_DEBUG_CONST const
+#else
+#define DISJOINT_SETS_DEBUG_CONST /* const */
+#endif
 
 namespace DataStructures {
 
 class DisjointSets {
 private:
    std::vector< std::size_t > clusterParent;
+
+protected:
    std::size_t n;
 
 public:
-   DisjointSets(std::size_t n) :
-      clusterParent(std::vector< std::size_t >(n)),
-      n(n)
-   {
-      for (std::size_t i=0; i<n; ++i)
-         clusterParent[i] = i;
-   }
+   DisjointSets(std::size_t n);
+   virtual ~DisjointSets();
 
-   ~DisjointSets()
-   {
-
-   }
+   virtual std::size_t link(std::size_t x, std::size_t y);
+   std::size_t union_set(std::size_t x, std::size_t y);
 
    inline std::size_t find_set(std::size_t x) {
       if (clusterParent[x] != x)
@@ -53,14 +58,63 @@ public:
          return clusterParent[x];
    }
 
-   inline std::size_t link(std::size_t x, std::size_t y) {
-      // we have: clusterParent[y] == y
-      // we have: clusterParent[x] == x
-      return (clusterParent[x] = y);
+};
+
+
+class PhatDisjointSets : public DisjointSets {
+private:
+   std::vector< std::size_t > clusterSize;
+   std::size_t clusterCount;
+   std::vector< std::list<std::size_t> > clusterMembers;
+   std::vector< std::size_t > clusterNext;
+   std::vector< std::size_t > clusterPrev;
+
+public:
+   PhatDisjointSets(std::size_t n);
+   virtual ~PhatDisjointSets();
+
+   virtual std::size_t link(std::size_t x, std::size_t y);
+
+   inline std::size_t getClusterCount() const { return clusterCount; }
+
+   inline const std::list<std::size_t>& getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+      #ifdef DISJOINT_SETS_DEBUG
+         if (find_set(x) != x)
+            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      #endif
+      return clusterMembers[x];
    }
 
-   inline std::size_t union_set(std::size_t x, std::size_t y) {
-      return link(find_set(x), find_set(y));
+   inline std::size_t getClusterSize(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+      #ifdef DISJOINT_SETS_DEBUG
+         if (find_set(x) != x)
+            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      #endif
+      return clusterSize[x];
+   }
+
+   inline std::size_t getClusterPrev(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+      #ifdef DISJOINT_SETS_DEBUG
+         if (find_set(x) != x)
+            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      #endif
+      return clusterPrev[x];
+   }
+
+   inline std::size_t getClusterNext(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+      /*
+      to iterate over all clusters starting from x, use something like:
+      for (size_t nx = ds.getClusterNext(x); nx != x; nx = ds.getClusterNext(x)) {
+         // e.g.:
+         for (auto it = ds.getClusterMembers(nx).cbegin(); it != ds.getClusterMembers(nx).cend(); ++it)
+            // play with *it
+      }
+      */
+      #ifdef DISJOINT_SETS_DEBUG
+         if (find_set(x) != x)
+            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      #endif
+      return clusterNext[x];
    }
 };
 
