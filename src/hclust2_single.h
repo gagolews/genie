@@ -56,8 +56,7 @@
 // #include <boost/tuple/tuple_comparison.hpp>
 // #include <algorithm>
 
-
-#include "hclust2_distance.h"
+#include "hclust2_common.h"
 #include "hclust2_merge.h"
 #ifdef USE_BOOST_DISJOINT_SETS
 #include <boost/pending/disjoint_sets.hpp>
@@ -73,96 +72,14 @@
 
 namespace DataStructures{
 
-class HClustSingleBiVpTree
+class HClustBiVpTreeSingle
 {
 protected:
-
-   struct HeapNeighborItem {
-      size_t index;
-      double dist;
-
-      HeapNeighborItem(size_t index, double dist) :
-         index(index), dist(dist) {}
-
-      HeapNeighborItem() :
-         index(SIZE_MAX), dist(-INFINITY) {}
-
-      bool operator<( const HeapNeighborItem& o ) const {
-         return dist < o.dist;
-      }
-   };
-
-   struct HeapHierarchicalItem {
-      size_t index1;
-      size_t index2;
-      double dist;
-
-      HeapHierarchicalItem(size_t index1, size_t index2, double dist) :
-         index1(index1), index2(index2), dist(dist) {}
-
-      bool operator<( const HeapHierarchicalItem& o ) const {
-         return dist >= o.dist;
-      }
-   };
-
-   struct Node
-   {
-      size_t vpindex;
-      size_t left;
-      size_t right;
-      double radius;
-      bool sameCluster;
-      Node *ll, *lr, *rl, *rr;
-
-      Node() :
-         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      Node(size_t left, size_t right) :
-         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      Node(size_t vpindex, double radius) :
-         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      ~Node() {
-         if(ll) delete ll;
-         if(lr) delete lr;
-         if(rl) delete rl;
-         if(rr) delete rr;
-      }
-   };
-
-   struct DistanceComparator
-   {
-      size_t index;
-      Distance* distance;
-
-      DistanceComparator(size_t index, Distance* distance )
-         : index(index), distance(distance) {}
-
-      bool operator()(size_t a, size_t b) {
-         return (*distance)( index, a ) < (*distance)( index, b );
-      }
-   };
-
-   struct IndexComparator
-   {
-      size_t index;
-
-      IndexComparator(size_t index)
-         : index(index) {}
-
-      bool operator()(size_t a) {
-         return a <= index;
-      }
-   };
 
    size_t maxNumberOfElementsInLeaves; // set in the constructor
    const size_t maxNearestNeighborPrefetch = DEFAULT_MAX_NN_PREFETCH;
 
-   Node* _root;
+   HClustBiVpTreeNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -192,19 +109,19 @@ protected:
 
 
    int chooseNewVantagePoint(size_t left, size_t right);
-   Node* buildFromPoints(size_t left, size_t right);
+   HClustBiVpTreeNode* buildFromPoints(size_t left, size_t right);
 
-   void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index,
-      size_t clusterIndex, double minR, double& maxR,
-      std::priority_queue<HeapNeighborItem>& heap );
+   void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeNode* node,
+      size_t index, size_t clusterIndex, double minR, double& maxR,
+      std::priority_queue<HeapNeighborItem>& heap);
 
-   void print(Node* n);
+   void print(HClustBiVpTreeNode* n);
 
 
 public:
 
-   HClustSingleBiVpTree(Distance* dist, size_t maxNumberOfElementsInLeaves);
-   ~HClustSingleBiVpTree();
+   HClustBiVpTreeSingle(Distance* dist, size_t maxNumberOfElementsInLeaves);
+   ~HClustBiVpTreeSingle();
 
    void print();
    NumericMatrix compute();

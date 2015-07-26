@@ -53,7 +53,7 @@
 #include <boost/accumulators/statistics.hpp>
 
 
-#include "hclust2_distance.h"
+#include "hclust2_common.h"
 #include "hclust2_merge.h"
 #include <boost/pending/disjoint_sets.hpp>
 
@@ -65,37 +65,9 @@ using namespace boost;
 
 namespace DataStructures{
 
-class HClustCompleteBiVpTree
+class HClustBiVpTreeComplete
 {
 protected:
-
-   struct HeapNeighborItem {
-      size_t index;
-      double dist;
-
-      HeapNeighborItem(size_t index, double dist) :
-         index(index), dist(dist) {}
-
-      HeapNeighborItem() :
-         index(SIZE_MAX), dist(-INFINITY) {}
-
-      bool operator<( const HeapNeighborItem& o ) const {
-         return dist < o.dist;
-      }
-   };
-
-   struct HeapHierarchicalItem {
-      size_t index1;
-      size_t index2;
-      double dist;
-
-      HeapHierarchicalItem(size_t index1, size_t index2, double dist) :
-         index1(index1), index2(index2), dist(dist) {}
-
-      bool operator<( const HeapHierarchicalItem& o ) const {
-         return dist >= o.dist;
-      }
-   };
 
    struct HeapHierarchicalItemMax {
          size_t index1;
@@ -121,64 +93,10 @@ protected:
                dist(INFINITY), iter(0) {}
          };
 
-   struct Node
-   {
-      size_t vpindex;
-      size_t left;
-      size_t right;
-      double radius;
-      bool sameCluster;
-      Node *ll, *lr, *rl, *rr;
-
-      Node() :
-         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      Node(size_t left, size_t right) :
-         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      Node(size_t vpindex, double radius) :
-         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
-         sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-      ~Node() {
-         if(ll) delete ll;
-         if(lr) delete lr;
-         if(rl) delete rl;
-         if(rr) delete rr;
-      }
-   };
-
-   struct DistanceComparator
-   {
-      size_t index;
-      Distance* distance;
-
-      DistanceComparator(size_t index, Distance* distance )
-         : index(index), distance(distance) {}
-
-      bool operator()(size_t a, size_t b) {
-         return (*distance)( index, a ) < (*distance)( index, b );
-      }
-   };
-
-   struct IndexComparator
-   {
-      size_t index;
-
-      IndexComparator(size_t index)
-         : index(index) {}
-
-      bool operator()(size_t a) {
-         return a <= index;
-      }
-   };
-
    size_t maxNumberOfElementsInLeaves; // set in the constructor
    const size_t maxNearestNeighborPrefetch = 1;
 
-   Node* _root;
+   HClustBiVpTreeNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -265,7 +183,7 @@ protected:
    }
 
 
-   Node* buildFromPoints(size_t left, size_t right)
+   HClustBiVpTreeNode* buildFromPoints(size_t left, size_t right)
    {
       if(right - left <= maxNumberOfElementsInLeaves)
       {
@@ -275,7 +193,7 @@ protected:
                maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
          }
 
-         return new Node(left, right);
+         return new HClustBiVpTreeNode(left, right);
       }
 
       size_t vpi_idx = chooseNewVantagePoint(left, right);
@@ -294,7 +212,7 @@ protected:
       // printf("(%d,%d,%d)\n", left, median, right);
       // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
       // printf("\n");
-      Node* node = new Node(vpi, (*_distance)(vpi, _indices[median]));
+      HClustBiVpTreeNode* node = new HClustBiVpTreeNode(vpi, (*_distance)(vpi, _indices[median]));
 
 
       size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
@@ -316,17 +234,17 @@ protected:
 
    /*
 
-   size_t calculateNodeSize(Node* node)
+   size_t calculateHClustBiVpTreeNodeSize(HClustBiVpTreeNode* node)
    {
       return node->radiuses.size()*sizeof(double)
          + node->points.size()*sizeof(int)
-         + node->children.size()*sizeof(Node*)
-         + sizeof(Node);
+         + node->children.size()*sizeof(HClustBiVpTreeNode*)
+         + sizeof(HClustBiVpTreeNode);
    }
 
-   size_t treeSize_rec(Node* node)
+   size_t treeSize_rec(HClustBiVpTreeNode* node)
    {
-      size_t size = calculateNodeSize(node);
+      size_t size = calculateHClustBiVpTreeNodeSize(node);
       for(int i=0;i<node->childCount;i++)
       {
          size += treeSize_rec(node->children[i]);
@@ -334,7 +252,7 @@ protected:
       return size;
    }
 
-   int treeHeight_rec(Node* node)
+   int treeHeight_rec(HClustBiVpTreeNode* node)
    {
       int maxH = 0;
       for(int i=0;i<node->childCount;i++)
@@ -345,7 +263,7 @@ protected:
    }
 */
 
-   void getNearestNeighborsFromMinRadiusRecursive( Node* node, size_t index,
+   void getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
       size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap )
    {
@@ -514,7 +432,7 @@ protected:
      }
    }
 
-   void print(Node* n) {
+   void print(HClustBiVpTreeNode* n) {
       if (n->ll) {
          Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
          print(n->ll);
@@ -690,7 +608,7 @@ public:
 public:
 
    // constructor (OK, we all know what this is, but I label it for faster in-code search)
-   HClustCompleteBiVpTree(Distance* dist, size_t maxNumberOfElementsInLeaves) :
+   HClustBiVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves) :
       maxNumberOfElementsInLeaves(maxNumberOfElementsInLeaves),
       _root(NULL), _n(dist->getObjectCount()), _distance(dist),
       _indices(dist->getObjectCount()),
@@ -723,7 +641,7 @@ public:
    }
 
 
-   virtual ~HClustCompleteBiVpTree() {
+   virtual ~HClustBiVpTreeComplete() {
 #if VERBOSE > 5
       Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
@@ -984,7 +902,7 @@ RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfEleme
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustCompleteBiVpTree hclust(dist, (int)maxNumberOfElementsInLeaves);
+      DataStructures::HClustBiVpTreeComplete hclust(dist, (int)maxNumberOfElementsInLeaves);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,

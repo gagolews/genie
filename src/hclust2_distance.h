@@ -27,7 +27,7 @@
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define DIST_COUNTERS
-#define VERBOSE 9
+#define VERBOSE 1
 // ---------------------------------------------------------------------
 
 
@@ -38,55 +38,6 @@
 #include <numeric>
 #include <unordered_map>
 #include <Rcpp.h>
-
-
-namespace DataStructures{
-
-struct SortedPoint
-{
-   size_t i;
-   size_t j;
-
-   SortedPoint()
-      :i(0),j(0) {}
-
-   SortedPoint(size_t _i, size_t _j)
-   {
-      if(_j < _i)
-      {
-         i = _j;
-         j = _i;
-      }
-      else
-      {
-         i = _i;
-         j = _j;
-      }
-   }
-
-   bool operator==(const SortedPoint &other) const
-   {
-      return (i == other.i && j == other.j);
-   }
-};
-
-} // namespace DataStructures
-
-
-namespace std {
-
-   template <>
-      struct hash<DataStructures::SortedPoint>
-   {
-      std::size_t operator()(const DataStructures::SortedPoint& k) const
-      {
-        std::size_t seed = 0;
-        boost::hash_combine(seed, k.i);
-        boost::hash_combine(seed, k.j);
-        return seed;
-      }
-   };
-} // namespace std
 
 
 namespace DataStructures {
