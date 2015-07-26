@@ -18,7 +18,12 @@ one of \code{single}, \code{complete}}
 \item{...}{internal tuning parameters}
 }
 \value{
-A named list of class \code{hclust}, see \code{\link{hclust}}.
+A named list of class \code{hclust}, see \code{\link{hclust}},
+with additional components:
+\itemize{
+\item stats ...
+\item control ...
+}
 }
 \description{
 Faster Hierarchical Clustering in Pseudometric Spaces

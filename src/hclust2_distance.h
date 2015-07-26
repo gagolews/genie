@@ -46,6 +46,9 @@
  double dist(const int* s1, int nx, const int* s2, int ny)
 
  double dist(SEXP s1, SEXP s2)
+
+ use cases: objects 1:n, distance(i,j) -> ith, jth row of a data frame
+    (check namespaces... - call within an R function)
 */
 
 

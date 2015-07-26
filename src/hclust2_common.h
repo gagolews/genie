@@ -21,6 +21,15 @@
 #ifndef __HCLUST2_COMMON_H
 #define __HCLUST2_COMMON_H
 
+// ---------------------------------------------------------------------------
+
+#define DEFAULT_MAX_LEAVES_ELEMS 2
+#define DEFAULT_MAX_NN_PREFETCH 2
+#define DEFAULT_VP_SELECT_SCHEME 3
+#define DEFAULT_VP_SELECT_CAND 5
+#define DEFAULT_VP_SELECT_TEST 12
+
+// ---------------------------------------------------------------------------
 
 #include "hclust2_distance.h"
 
@@ -37,7 +46,7 @@ struct HeapNeighborItem {
    HeapNeighborItem() :
       index(SIZE_MAX), dist(-INFINITY) {}
 
-   bool operator<( const HeapNeighborItem& o ) const {
+   inline bool operator<( const HeapNeighborItem& o ) const {
       return dist < o.dist;
    }
 };
@@ -51,7 +60,7 @@ struct HeapHierarchicalItem {
    HeapHierarchicalItem(size_t index1, size_t index2, double dist) :
       index1(index1), index2(index2), dist(dist) {}
 
-   bool operator<( const HeapHierarchicalItem& o ) const {
+   inline bool operator<( const HeapHierarchicalItem& o ) const {
       return dist >= o.dist;
    }
 };
@@ -65,7 +74,7 @@ struct DistanceComparator
    DistanceComparator(size_t index, Distance* distance )
       : index(index), distance(distance) {}
 
-   bool operator()(size_t a, size_t b) {
+   inline bool operator()(size_t a, size_t b) {
       return (*distance)( index, a ) < (*distance)( index, b );
    }
 };
@@ -78,7 +87,7 @@ struct IndexComparator
    IndexComparator(size_t index)
       : index(index) {}
 
-   bool operator()(size_t a) {
+   inline bool operator()(size_t a) {
       return a <= index;
    }
 };
@@ -114,37 +123,27 @@ struct HClustBiVpTreeNode
 };
 
 
+struct HClustBiVpTreeOptions {
+   size_t maxLeavesElems;
+   size_t maxNNPrefetch;
+   size_t vpSelectScheme;
+   size_t vpSelectCand;   // for vpSelectScheme == 1
+   size_t vpSelectTest;   // for vpSelectScheme == 2
+
+   HClustBiVpTreeOptions(Rcpp::RObject control);
+   Rcpp::NumericVector toR() const;
+};
+
+
 struct HClustBiVpTreeStats {
    size_t nodeCount; // now many nodes are there in the tree
    size_t nodeVisit; // now many nodes were visited during NN search
    size_t nnCals;    // how many times NN search job was launched
    size_t nnCount;   // how many NNs were obtained in overall
 
-   HClustBiVpTreeStats() :
-      nodeCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
-
-   ~HClustBiVpTreeStats() {
-      #if VERBOSE > 0
-      Rprintf("             vp-tree: nodeCount=%.0f, nodeVisit=%.0f\n",
-         (double)nodeCount, (double)nodeVisit);
-      Rprintf("             vp-tree: nnCals=%.0f, nnCount=%.0f\n",
-         (double)nnCals, (double)nnCount);
-      #endif
-   }
-
-
-   Rcpp::NumericVector toR() const {
-      return Rcpp::NumericVector::create(
-         Rcpp::_["nodeCount"]
-            = (nodeCount>0)?(double)nodeCount:NA_REAL,
-         Rcpp::_["nodeVisit"]
-            = (nodeVisit>0)?(double)nodeVisit:NA_REAL,
-         Rcpp::_["nnCals"]
-            = (nnCals>0)?(double)nnCals:NA_REAL,
-         Rcpp::_["nnCount"]
-            = (nnCount>0)?(double)nnCount:NA_REAL
-      );
-   }
+   HClustBiVpTreeStats();
+   ~HClustBiVpTreeStats();
+   Rcpp::NumericVector toR() const;
 };
 
 
@@ -170,7 +169,7 @@ struct SortedPoint
       }
    }
 
-   bool operator==(const SortedPoint &other) const
+   inline bool operator==(const SortedPoint &other) const
    {
       return (i == other.i && j == other.j);
    }

@@ -39,9 +39,8 @@ using namespace DataStructures;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, size_t maxNumberOfElementsInLeaves) :
-   maxNumberOfElementsInLeaves(maxNumberOfElementsInLeaves),
-   _root(NULL), _n(dist->getObjectCount()), _distance(dist),
+HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
+   opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
    _indices(dist->getObjectCount()),
    neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
    minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
@@ -63,7 +62,6 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, size_t maxNumberOfEle
 #if VERBOSE > 5
    Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   // maxNumberOfElementsInLeaves = 2; //(size_t)log2(_n);
 
    // starting _indices: random permutation of {0,1,...,_n-1}
    for(size_t i=0;i<_n;i++) _indices[i] = i;
@@ -94,64 +92,63 @@ HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
 
 int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 {
-#if VANTAGE_POINT_SELECT_SCHEME == 1
-   // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
-   //    search given pair-wise distances"
-   size_t numCandidates = VANTAGE_POINT_SELECT_SCHEME_1_NUMCANDIDATES;
-   size_t numTest = VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST;
+   if (opts.vpSelectScheme == 1) {
+      // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
+      //    search given pair-wise distances"
+      if (left + opts.vpSelectCand + opts.vpSelectTest > right )
+         return left;
 
-   if (left + numCandidates + numTest > right )
+      // maximize variance
+      size_t bestIndex = -1;
+      double bestSigma = -INFINITY;
+      for(size_t i=left; i<left+opts.vpSelectCand; i++) {
+         accumulators::accumulator_set< double,
+            accumulators::features<accumulators::tag::variance> > acc;
+         for (size_t j = left+opts.vpSelectCand; j < left+opts.vpSelectCand+opts.vpSelectTest; ++j)
+            acc( (*_distance)( _indices[i], _indices[j] ) );
+         double curSigma = accumulators::variance(acc);
+         if (curSigma > bestSigma) {
+            bestSigma = curSigma;
+            bestIndex = i;
+         }
+      }
+
+      return bestIndex;
+   }
+   else if (opts.vpSelectScheme == 2) {
+      // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
+      //      for similarity search queries"
+
+      // which one maximizes dist to _indices[left]?
+      size_t bestIndex = left;
+      double bestDist  = 0.0;
+      for (size_t i=left+1; i<right; ++i) {
+         double curDist = (*_distance)(_indices[left], _indices[i]);
+         if (curDist > bestDist) {
+            bestDist = curDist;
+            bestIndex = i;
+         }
+      }
+   //       for (size_t i=left+2; i<right; ++i) {
+   //          double curDist = (*_distance)(_indices[left+1], _indices[i]);
+   //          if (curDist > bestDist) {
+   //             bestDist = curDist;
+   //             bestIndex = i;
+   //          }
+   //       }
+   //       for (size_t i=left+3; i<right; ++i) {
+   //          double curDist = (*_distance)(_indices[left+2], _indices[i]);
+   //          if (curDist > bestDist) {
+   //             bestDist = curDist;
+   //             bestIndex = i;
+   //          }
+   //       }
+      return bestIndex;
+   }
+   else {
+      // return random index == left one (sample is randomized already)
       return left;
-
-   // maximize variance
-   size_t bestIndex = -1;
-   double bestSigma = -INFINITY;
-   for(size_t i=left; i<left+numCandidates; i++) {
-      accumulators::accumulator_set< double,
-         accumulators::features<accumulators::tag::variance> > acc;
-      for (size_t j = left+numCandidates; j < left+numCandidates+numTest; ++j)
-         acc( (*_distance)( _indices[i], _indices[j] ) );
-      double curSigma = accumulators::variance(acc);
-      if (curSigma > bestSigma) {
-         bestSigma = curSigma;
-         bestIndex = i;
-      }
    }
-
-   return bestIndex;
-#elif VANTAGE_POINT_SELECT_SCHEME == 2
-   // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
-   //      for similarity search queries"
-
-   // which one maximizes dist to _indices[left]?
-   size_t bestIndex = left;
-   double bestDist  = 0.0;
-   for (size_t i=left+1; i<right; ++i) {
-      double curDist = (*_distance)(_indices[left], _indices[i]);
-      if (curDist > bestDist) {
-         bestDist = curDist;
-         bestIndex = i;
-      }
-   }
-//       for (size_t i=left+2; i<right; ++i) {
-//          double curDist = (*_distance)(_indices[left+1], _indices[i]);
-//          if (curDist > bestDist) {
-//             bestDist = curDist;
-//             bestIndex = i;
-//          }
-//       }
-//       for (size_t i=left+3; i<right; ++i) {
-//          double curDist = (*_distance)(_indices[left+2], _indices[i]);
-//          if (curDist > bestDist) {
-//             bestDist = curDist;
-//             bestIndex = i;
-//          }
-//       }
-   return bestIndex;
-#else
-   // return random index == left one (sample is randomized already)
-   return left;
-#endif
 }
 
 
@@ -160,7 +157,7 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
 #endif
-   if(right - left <= maxNumberOfElementsInLeaves)
+   if(right - left <= opts.maxLeavesElems)
    {
       // for (size_t i=left; i<right; ++i) {
          // size_t j = _indices[(i+1 < right)?(i+1):left];
@@ -250,7 +247,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             }
 #endif // MB_IMPROVEMENT
 
-            if (heap.size() >= maxNearestNeighborPrefetch) {
+            if (heap.size() >= opts.maxNNPrefetch) {
                if (dist2 < maxR) {
                   while (!heap.empty() && heap.top().dist == maxR) {
                      heap.pop();
@@ -289,7 +286,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             if (mbimprovement && dist2 > distToCluster) continue;
 #endif // MB_IMPROVEMENT
 
-            if (heap.size() >= maxNearestNeighborPrefetch) {
+            if (heap.size() >= opts.maxNNPrefetch) {
                if (dist2 < maxR) {
                   while (!heap.empty() && heap.top().dist == maxR) {
                      heap.pop();
@@ -615,7 +612,7 @@ void HClustBiVpTreeSingle::print() {
 
 
 // [[Rcpp::export(".hclust2_single")]]
-RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
+RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilValue) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
 #endif
@@ -624,7 +621,7 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustBiVpTreeSingle hclust(dist, (int)maxNumberOfElementsInLeaves);
+      DataStructures::HClustBiVpTreeSingle hclust(dist, control);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,
@@ -637,6 +634,9 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
          _["stats"] = List::create(
             _["vptree"] = hclust.getStats().toR(),
             _["distance"] = dist->getStats().toR()
+         ),
+         _["control"] = List::create(
+            _["vptree"] = hclust.getOptions().toR()
          )
       ));
       result.attr("class") = "hclust";

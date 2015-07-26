@@ -25,11 +25,6 @@
 
 // ************************************************************************
 
-// #define DEFAULT_MAX_NUM_ELEMS_LEAVES 2
-#define DEFAULT_MAX_NN_PREFETCH 2
-#define VANTAGE_POINT_SELECT_SCHEME 3
-#define VANTAGE_POINT_SELECT_SCHEME_1_NUMCANDIDATES 5
-#define VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST 12
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
 
@@ -70,8 +65,7 @@ class HClustBiVpTreeSingle
 {
 protected:
 
-   size_t maxNumberOfElementsInLeaves; // set in the constructor
-   const size_t maxNearestNeighborPrefetch = DEFAULT_MAX_NN_PREFETCH;
+   HClustBiVpTreeOptions opts;
 
    HClustBiVpTreeNode* _root;
    size_t _n;
@@ -116,7 +110,7 @@ protected:
 
 public:
 
-   HClustBiVpTreeSingle(Distance* dist, size_t maxNumberOfElementsInLeaves);
+   HClustBiVpTreeSingle(Distance* dist, RObject control);
    ~HClustBiVpTreeSingle();
 
    void print();
@@ -125,6 +119,7 @@ public:
    HeapNeighborItem getNearestNeighbor(size_t index);
 
    inline const HClustBiVpTreeStats& getStats() { return stats; }
+   inline const HClustBiVpTreeOptions& getOptions() { return opts; }
 
 }; // class
 

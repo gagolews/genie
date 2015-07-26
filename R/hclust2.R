@@ -21,10 +21,16 @@
 #' \code{manhattan}, or \code{maximum}.
 #'
 #' @return
-#' A named list of class \code{hclust}, see \code{\link{hclust}}.
+#' A named list of class \code{hclust}, see \code{\link{hclust}},
+#' with additional components:
+#' \itemize{
+#' \item stats ...
+#' \item control ...
+#' }
 #'
 #' @export
 hclust2 <- function(d=NULL, method=c("single", "complete"), objects=NULL, ...) {
+   # TO DO: `single` has list control arg........
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
