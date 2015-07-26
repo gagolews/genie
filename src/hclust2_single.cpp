@@ -617,7 +617,7 @@ void HClustBiVpTreeSingle::print() {
 // [[Rcpp::export(".hclust2_single")]]
 RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElementsInLeaves=2) {
 #if VERBOSE > 5
-   Rprintf("[%010.3f] starting timer\n", clock()/(float)CLOCKS_PER_SEC);
+   Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
 #endif
    RObject result(R_NilValue);
    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
@@ -633,7 +633,11 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
          _["labels"] = R_NilValue,
          _["call"]   = R_NilValue,
          _["method"] = "single",
-         _["dist.method"] = R_NilValue
+         _["dist.method"] = R_NilValue,
+         _["stats"] = List::create(
+            _["vptree"] = hclust.getStats().toR(),
+            _["distance"] = dist->getStats().toR()
+         )
       ));
       result.attr("class") = "hclust";
       //hclust.print();
@@ -644,7 +648,7 @@ RObject hclust2_single(RObject distance, RObject objects, int maxNumberOfElement
 
    if (dist) delete dist;
 #if VERBOSE > 5
-   Rprintf("[%010.3f] done\n", clock()/(float)CLOCKS_PER_SEC);
+   Rprintf("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
 #endif
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;

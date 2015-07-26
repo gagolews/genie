@@ -32,6 +32,23 @@
 
 
 
+/* to do: dist for CharacterVector (objects=strings)
+   dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev
+
+  numeric -> metric: hamming, binary (see dist) minkowski (p), canberra
+
+  allow external ptr distance:
+
+ double dist(const char* s1, int nx, const char* s2, int ny)
+
+ double dist(const double* s1, int nx, const double* s2, int ny)
+
+ double dist(const int* s1, int nx, const int* s2, int ny)
+
+ double dist(SEXP s1, SEXP s2)
+*/
+
+
 #include <boost/functional/hash.hpp>
 #include <vector>
 #include <limits>
@@ -68,6 +85,19 @@ struct DistanceStats {
    );
 #endif
 #endif
+   }
+
+   Rcpp::NumericVector toR() const {
+      return Rcpp::NumericVector::create(
+         Rcpp::_["hashmapHit"]
+            = (hashmapHit>0)?(double)hashmapHit:NA_REAL,
+         Rcpp::_["hashmapMiss"]
+            = (hashmapMiss>0)?(double)hashmapMiss:NA_REAL,
+         Rcpp::_["distCallCount"]
+            = (distCallCount>0)?(double)distCallCount:NA_REAL,
+         Rcpp::_["distCallTheoretical"]
+            = (distCallTheoretical>0)?(double)distCallTheoretical:NA_REAL
+      );
    }
 };
 

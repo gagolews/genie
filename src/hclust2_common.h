@@ -131,6 +131,20 @@ struct HClustBiVpTreeStats {
          (double)nnCals, (double)nnCount);
       #endif
    }
+
+
+   Rcpp::NumericVector toR() const {
+      return Rcpp::NumericVector::create(
+         Rcpp::_["nodeCount"]
+            = (nodeCount>0)?(double)nodeCount:NA_REAL,
+         Rcpp::_["nodeVisit"]
+            = (nodeVisit>0)?(double)nodeVisit:NA_REAL,
+         Rcpp::_["nnCals"]
+            = (nnCals>0)?(double)nnCals:NA_REAL,
+         Rcpp::_["nnCount"]
+            = (nnCount>0)?(double)nnCount:NA_REAL
+      );
+   }
 };
 
 
