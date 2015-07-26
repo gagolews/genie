@@ -114,6 +114,26 @@ struct HClustBiVpTreeNode
 };
 
 
+struct HClustBiVpTreeStats {
+   size_t nodeCount; // now many nodes are there in the tree
+   size_t nodeVisit; // now many nodes were visited during NN search
+   size_t nnCals;    // how many times NN search job was launched
+   size_t nnCount;   // how many NNs were obtained in overall
+
+   HClustBiVpTreeStats() :
+      nodeCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
+
+   ~HClustBiVpTreeStats() {
+      #if VERBOSE > 0
+      Rprintf("             vp-tree: nodeCount=%.0f, nodeVisit=%.0f\n",
+         (double)nodeCount, (double)nodeVisit);
+      Rprintf("             vp-tree: nnCals=%.0f, nnCount=%.0f\n",
+         (double)nnCals, (double)nnCount);
+      #endif
+   }
+};
+
+
 struct SortedPoint
 {
    size_t i;

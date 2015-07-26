@@ -26,7 +26,7 @@
 
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
-#define DIST_COUNTERS
+#define GENERATE_STATS
 #define VERBOSE 1
 // ---------------------------------------------------------------------
 
@@ -42,18 +42,42 @@
 
 namespace DataStructures {
 
+struct DistanceStats {
+   size_t hashmapHit;
+   size_t hashmapMiss;
+   size_t distCallCount;
+   size_t distCallTheoretical;
+
+   DistanceStats(size_t n) :
+      hashmapHit(0), hashmapMiss(0), distCallCount(0),
+      distCallTheoretical(n*(n-1)/2) {}
+
+   ~DistanceStats() {
+#if VERBOSE > 0
+#if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
+   Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
+      (double)hashmapHit, (double)hashmapMiss,
+      8.0f*hashmapMiss/1000.0f/1000.0f,
+      8.0f*distCallTheoretical/1000.0f/1000.0f);
+#endif
+#if defined(GENERATE_STATS)
+   Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
+      (double)distCallCount,
+      (double)distCallCount*100.0/(double)distCallTheoretical,
+      (double)distCallTheoretical
+   );
+#endif
+#endif
+   }
+};
+
+
 class Distance {
 private:
 #ifdef HASHMAP_ENABLED
    std::vector< std::unordered_map<size_t, double> > hashmap;
 #endif
-#ifdef DIST_COUNTERS
-#ifdef HASHMAP_ENABLED
-   size_t hashmapHit;
-   size_t hashmapMiss;
-#endif
-   size_t distCallCount;
-#endif
+   DistanceStats stats;
 
 protected:
    size_t n;
@@ -65,17 +89,19 @@ public:
    inline size_t getObjectCount() { return n; }
    static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
+   inline const DistanceStats& getStats() { return stats; }
+
 #ifdef HASHMAP_ENABLED
    double operator()(size_t v1, size_t v2);
 #else
-#ifndef DIST_COUNTERS
-#define DIST_COUNTERS_CONST const
+#ifndef GENERATE_STATS
+#define GENERATE_STATS_CONST const
 #else
-#define DIST_COUNTERS_CONST /* const */
+#define GENERATE_STATS_CONST /* const */
 #endif
-   inline double operator()(size_t v1, size_t v2) DIST_COUNTERS_CONST {
-#ifdef DIST_COUNTERS
-      ++distCallCount;
+   inline double operator()(size_t v1, size_t v2) GENERATE_STATS_CONST {
+#ifdef GENERATE_STATS
+      ++stats.distCallCount;
 #endif
       return compute(v1, v2);
    }

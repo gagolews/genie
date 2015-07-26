@@ -32,15 +32,9 @@
 #define VANTAGE_POINT_SELECT_SCHEME_1_NUMTEST 12
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
-#define NN_COUNTERS
 
 
 // ************************************************************************
-
-#if VERBOSE > 7 && !defined(NN_COUNTERS)
-#define NN_COUNTERS
-#endif
-
 
 #include <Rcpp.h>
 #include <R.h>
@@ -93,6 +87,8 @@ protected:
    std::map<size_t,size_t> rank;
    std::map<size_t,size_t> parent;
 
+   HClustBiVpTreeStats stats;
+
 #ifdef USE_BOOST_DISJOINT_SETS
    boost::disjoint_sets<
      associative_property_map< std::map<size_t,size_t> >,
@@ -127,6 +123,8 @@ public:
    NumericMatrix compute();
 
    HeapNeighborItem getNearestNeighbor(size_t index);
+
+   inline const HClustBiVpTreeStats& getStats() { return stats; }
 
 }; // class
 

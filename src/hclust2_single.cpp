@@ -48,14 +48,17 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, size_t maxNumberOfEle
    // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
    shouldFind(vector<bool>(dist->getObjectCount(), true)),
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
+#ifdef GENERATE_STATS
+   stats(HClustBiVpTreeStats()),
+#endif
 #ifdef USE_BOOST_DISJOINT_SETS
    ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
 #else
    ds(dist->getObjectCount())
 #endif
 {
-#ifdef NN_COUNTERS
-   Rcpp::Rcout << "Warning: NN_COUNTERS is defined in hclust2_single.cpp\n";
+#ifdef USE_BOOST_DISJOINT_SETS
+   Rcpp::Rcout << "Warning: USE_BOOST_DISJOINT_SETS is defined in hclust2_single.h\n";
 #endif
 #if VERBOSE > 5
    Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
@@ -154,6 +157,9 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 
 HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
 {
+#ifdef GENERATE_STATS
+      ++stats.nodeCount;
+#endif
    if(right - left <= maxNumberOfElementsInLeaves)
    {
       // for (size_t i=left; i<right; ++i) {
@@ -205,8 +211,10 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
    std::priority_queue<HeapNeighborItem>& heap )
 {
    // search within (minR, maxR]
-   if (node == NULL) return;
-
+   // if (node == NULL) return; // this should not happen
+#ifdef GENERATE_STATS
+   ++stats.nodeVisit;
+#endif
    if (node->sameCluster) {
       if (node->vpindex == SIZE_MAX) {
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
@@ -215,28 +223,28 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
       }
    }
 
-   if(node->vpindex == SIZE_MAX) // leaf
+   if (node->vpindex == SIZE_MAX) // leaf
    {
       if (node->sameCluster) {
 #ifdef MB_IMPROVEMENT
       size_t s = SIZE_MAX;
-      if(mbimprovement)
+      if (mbimprovement)
          s = ds.find_set(_indices[node->left]);
       std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
-      if(mbimprovement)
+      if (mbimprovement)
          distToClusterIterator = distClust.find(SortedPoint(s, clusterIndex));
       double distToCluster = INFINITY;
-      if(mbimprovement && distToClusterIterator != distClust.end())
+      if (mbimprovement && distToClusterIterator != distClust.end())
          distToCluster = distToClusterIterator->second;
 #endif // MB_IMPROVEMENT
-         for(size_t i=node->left; i<node->right; i++)
+         for (size_t i=node->left; i<node->right; i++)
          {
             if(index >= _indices[i]) continue;
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
 
 #ifdef MB_IMPROVEMENT
-            if(mbimprovement && dist2 > distToCluster) {
+            if (mbimprovement && dist2 > distToCluster) {
                //Rcout << "odrzucam!" << endl;
                continue;
             }
@@ -252,22 +260,22 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             maxR = heap.top().dist;
 #ifdef MB_IMPROVEMENT
-            if(mbimprovement)
+            if (mbimprovement)
                distClust.emplace(SortedPoint(s, clusterIndex), dist2);
 #endif // MB_IMPROVEMENT
          }
       }
       else {
          size_t commonCluster = ds.find_set(_indices[node->left]);
-         for(size_t i=node->left; i<node->right; i++)
+         for (size_t i=node->left; i<node->right; i++)
          {
             size_t currentCluster = ds.find_set(_indices[i]);
 #ifdef MB_IMPROVEMENT
             std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
-            if(mbimprovement)
+            if (mbimprovement)
                distToClusterIterator = distClust.find(SortedPoint(currentCluster, clusterIndex));
             double distToCluster = INFINITY;
-            if(mbimprovement && distToClusterIterator != distClust.end())
+            if (mbimprovement && distToClusterIterator != distClust.end())
                distToCluster = distToClusterIterator->second;
 #endif // MB_IMPROVEMENT
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
@@ -278,7 +286,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
 #ifdef MB_IMPROVEMENT
-            if(mbimprovement && dist2 > distToCluster) continue;
+            if (mbimprovement && dist2 > distToCluster) continue;
 #endif // MB_IMPROVEMENT
 
             if (heap.size() >= maxNearestNeighborPrefetch) {
@@ -291,7 +299,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             maxR = heap.top().dist;
 #ifdef MB_IMPROVEMENT
-            if(mbimprovement)
+            if (mbimprovement)
                distClust.emplace(SortedPoint(currentCluster, clusterIndex), dist2);
 #endif // MB_IMPROVEMENT
          }
@@ -410,6 +418,9 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
 //          if (ds.find_set(test) != clusterIndex)
 //             _tau = (*_distance)(index, test);
 
+#ifdef GENERATE_STATS
+      ++stats.nnCals;
+#endif
       getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, minRadiuses[index], _tau, heap );
       while( !heap.empty() ) {
          nearestNeighbors[index].push_front(heap.top());
@@ -428,6 +439,9 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
 
    if(!nearestNeighbors[index].empty())
    {
+#ifdef GENERATE_STATS
+      ++stats.nnCount;
+#endif
       auto res = nearestNeighbors[index].front();
       nearestNeighbors[index].pop_front();
       return res;
@@ -448,9 +462,6 @@ NumericMatrix HClustBiVpTreeSingle::compute()
    // INIT: Pre-fetch a few nearest neighbors for each point
 #if VERBOSE > 5
    Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-#ifdef NN_COUNTERS
-   int misses = 0;
 #endif
    for (size_t i=0;i<_n;i++)
    {
@@ -545,13 +556,8 @@ NumericMatrix HClustBiVpTreeSingle::compute()
          }
 #endif // MB_IMPROVEMENT
       }
-#ifdef NN_COUNTERS
-      else {
-         ++misses;
-      }
-#endif
 #if VERBOSE > 7
-      if (i % 1024 == 0) Rprintf("\r             %d / %d / %.0f ", i+1, _n, (double)misses);
+      if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
 #endif
 
       // ASSERT: hhi.index1 < hhi.index2
@@ -560,11 +566,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
    }
 #if VERBOSE > 7
-   Rprintf("\r             %d / %d / %f \n", _n, _n, (double)misses);
-#endif
-#if VERBOSE > 0 && defined(NN_COUNTERS)
-   Rprintf("             total ignored NNs: %.0f (i.e., %.2f x %.0f)\n",
-      (double)misses, (double)(misses)/(double)_n, (double)_n);
+   Rprintf("\r             %d / %d\n", _n, _n);
 #endif
 #if VERBOSE > 5
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
