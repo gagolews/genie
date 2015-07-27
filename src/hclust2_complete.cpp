@@ -27,6 +27,9 @@ using namespace std;
 using namespace boost;
 using namespace DataStructures;
 
+#define VERBOSE 0
+#define UPDATEKK
+
 int HClustBiVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
 {
 #if VANTAGE_POINT_SELECT_SCHEME == 1
@@ -527,7 +530,7 @@ NumericMatrix HClustBiVpTreeComplete::compute()
    priority_queue<HeapHierarchicalItemMax> pqMax;
    unordered_map<size_t, size_t> timestamp;
    unordered_map<SortedPoint, KKItem> KK;
-   vector<bool> stillExists(_n, true);
+   //vector<bool> stillExists(_n, true);
 
    for(size_t i=0;i<_n;i++)
    {
@@ -569,28 +572,72 @@ NumericMatrix HClustBiVpTreeComplete::compute()
    while(i < _n - 1)
    {
       iter++;
-      if(iter > 900) {awaria = true; break;}
+     // if(iter > 179) {awaria = true; break;}
+#if VERBOSE > 11
       Rcout << "i " << i << endl;
       Rcout << "iteracja " << iter << endl;
       Rcout << "pqMin size = " << pqMin.size()<< endl;
       Rcout << "pqMax size = " << pqMax.size()<< endl;
+#endif
       HeapHierarchicalItem hhiMin = pqMin.top();
       HeapHierarchicalItemMax hhiMax = pqMax.top();
+#ifdef UPDATEKK
+      if(hhiMax.iter != SIZE_MAX)
+      {
+         size_t s1 = ds.find_set(hhiMax.index1);
+         size_t s2 = ds.find_set(hhiMax.index2);
+         hhiMax.index1 = s1;
+         hhiMax.index2 = s2;
+         if(s1 == s2) {pqMax.pop(); continue;}
+         auto pair1 = KK.find(SortedPoint(s1,s2));
+         if(pair1 != KK.end())
+         {
+
+            if(pair1->second.dist > hhiMax.dist)
+            {
+#if VERBOSE > 11
+               Rcout << "uaktualniam odleglosc w kolejce pqMax" << endl;
+               Rcout << "BYLO:" <<hhiMax.dist << " " << hhiMax.iter << endl;
+               Rcout << "JEST:" <<pair1->second.dist << " " << pair1->second.iter << endl;
+#endif
+               hhiMax.dist = pair1->second.dist;
+               hhiMax.iter = pair1->second.iter;
+               HeapHierarchicalItemMax tmp = HeapHierarchicalItemMax(hhiMax);
+               pqMax.pop();
+               pqMax.push(tmp);
+#if VERBOSE > 11
+               Rcout << "po uaktualnieniu odleglosci w kolejce pqMax" << endl;
+#endif
+               continue;
+            }
+         }
+      }
+#endif
+
       bool upToDate = false;
       if((hhiMax.iter == SIZE_MAX)
-            || (stillExists[hhiMax.index1] && stillExists[hhiMax.index2] && hhiMax.iter> timestamp.find(hhiMax.index1)->second && hhiMax.iter> timestamp.find(hhiMax.index2)->second))
+            || (hhiMax.iter> timestamp.find(hhiMax.index1)->second
+                  && hhiMax.iter> timestamp.find(hhiMax.index2)->second))
       {
+#if VERBOSE > 11
          Rcout << hhiMax.index1+1 << " " <<hhiMax.index2+1 <<" " << hhiMax.dist << " nadal aktualne" << endl;
+#endif
          upToDate = true;
       }
 
       if(!upToDate)
       {
+#ifndef UPDATEKK
          if(ds.find_set(hhiMax.index1) == ds.find_set(hhiMax.index2)) {pqMax.pop(); continue;}
+#endif
+#if VERBOSE > 11
          Rcout << hhiMax.index1+1 << " " <<hhiMax.index2+1 <<" " << hhiMax.dist << " nieaktualne" << endl;
+#endif
          HeapHierarchicalItemMax hhim = calculateCluster2ClusterMaxDistance(hhiMax.index1, hhiMax.index2, iter);
+#if VERBOSE > 11
          Rcout << "najwieksza odleglosc klastrowa to" << hhim.dist << endl;
          Rcout << "wrzucam " << hhim.index1+1 << ", " << hhim.index2+1 << endl;
+#endif
          KK[SortedPoint(hhiMax.index1, hhiMax.index2)] = KKItem(hhim.dist, hhim.iter);
          pqMax.pop();
          pqMax.push(hhim);
@@ -602,13 +649,17 @@ NumericMatrix HClustBiVpTreeComplete::compute()
          pqMin.pop();
          size_t s1 = ds.find_set(hhiMin.index1);
          size_t s2 = ds.find_set(hhiMin.index2);
+#if VERBOSE > 11
          Rcout << "przetwarzam z PQmin, " << hhiMin.index1+1 << " " << hhiMin.index2+1 << endl;
          Rcout << "ich reprezentanci to " << s1+1 << " " << s2+1 << endl;
+#endif
          if(s1!=s2) //czy aby na pewno konieczne?
          {
-            if(clusterCount(hhiMin.index1) == 1 && clusterCount(hhiMin.index2) == 1)
+            if(ds.getClusterSize(ds.find_set(hhiMin.index1)) == 1 && ds.getClusterSize(ds.find_set(hhiMin.index2)) == 1)
             {
+#if VERBOSE > 11
                Rcout << "1 elementowe zbiory to sa" << endl;
+#endif
                ret(i,0)=(double)hhiMin.index1;
                ret(i,1)=(double)hhiMin.index2;
                ++i;
@@ -616,32 +667,42 @@ NumericMatrix HClustBiVpTreeComplete::compute()
                size_t s = ds.find_set(hhiMin.index1);
                timestamp[hhiMin.index1] = iter;
                timestamp[hhiMin.index2] = iter;
-               if(hhiMin.index1 != s)
+               /*if(hhiMin.index1 != s)
                   stillExists[hhiMin.index1] = false;
                else
-                  stillExists[hhiMin.index2] = false;
+                  stillExists[hhiMin.index2] = false;*/
             }
             else
             {
+#if VERBOSE > 11
                Rcout << "co najmniej 1 klaster" << endl;
+#endif
                auto s1s2dist = KK.find(SortedPoint(s1,s2));
                if(s1s2dist != KK.end())
                {
                   if(timestamp.find(s1)->second < s1s2dist->second.iter
                         && timestamp.find(s2)->second < s1s2dist->second.iter)
                   {
+#if VERBOSE > 11
                      Rcout << "odleglosc aktualna" << endl;
+#endif
                      HeapNeighborItem hi=getNearestNeighbor(hhiMin.index1);
                      if(hi.index != SIZE_MAX)
                         pqMin.push(HeapHierarchicalItem(hhiMin.index1, hi.index, hi.dist));
                      continue;
                   }
+#if VERBOSE > 11
                   Rcout << "odleglosc nieaktualna" << endl;
+#endif
                }
+#if VERBOSE > 11
                Rcout << "odleglosci nie ma albo nieaktualna" << endl;
+#endif
                HeapHierarchicalItemMax hhim = calculateCluster2ClusterMaxDistance(s1,s2,iter);
+#if VERBOSE > 11
                Rcout << "najwieksza odleglosc klastrowa to" << hhim.dist << endl;
                Rcout << "wrzucam " << hhim.index1+1 << ", " << hhim.index2+1 << endl;
+#endif
                KK[SortedPoint(hhim.index1, hhim.index2)] = KKItem(hhim.dist, hhim.iter);
                pqMax.push(hhim);
 
@@ -653,25 +714,47 @@ NumericMatrix HClustBiVpTreeComplete::compute()
       }
       else // przetwarzamy element z PQmax
       {
+#if VERBOSE > 11
          Rcout << "przetwarzam z PQMax" << endl;
+#endif
          pqMax.pop();
-         ds.link(hhiMax.index1, hhiMax.index2);
+         ds.union_set(hhiMax.index1, hhiMax.index2); //hhiMax.index1 is always a parent
          ret(i,0)=(double)hhiMax.index1;
          ret(i,1)=(double)hhiMax.index2;
          ++i;
-         size_t s = ds.find_set(hhiMax.index1);
          timestamp[hhiMax.index1] = iter;
          timestamp[hhiMax.index2] = iter;
-         Rcout << "reprezentant teraz to " << s+1 << endl;
-         if(hhiMax.index1 != s)
+#if VERBOSE > 11
+         Rcout << "reprezentant teraz to " << hhiMax.index1+1 << endl;
+#endif
+#ifdef UPDATEKK
+         //idz po wszystykich entry w KK, aktualizuj i dawaj timestamp nowy!
+         for ( auto it = KK.begin(); it != KK.end(); ++it )
          {
-            stillExists[hhiMax.index1] = false;
+            size_t otherCluster;
+            if(it->first.i == hhiMax.index1)
+            {
+               otherCluster = it->first.j;
+            }
+            else if(it->first.j == hhiMax.index1)
+            {
+               otherCluster = it->first.i;
+            }
+            else
+            {
+               continue;
+            }
+            auto pair2 = KK.find(SortedPoint(otherCluster, hhiMax.index2));
+            if(pair2 != KK.end())
+            {
+               KK[SortedPoint(otherCluster, hhiMax.index1)] = KKItem(max(it->second.dist, pair2->second.dist), iter);
+               KK.erase(SortedPoint(otherCluster, hhiMax.index2));
+            }
          }
-         else
-            stillExists[hhiMax.index2] = false;
+#endif
       }
 
-         if (i % 10000 == 0) Rcpp::checkUserInterrupt(); // may throw an exception
+         Rcpp::checkUserInterrupt(); // may throw an exception
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d / %d ", i+1, _n, misses);
@@ -688,12 +771,16 @@ Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
    MergeMatrixGenerator mmg(ret.nrow());
    if(!awaria)
    {
+#if VERBOSE > 11
       Rcout << "wyszedlem poprawnie!" << endl;
+#endif
       return mmg.generateMergeMatrix(ret);
    }
    else
    {
+#if VERBOSE > 11
       Rcout << "byla awaria" << endl;
+#endif
       return ret;
    }
 }
