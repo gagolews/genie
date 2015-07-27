@@ -49,6 +49,7 @@
 #include "hclust2_merge.h"
 #ifdef USE_BOOST_DISJOINT_SETS
 #include <boost/pending/disjoint_sets.hpp>
+#include <boost/property_map/property_map.hpp>
 #else
 #include "disjoint_sets.h"
 #endif
