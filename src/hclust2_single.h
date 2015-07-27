@@ -59,7 +59,8 @@
 
 
 
-namespace DataStructures{
+namespace DataStructures
+{
 
 class HClustBiVpTreeSingle
 {

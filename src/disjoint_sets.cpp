@@ -51,7 +51,7 @@ std::size_t DisjointSets::link(std::size_t x, std::size_t y) {
    if (clusterParent[y] != y || clusterParent[x] != x)
       Rcpp::stop("DisjointSets::link assert failed");
 #endif
-   return (clusterParent[x] = y);
+   return (clusterParent[y] = x);
 }
 
 
@@ -92,21 +92,20 @@ PhatDisjointSets::~PhatDisjointSets()
 
 std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
 {
-   std::size_t cx = clusterSize[x];
    std::size_t z = DisjointSets::link(x, y);
 #ifdef DISJOINT_SETS_DEBUG
-   if (z != y)
-      Rcpp::stop("DisjointSets::link assert failed");
+   if (z != x)
+      Rcpp::stop("PhatDisjointSets::link assert failed");
 #endif
 
-   std::size_t oldprev = clusterPrev[x];
-   std::size_t oldnext = clusterNext[x];
+   std::size_t oldprev = clusterPrev[y];
+   std::size_t oldnext = clusterNext[y];
    clusterPrev[ oldnext ] = oldprev;
    clusterNext[ oldprev ] = oldnext;
 
-   clusterSize[z] += cx;
+   clusterSize[z] += clusterSize[y];
 
-   clusterMembers[z].splice(clusterMembers[z].end(), clusterMembers[x]); // O(1)
+   clusterMembers[z].splice(clusterMembers[z].end(), clusterMembers[y]); // O(1)
 
    --clusterCount;
    return z;

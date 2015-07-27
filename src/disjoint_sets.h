@@ -104,7 +104,7 @@ public:
    inline std::size_t getClusterNext(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       /*
       to iterate over all clusters starting from x, use something like:
-      for (size_t nx = ds.getClusterNext(x); nx != x; nx = ds.getClusterNext(x)) {
+      for (size_t nx = ds.getClusterNext(x); nx != x; nx = ds.getClusterNext(nx)) {
          // e.g.:
          for (auto it = ds.getClusterMembers(nx).cbegin(); it != ds.getClusterMembers(nx).cend(); ++it)
             // play with *it

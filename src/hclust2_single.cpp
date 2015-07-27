@@ -407,7 +407,7 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
 
 //       THIS IS SLOWER:
 //          double _tau = (*_distance)(index,
-//             *(ds.getClusterMembers(ds.getClusterNext(clusterIndex)).cbegin())
+//             ds.getClusterNext(clusterIndex))
 //          );
 
 //       THIS IS SLOWER TOO:
@@ -460,7 +460,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 #if VERBOSE > 5
    Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   for (size_t i=0;i<_n;i++)
+   for (size_t i=0; i<_n; i++)
    {
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             prefetch NN: %d/%d", i, _n-1);

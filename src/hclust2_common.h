@@ -34,9 +34,11 @@
 #include "hclust2_distance.h"
 
 
-namespace DataStructures{
+namespace DataStructures
+{
 
-struct HeapNeighborItem {
+struct HeapNeighborItem
+{
    size_t index;
    double dist;
 
@@ -52,7 +54,8 @@ struct HeapNeighborItem {
 };
 
 
-struct HeapHierarchicalItem {
+struct HeapHierarchicalItem
+{
    size_t index1;
    size_t index2;
    double dist;
@@ -71,7 +74,7 @@ struct DistanceComparator
    size_t index;
    Distance* distance;
 
-   DistanceComparator(size_t index, Distance* distance )
+   DistanceComparator(size_t index, Distance* distance)
       : index(index), distance(distance) {}
 
    inline bool operator()(size_t a, size_t b) {
@@ -88,7 +91,7 @@ struct IndexComparator
       : index(index) {}
 
    inline bool operator()(size_t a) {
-      return a <= index;
+      return (a <= index);
    }
 };
 
@@ -123,19 +126,21 @@ struct HClustBiVpTreeNode
 };
 
 
-struct HClustBiVpTreeOptions {
+struct HClustBiVpTreeOptions
+{
    size_t maxLeavesElems;
    size_t maxNNPrefetch;
    size_t vpSelectScheme;
    size_t vpSelectCand;   // for vpSelectScheme == 1
-   size_t vpSelectTest;   // for vpSelectScheme == 2
+   size_t vpSelectTest;   // for vpSelectScheme == 1
 
    HClustBiVpTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
 };
 
 
-struct HClustBiVpTreeStats {
+struct HClustBiVpTreeStats
+{
    size_t nodeCount; // now many nodes are there in the tree
    size_t nodeVisit; // now many nodes were visited during NN search
    size_t nnCals;    // how many times NN search job was launched
@@ -155,22 +160,18 @@ struct SortedPoint
    SortedPoint()
       :i(0),j(0) {}
 
-   SortedPoint(size_t _i, size_t _j)
-   {
-      if(_j < _i)
-      {
+   SortedPoint(size_t _i, size_t _j) {
+      if(_j < _i) {
          i = _j;
          j = _i;
       }
-      else
-      {
+      else {
          i = _i;
          j = _j;
       }
    }
 
-   inline bool operator==(const SortedPoint &other) const
-   {
+   inline bool operator==(const SortedPoint &other) const {
       return (i == other.i && j == other.j);
    }
 };
@@ -178,19 +179,19 @@ struct SortedPoint
 } // namespace DataStructures
 
 
-namespace std {
+namespace std
+{
 
-   template <>
-      struct hash<DataStructures::SortedPoint>
-   {
-      std::size_t operator()(const DataStructures::SortedPoint& k) const
-      {
-        std::size_t seed = 0;
-        boost::hash_combine(seed, k.i);
-        boost::hash_combine(seed, k.j);
-        return seed;
-      }
-   };
+template <> struct hash<DataStructures::SortedPoint>
+{
+   std::size_t operator()(const DataStructures::SortedPoint& k) const {
+     std::size_t seed = 0;
+     boost::hash_combine(seed, k.i);
+     boost::hash_combine(seed, k.j);
+     return seed;
+   }
+};
+
 } // namespace std
 
 

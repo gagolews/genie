@@ -60,9 +60,11 @@
 #include <Rcpp.h>
 
 
-namespace DataStructures {
+namespace DataStructures
+{
 
-struct DistanceStats {
+struct DistanceStats
+{
    size_t hashmapHit;
    size_t hashmapMiss;
    size_t distCallCount;
@@ -73,21 +75,21 @@ struct DistanceStats {
       distCallTheoretical(n*(n-1)/2) {}
 
    ~DistanceStats() {
-#if VERBOSE > 0
-#if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
-   Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
-      (double)hashmapHit, (double)hashmapMiss,
-      8.0f*hashmapMiss/1000.0f/1000.0f,
-      8.0f*distCallTheoretical/1000.0f/1000.0f);
-#endif
-#if defined(GENERATE_STATS)
-   Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
-      (double)distCallCount,
-      (double)distCallCount*100.0/(double)distCallTheoretical,
-      (double)distCallTheoretical
-   );
-#endif
-#endif
+   #if VERBOSE > 0
+   #if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
+      Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
+         (double)hashmapHit, (double)hashmapMiss,
+         8.0f*hashmapMiss/1000.0f/1000.0f,
+         8.0f*distCallTheoretical/1000.0f/1000.0f);
+   #endif
+   #if defined(GENERATE_STATS)
+      Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
+         (double)distCallCount,
+         (double)distCallCount*100.0/(double)distCallTheoretical,
+         (double)distCallTheoretical
+      );
+   #endif
+   #endif
    }
 
    Rcpp::NumericVector toR() const {
@@ -105,7 +107,8 @@ struct DistanceStats {
 };
 
 
-class Distance {
+class Distance
+{
 private:
 #ifdef HASHMAP_ENABLED
    std::vector< std::unordered_map<size_t, double> > hashmap;
@@ -150,9 +153,8 @@ protected:
 
 public:
    GenericMatrixDistance(const Rcpp::NumericMatrix& points) :
-      Distance(points.nrow()),
-      items(REAL((SEXP)points)), m(points.ncol())
-   {
+         Distance(points.nrow()),
+         items(REAL((SEXP)points)), m(points.ncol())  {
       // act on a transposed matrix to avoid many L1/L... cache misses
       items = new double[m*n];
       const double* items2 = REAL((SEXP)points);
@@ -162,8 +164,7 @@ public:
             *(items_ptr++) = items2[j*n+i];
    }
 
-   virtual ~GenericMatrixDistance()
-   {
+   virtual ~GenericMatrixDistance() {
 // #if VERBOSE > 5
 //       Rprintf("[%010.3f] destroying distance object\n", clock()/(float)CLOCKS_PER_SEC);
 // #endif
@@ -182,8 +183,7 @@ protected:
 
 public:
    EuclideanDistance(const Rcpp::NumericMatrix& points) :
-      GenericMatrixDistance(points)
-   {
+      GenericMatrixDistance(points) {
 //       const double* items_ptr = items;
 //       for (size_t i=0; i<n; ++i) {
 //          double sqobs_cur = 0.0;
@@ -230,15 +230,13 @@ protected:
 
 public:
    GenericRDistance(const Rcpp::Function& distfun, const std::vector<Rcpp::RObject>& items) :
-      Distance(items.size()),
-      distfun(distfun),
-      items(items)
-   {
+         Distance(items.size()),
+         distfun(distfun),
+         items(items) {
       R_PreserveObject(distfun);
    }
 
-   virtual ~GenericRDistance()
-   {
+   virtual ~GenericRDistance() {
       R_ReleaseObject(distfun);
    }
 };
@@ -255,17 +253,15 @@ protected:
 
 public:
    DistObjectDistance(const Rcpp::NumericVector& distobj) :
-      Distance((size_t)((Rcpp::NumericVector)distobj.attr("Size"))[0]),
-      robj1(distobj),
-      items(REAL((SEXP)distobj))
-   {
+         Distance((size_t)((Rcpp::NumericVector)distobj.attr("Size"))[0]),
+         robj1(distobj),
+         items(REAL((SEXP)distobj)) {
       if ((size_t)XLENGTH((SEXP)distobj) != n*(n-1)/2)
          Rcpp::stop("incorrect dist object length.");
       R_PreserveObject(robj1);
    }
 
-   virtual ~DistObjectDistance()
-   {
+   virtual ~DistObjectDistance()  {
       R_ReleaseObject(robj1);
    }
 };

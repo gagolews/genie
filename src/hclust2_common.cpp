@@ -25,10 +25,10 @@ using namespace DataStructures;
 
 HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
    maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
-   maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
+   maxNNPrefetch  = DEFAULT_MAX_NN_PREFETCH;
    vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
-   vpSelectCand = DEFAULT_VP_SELECT_CAND;
-   vpSelectTest = DEFAULT_VP_SELECT_TEST;
+   vpSelectCand   = DEFAULT_VP_SELECT_CAND;
+   vpSelectTest   = DEFAULT_VP_SELECT_TEST;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -94,10 +94,8 @@ HClustBiVpTreeStats::HClustBiVpTreeStats() :
 
 HClustBiVpTreeStats::~HClustBiVpTreeStats() {
    #if VERBOSE > 0
-   Rprintf("             vp-tree: nodeCount=%.0f, nodeVisit=%.0f\n",
-      (double)nodeCount, (double)nodeVisit);
-   Rprintf("             vp-tree: nnCals=%.0f, nnCount=%.0f\n",
-      (double)nnCals, (double)nnCount);
+   Rprintf("             vp-tree: nodeCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f\n",
+      (double)nodeCount, (double)nodeVisit, (double)nnCals, (double)nnCount);
    #endif
 }
 
