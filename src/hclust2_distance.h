@@ -31,6 +31,8 @@
 // ---------------------------------------------------------------------
 
 
+// #define RPRINTF_0(...) Rprintf(__VA_ARGS__)
+
 
 /* to do: dist for CharacterVector (objects=strings)
    dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev
@@ -117,7 +119,7 @@ private:
 
 protected:
    size_t n;
-   virtual double compute(size_t v1, size_t v2)  const = 0;
+   virtual double compute(size_t v1, size_t v2) const = 0;
 
 public:
    Distance(size_t n);
@@ -130,12 +132,7 @@ public:
 #ifdef HASHMAP_ENABLED
    double operator()(size_t v1, size_t v2);
 #else
-#ifndef GENERATE_STATS
-#define GENERATE_STATS_CONST const
-#else
-#define GENERATE_STATS_CONST /* const */
-#endif
-   inline double operator()(size_t v1, size_t v2) GENERATE_STATS_CONST {
+   inline double operator()(size_t v1, size_t v2) {
 #ifdef GENERATE_STATS
       ++stats.distCallCount;
 #endif
@@ -216,6 +213,50 @@ protected:
 public:
    MaximumDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points)  {   }
+};
+
+
+class StringDistance : public Distance
+{
+protected:
+   const char** items;
+   size_t* lengths;
+   SEXP robj;
+
+public:
+   StringDistance(const Rcpp::CharacterVector& strings) :
+         Distance(strings.size()),
+         robj((SEXP)strings) {
+      R_PreserveObject(robj);
+      items = new const char*[n];
+      lengths = new size_t[n];
+
+      // TO DO: NA HANDLING
+      for (size_t i=0; i<n; ++i) {
+         SEXP cur = STRING_ELT(robj, i);
+         lengths[i] = LENGTH(cur);
+         items[i] = CHAR(cur);
+      }
+   }
+
+   ~StringDistance() {
+      delete [] items;
+      delete [] lengths;
+      R_ReleaseObject(robj);
+   }
+};
+
+
+
+class LevenshteinDistance : public StringDistance
+{
+protected:
+   double compute(size_t v1, size_t v2) const;
+
+public:
+   LevenshteinDistance(const Rcpp::CharacterVector& strings) :
+         StringDistance(strings) {   }
+
 };
 
 

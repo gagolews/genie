@@ -79,8 +79,6 @@ double Distance::operator()(size_t v1, size_t v2)
 #endif
 
 
-
-
 Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects)
 {
    if (Rf_isVectorList(objects) && Rf_isFunction(distance))
@@ -100,7 +98,24 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
                (Rcpp::NumericVector)distance
             );
    }
-   else if (Rf_isMatrix(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
+   else if (Rf_isString(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
+   {
+      Rcpp::CharacterVector objects2(objects);
+      Rcpp::CharacterVector distance2 =
+         ((Rf_isNull(distance))?Rcpp::CharacterVector("levenshtein"):Rcpp::CharacterVector(distance));
+
+      const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
+      if (!strcmp(distance3, "levenshtein")) {
+         return (DataStructures::Distance*)
+            new DataStructures::LevenshteinDistance(
+               objects2
+            );
+      }
+      else {
+         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), ");
+      }
+   }
+   else if (Rf_isMatrix(objects) && Rf_isNumeric(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
       Rcpp::NumericMatrix objects2(objects);
       Rcpp::CharacterVector distance2 =
@@ -198,3 +213,37 @@ double DistObjectDistance::compute(size_t v1, size_t v2) const
    return items[i];
 }
 
+
+double LevenshteinDistance::compute(size_t v1, size_t v2) const
+{
+   const char* s1 = items[v1];
+   const char* s2 = items[v2];
+   size_t n1 = lengths[v1];
+   size_t n2 = lengths[v2];
+   if (n1 < n2) {
+      std::swap(s1, s2); // pointer swap
+      std::swap(n1, n2);
+   }
+
+   // to be thread-safe, we have to allocate these 2 arrays each time...
+   size_t* v_cur = new size_t[n2+1];
+   size_t* v_last = new size_t[n2+1];
+
+   // n2 <= n1
+   for (size_t j=0; j<=n2; ++j) v_cur[j] = j;
+
+   for (size_t i=1; i<=n1; ++i) {
+      std::swap(v_last, v_cur); // pointer swap
+      v_cur[0] = i;
+      for (size_t j=1; j<=n2; ++j)
+         v_cur[j] = std::min(std::min(
+               v_last[j-1]+(size_t)(s1[i-1]!=s2[j-1]),
+               v_cur[j-1]+1),
+               v_last[j]+1);
+   }
+
+   double ret = (double) v_cur[n2];
+   delete [] v_cur;
+   delete [] v_last;
+   return ret;
+}
