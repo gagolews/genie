@@ -98,6 +98,10 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
       if (left + opts.vpSelectCand + opts.vpSelectTest > right )
          return left;
 
+      // randomize:
+      for (size_t i=left; i<left+opts.vpSelectCand+opts.vpSelectTest; ++i)
+         std::swap(_indices[i], _indices[i+(size_t)(unif_rand()*(right-i))]);
+
       // maximize variance
       size_t bestIndex = -1;
       double bestSigma = -INFINITY;
@@ -118,6 +122,9 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
    else if (opts.vpSelectScheme == 2) {
       // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
       //      for similarity search queries"
+
+      // randomize:
+      std::swap(_indices[left], _indices[left+(size_t)(unif_rand()*(right-left))]);
 
       // which one maximizes dist to _indices[left]?
       size_t bestIndex = left;
@@ -146,8 +153,10 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
       return bestIndex;
    }
    else {
-      // return random index == left one (sample is randomized already)
-      return left;
+      // return random index
+      // don'use left one (even if sample seems to be randomized already,
+      // vp in subtrees is already on the left...)
+      return left+(size_t)(unif_rand()*(right-left));
    }
 }
 
