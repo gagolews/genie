@@ -57,6 +57,18 @@
 namespace DataStructures
 {
 
+#ifdef USE_ONEWAY_VPTREE
+   #define CHILD_L  0
+   #define CHILD_R  1
+   #define CHILD_NUM 2
+#else
+   #define CHILD_LL 0
+   #define CHILD_LR 1
+   #define CHILD_RL 2
+   #define CHILD_RR 3
+   #define CHILD_NUM 4
+#endif
+
 struct HClustBiVpTreeSingleNode
 {
    size_t vpindex;
@@ -64,52 +76,67 @@ struct HClustBiVpTreeSingleNode
    size_t right;
    double radius;
    bool sameCluster;
-   HClustBiVpTreeSingleNode *ll, *rl;
 #ifndef USE_ONEWAY_VPTREE
-   HClustBiVpTreeSingleNode *lr, *rr;
+   HClustBiVpTreeSingleNode* children[4];
 #else
+   HClustBiVpTreeSingleNode* children[2];
    size_t maxindex;
 #endif
 
    HClustBiVpTreeSingleNode() :
-      vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
-      sameCluster(false)  {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
+         vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+         sameCluster(false)  {
+#ifdef USE_ONEWAY_VPTREE
+      maxindex = SIZE_MAX;
+      children[CHILD_L] = NULL;
+      children[CHILD_R] = NULL;
 #else
-         maxindex = SIZE_MAX;
+      children[CHILD_LL] = NULL;
+      children[CHILD_LR] = NULL;
+      children[CHILD_RL] = NULL;
+      children[CHILD_RR] = NULL;
 #endif
       }
 
    HClustBiVpTreeSingleNode(size_t left, size_t right) :
-      vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
-      sameCluster(false)   {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
+         vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+         sameCluster(false)   {
+#ifdef USE_ONEWAY_VPTREE
+      maxindex = SIZE_MAX;
+      children[CHILD_L] = NULL;
+      children[CHILD_R] = NULL;
 #else
-         maxindex = SIZE_MAX;
+      children[CHILD_LL] = NULL;
+      children[CHILD_LR] = NULL;
+      children[CHILD_RL] = NULL;
+      children[CHILD_RR] = NULL;
 #endif
       }
 
    HClustBiVpTreeSingleNode(size_t vpindex, double radius) :
-      vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
-      sameCluster(false)   {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
+         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+         sameCluster(false)   {
+#ifdef USE_ONEWAY_VPTREE
+      maxindex = SIZE_MAX;
+      children[CHILD_L] = NULL;
+      children[CHILD_R] = NULL;
 #else
-         maxindex = SIZE_MAX;
+      children[CHILD_LL] = NULL;
+      children[CHILD_LR] = NULL;
+      children[CHILD_RL] = NULL;
+      children[CHILD_RR] = NULL;
 #endif
       }
 
    ~HClustBiVpTreeSingleNode() {
-      if(ll) delete ll;
-      if(rl) delete rl;
-#ifndef USE_ONEWAY_VPTREE
-      if(lr) delete lr;
-      if(rr) delete rr;
+#ifdef USE_ONEWAY_VPTREE
+      if (children[CHILD_L])  delete children[CHILD_L];
+      if (children[CHILD_R])  delete children[CHILD_R];
+#else
+      if (children[CHILD_LL]) delete children[CHILD_LL];
+      if (children[CHILD_LR]) delete children[CHILD_LR];
+      if (children[CHILD_RL]) delete children[CHILD_RL];
+      if (children[CHILD_RR]) delete children[CHILD_RR];
 #endif
    }
 };

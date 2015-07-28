@@ -23,12 +23,13 @@
 
 
 
-/* improvement idea:
- * add custom sort of _indices
+/* Improvement ideas:
  *
- * useful for Levenshtein distance
- * long strings should be put at the end
- * ?
+ * 1. add custom sort of input objects
+ *       useful for Levenshtein distance
+ *       long strings should be put at the end
+ *
+ * 2. don't keep vps in leaves
  */
 
 
@@ -64,8 +65,9 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
 #endif
 
    // starting _indices: random permutation of {0,1,...,_n-1}
-   for(size_t i=0;i<_n;i++) _indices[i] = i;
-   for(size_t i=_n-1; i>= 1; i--)
+   for (size_t i=0;i<_n;i++)
+      _indices[i] = i;
+   for (size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
 
 #ifdef USE_BOOST_DISJOINT_SETS
@@ -90,7 +92,7 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
    if (opts.vpSelectScheme == 1) {
       // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
       //    search given pair-wise distances"
-      if (left + opts.vpSelectCand + opts.vpSelectTest > right )
+      if (left + opts.vpSelectCand + opts.vpSelectTest > right)
          return left;
 
       // randomize:
@@ -100,7 +102,7 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
       // maximize variance
       size_t bestIndex = -1;
       double bestSigma = -INFINITY;
-      for(size_t i=left; i<left+opts.vpSelectCand; i++) {
+      for (size_t i=left; i<left+opts.vpSelectCand; i++) {
          accumulators::accumulator_set< double,
             accumulators::features<accumulators::tag::variance> > acc;
          for (size_t j = left+opts.vpSelectCand; j < left+opts.vpSelectCand+opts.vpSelectTest; ++j)
@@ -163,13 +165,16 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
 #endif
    if (right - left <= opts.maxLeavesElems)
    {
+   #ifdef GENERATE_STATS
+      ++stats.leafCount;
+   #endif
       HClustBiVpTreeSingleNode* leaf = new HClustBiVpTreeSingleNode(left, right);
-#ifdef USE_ONEWAY_VPTREE
+   #ifdef USE_ONEWAY_VPTREE
       leaf->maxindex = _indices[left];
       for (size_t i=left+1; i<right; ++i)
          if (_indices[i] > leaf->maxindex)
             leaf->maxindex = _indices[i];
-#endif
+   #endif
       return leaf;
    }
 
@@ -191,36 +196,40 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
 #ifdef USE_ONEWAY_VPTREE
    size_t maxindex = 0;
    if (median+1 - left > 0) {
-      node->ll = buildFromPoints(left, median+1);
-      if (node->ll->maxindex > maxindex) maxindex = node->ll->maxindex;
+      node->children[CHILD_L] = buildFromPoints(left, median+1);
+      if (node->children[CHILD_L]->maxindex > maxindex)
+         maxindex = node->children[CHILD_L]->maxindex;
    }
    if (right - median-1 > 0) {
-      node->rl = buildFromPoints(median+1, right);
-      if (node->rl->maxindex > maxindex) maxindex = node->rl->maxindex;
+      node->children[CHILD_R] = buildFromPoints(median+1, right);
+      if (node->children[CHILD_R]->maxindex > maxindex)
+         maxindex = node->children[CHILD_R]->maxindex;
    }
    node->maxindex = maxindex;
 #else
    size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
    size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
-   if (middle1 - left > 0)     node->ll = buildFromPoints(left, middle1);
-   if (median+1 - middle1 > 0) node->lr = buildFromPoints(middle1, median + 1);
-   if (middle2 - median-1 > 0) node->rl = buildFromPoints(median + 1, middle2);
-   if (right-middle2 > 0)      node->rr = buildFromPoints(middle2, right);
+   if (middle1 - left > 0)     node->children[CHILD_LL] = buildFromPoints(left, middle1);
+   if (median+1 - middle1 > 0) node->children[CHILD_LR] = buildFromPoints(middle1, median + 1);
+   if (middle2 - median-1 > 0) node->children[CHILD_RL] = buildFromPoints(median + 1, middle2);
+   if (right-middle2 > 0)      node->children[CHILD_RR] = buildFromPoints(middle2, right);
 #endif
 
    return node;
 }
 
 
-void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeSingleNode* node, size_t index,
+void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
+   HClustBiVpTreeSingleNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
-   std::priority_queue<HeapNeighborItem>& heap )
+   std::priority_queue<HeapNeighborItem>& heap)
 {
    // search within (minR, maxR]
    // if (node == NULL) return; // this should not happen
 #ifdef GENERATE_STATS
    ++stats.nodeVisit;
 #endif
+
    if (node->sameCluster) {
       if (node->vpindex == SIZE_MAX) {
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
@@ -229,150 +238,102 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
       }
    }
 
-   if (node->vpindex == SIZE_MAX) // leaf
-   {
-      if (node->sameCluster) {
-
-         for (size_t i=node->left; i<node->right; i++)
-         {
-            if (index >= _indices[i]) continue;
-            double dist2 = (*_distance)(index, _indices[i]);
-            if (dist2 > maxR || dist2 <= minR) continue;
-
-            if (heap.size() >= opts.maxNNPrefetch) {
-               if (dist2 < maxR) {
-                  while (!heap.empty() && heap.top().dist == maxR) {
-                     heap.pop();
-                  }
-               }
-            }
-            heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
-         }
-      }
-      else {
-         size_t commonCluster = ds.find_set(_indices[node->left]);
-         for (size_t i=node->left; i<node->right; i++)
-         {
+   if (node->vpindex == SIZE_MAX) { // leaf
+      size_t commonCluster = (node->sameCluster)?SIZE_MAX:ds.find_set(_indices[node->left]);
+      for (size_t i=node->left; i<node->right; ++i)
+      {
+         if (!node->sameCluster) {
             size_t currentCluster = ds.find_set(_indices[i]);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
-
-            if (index >= _indices[i]) continue;
-
-            double dist2 = (*_distance)(index, _indices[i]);
-            if (dist2 > maxR || dist2 <= minR) continue;
-
-            if (heap.size() >= opts.maxNNPrefetch) {
-               if (dist2 < maxR) {
-                  while (!heap.empty() && heap.top().dist == maxR) {
-                     heap.pop();
-                  }
-               }
-            }
-            heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
          }
-         if (commonCluster != SIZE_MAX) node->sameCluster = true;
+         // else nothing to check -- all elems are from different cluster (than clusterIndex)
+
+         if (index >= _indices[i]) continue;
+         double dist2 = (*_distance)(index, _indices[i]); // the slow part
+         if (dist2 > maxR || dist2 <= minR) continue;
+
+         if (heap.size() >= opts.maxNNPrefetch && dist2 < maxR) {
+            while (!heap.empty() && heap.top().dist == maxR) {
+               heap.pop();
+            }
+         }
+         heap.push( HeapNeighborItem(_indices[i], dist2) );
+         maxR = heap.top().dist;
       }
-      return;
+      if (commonCluster != SIZE_MAX)
+         node->sameCluster = true; // set to true (btw, may be true already)
+      return; // nothing more to do
    }
    // else // not a leaf
-   double dist = (*_distance)(node->vpindex, index);
+   double dist = (*_distance)(node->vpindex, index); // the slow part
 
-// this MB's improvement is not well-tested:
-//       if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
-//
-//          heap.push( HeapNeighborItem(node->vpindex, dist) );
-//          maxR = heap.top().dist;
-//       }
-
-
-   if ( dist < node->radius ) {
-      if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
+   if (dist < node->radius) {
+      if (dist - maxR <= node->radius && dist + node->radius > minR) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->ll && index < node->ll->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_L] && index < node->children[CHILD_L]->maxindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_L], index, clusterIndex, minR, maxR, heap);
 #else
-         if (node->ll && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if (node->lr)
-            getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_LL] && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_LL], index, clusterIndex, minR, maxR, heap);
+         if (node->children[CHILD_LR])
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_LR], index, clusterIndex, minR, maxR, heap);
 #endif
       }
 
-      if ( dist + maxR >= node->radius ) {
+      if (dist + maxR >= node->radius) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->rl && index < node->rl->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_R] && index < node->children[CHILD_R]->maxindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_R], index, clusterIndex, minR, maxR, heap);
 #else
-         if (node->rl && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if (node->rr)
-            getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_RL] && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_RL], index, clusterIndex, minR, maxR, heap);
+         if (node->children[CHILD_RR])
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_RR], index, clusterIndex, minR, maxR, heap);
+#endif
+      }
+   }
+   else /* ( dist >= node->radius ) */ {
+      if (dist + maxR >= node->radius) {
+#ifdef USE_ONEWAY_VPTREE
+         if (node->children[CHILD_R] && index < node->children[CHILD_R]->maxindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_R], index, clusterIndex, minR, maxR, heap);
+#else
+         if (node->children[CHILD_RL] && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_RL], index, clusterIndex, minR, maxR, heap);
+         if (node->children[CHILD_RR])
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_RR], index, clusterIndex, minR, maxR, heap);
 #endif
       }
 
-   } else /* ( dist >= node->radius ) */ {
-      if ( dist + maxR >= node->radius ) {
+      if (dist - maxR <= node->radius && dist + node->radius > minR) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->rl && index < node->rl->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_L] && index < node->children[CHILD_L]->maxindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_L], index, clusterIndex, minR, maxR, heap);
 #else
-         if (node->rl && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if (node->rr)
-            getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
-#endif
-      }
-
-      if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
-#ifdef USE_ONEWAY_VPTREE
-         if (node->ll && index < node->ll->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-#else
-         if (node->ll && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if (node->lr)
-            getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
+         if (node->children[CHILD_LL] && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_LL], index, clusterIndex, minR, maxR, heap);
+         if (node->children[CHILD_LR])
+            getNearestNeighborsFromMinRadiusRecursive(node->children[CHILD_LR], index, clusterIndex, minR, maxR, heap);
 #endif
       }
    }
 
-   if (   !node->sameCluster
-      && (!node->ll || node->ll->sameCluster)
-      && (!node->rl || node->rl->sameCluster)
-#ifndef USE_ONEWAY_VPTREE
-      && (!node->lr || node->lr->sameCluster)
-      && (!node->rr || node->rr->sameCluster)
-#endif
-      )
-   {
-      size_t commonCluster = SIZE_MAX;
-      if (node->ll) {
-         size_t currentCluster = ds.find_set((node->ll->vpindex == SIZE_MAX)?_indices[node->ll->left]:node->ll->vpindex);
+   if (node->sameCluster) return;
+   // otherwise check if node->sameCluster flag needs updating
+   size_t commonCluster = SIZE_MAX;
+   for (size_t i=0; i<CHILD_NUM; ++i) { // pray for loop unrolling
+      if (node->children[i]) {
+         if (!node->children[i]->sameCluster) return; // not ready yet
+         size_t currentCluster = ds.find_set(
+            (node->children[i]->vpindex == SIZE_MAX)?
+            _indices[node->children[i]->left]:node->children[i]->vpindex
+         );
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
+         else if (currentCluster != commonCluster) return; // not ready yet
       }
-      if (node->rl) {
-         size_t currentCluster = ds.find_set((node->rl->vpindex == SIZE_MAX)?_indices[node->rl->left]:node->rl->vpindex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-#ifndef USE_ONEWAY_VPTREE
-      if (node->lr) {
-         size_t currentCluster = ds.find_set((node->lr->vpindex == SIZE_MAX)?_indices[node->lr->left]:node->lr->vpindex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-      if (node->rr) {
-         size_t currentCluster = ds.find_set((node->rr->vpindex == SIZE_MAX)?_indices[node->rr->left]:node->rr->vpindex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-#endif
-      node->sameCluster = true;
    }
+   node->sameCluster = true;
 }
 
 
@@ -519,26 +480,14 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 
 
 void HClustBiVpTreeSingle::print(HClustBiVpTreeSingleNode* n) {
-   if (n->ll) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
-      print(n->ll);
+   for (size_t i=0; i<CHILD_NUM; ++i) {
+      if (n->children[i]) {
+         Rprintf("\"%llx\" -> \"%llx\" [label=\"%d\"];\n",
+            (unsigned long long)n, (unsigned long long)(n->children[i]), i+1);
+         print(n->children[i]);
+      }
    }
-#ifndef USE_ONEWAY_VPTREE
-   if (n->lr) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"LR\"];\n", (unsigned long long)n, (unsigned long long)(n->lr));
-      print(n->lr);
-   }
-#endif
-   if (n->rl) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"RL\"];\n", (unsigned long long)n, (unsigned long long)(n->rl));
-      print(n->rl);
-   }
-#ifndef USE_ONEWAY_VPTREE
-   if (n->rr) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"RR\"];\n", (unsigned long long)n, (unsigned long long)(n->rr));
-      print(n->rr);
-   }
-#endif
+
    if (n->vpindex == SIZE_MAX) {
       for (size_t i=n->left; i<n->right; ++i)
          Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)n, (unsigned long long)_indices[i]+1);

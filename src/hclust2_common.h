@@ -111,8 +111,9 @@ struct HClustBiVpTreeOptions
 
 struct HClustBiVpTreeStats
 {
-   size_t nodeCount; // now many nodes are there in the tree
-   size_t nodeVisit; // now many nodes were visited during NN search
+   size_t nodeCount; // how many nodes are there in the tree
+   size_t leafCount; // how many leaves
+   size_t nodeVisit; // how many nodes were visited during NN search
    size_t nnCals;    // how many times NN search job was launched
    size_t nnCount;   // how many NNs were obtained in overall
 

@@ -90,12 +90,12 @@ Rcpp::NumericVector HClustBiVpTreeOptions::toR() const
 
 
 HClustBiVpTreeStats::HClustBiVpTreeStats() :
-   nodeCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
+   nodeCount(0), leafCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
 
 HClustBiVpTreeStats::~HClustBiVpTreeStats() {
    #if VERBOSE > 0
-   Rprintf("             vp-tree: nodeCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f\n",
-      (double)nodeCount, (double)nodeVisit, (double)nnCals, (double)nnCount);
+   Rprintf("             vp-tree: nodeCount=%.0f, leafCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f\n",
+      (double)nodeCount, (double)leafCount, (double)nodeVisit, (double)nnCals, (double)nnCount);
    #endif
 }
 
@@ -104,6 +104,8 @@ Rcpp::NumericVector HClustBiVpTreeStats::toR() const {
    return Rcpp::NumericVector::create(
       Rcpp::_["nodeCount"]
          = (nodeCount>0)?(double)nodeCount:NA_REAL,
+      Rcpp::_["leafCount"]
+         = (leafCount>0)?(double)leafCount:NA_REAL,
       Rcpp::_["nodeVisit"]
          = (nodeVisit>0)?(double)nodeVisit:NA_REAL,
       Rcpp::_["nnCals"]
