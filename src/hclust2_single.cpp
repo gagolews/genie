@@ -196,18 +196,17 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
    // printf("\n");
    HClustBiVpTreeNode* node = new HClustBiVpTreeNode(vpi, (*_distance)(vpi, _indices[median]));
 
-
+#ifdef USE_ONEWAY_VPTREE
+   if (median+1 - left > 0)     node->ll = buildFromPoints(left, median+1);
+   if (right - median-1 > 0)    node->rl = buildFromPoints(median+1, right);
+#else
    size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
    size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
-   // printf("(%d,%d,%d,%d,%d)\n", left, middle1, median, middle2, right);
-   // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
-   // printf("\n");
-
-
    if (middle1 - left > 0)     node->ll = buildFromPoints(left, middle1);
    if (median+1 - middle1 > 0) node->lr = buildFromPoints(middle1, median + 1);
    if (middle2 - median-1 > 0) node->rl = buildFromPoints(median + 1, middle2);
    if (right-middle2 > 0)      node->rr = buildFromPoints(middle2, right);
+#endif
 
    return node;
 }
@@ -246,7 +245,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 #endif // MB_IMPROVEMENT
          for (size_t i=node->left; i<node->right; i++)
          {
-            if(index >= _indices[i]) continue;
+            if (index >= _indices[i]) continue;
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
 
@@ -327,50 +326,67 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 
    if ( dist < node->radius ) {
       if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
-
-         if(node->ll && index <= node->vpindex)
+#ifdef USE_ONEWAY_VPTREE
+         if (node->ll)
             getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if(node->lr)
+#else
+         if (node->ll && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
+         if (node->lr)
             getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
+#endif
       }
 
       if ( dist + maxR >= node->radius ) {
-         if(node->rl && index <= node->vpindex)
+#ifdef USE_ONEWAY_VPTREE
+         if (node->rl)
             getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if(node->rr)
+#else
+         if (node->rl && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
+         if (node->rr)
             getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
+#endif
       }
 
    } else /* ( dist >= node->radius ) */ {
       if ( dist + maxR >= node->radius ) {
-         if(node->rl && index <= node->vpindex)
+#ifdef USE_ONEWAY_VPTREE
+         if (node->rl)
             getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if(node->rr)
+#else
+         if (node->rl && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
+         if (node->rr)
             getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
+#endif
       }
 
       if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
-         if(node->ll && index <= node->vpindex)
+#ifdef USE_ONEWAY_VPTREE
+         if (node->ll)
             getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if(node->lr)
+#else
+         if (node->ll && index <= node->vpindex)
+            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
+         if (node->lr)
             getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
+#endif
       }
    }
 
    if (   !node->sameCluster
       && (!node->ll || node->ll->sameCluster)
-      && (!node->lr || node->lr->sameCluster)
       && (!node->rl || node->rl->sameCluster)
-      && (!node->rr || node->rr->sameCluster)  )
+#ifndef USE_ONEWAY_VPTREE
+      && (!node->lr || node->lr->sameCluster)
+      && (!node->rr || node->rr->sameCluster)
+#endif
+      )
    {
       size_t commonCluster = SIZE_MAX;
       if (node->ll) {
          size_t currentCluster = ds.find_set((node->ll->vpindex == SIZE_MAX)?_indices[node->ll->left]:node->ll->vpindex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-      if (node->lr) {
-         size_t currentCluster = ds.find_set((node->lr->vpindex == SIZE_MAX)?_indices[node->lr->left]:node->lr->vpindex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
@@ -379,11 +395,18 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
+#ifndef USE_ONEWAY_VPTREE
+      if (node->lr) {
+         size_t currentCluster = ds.find_set((node->lr->vpindex == SIZE_MAX)?_indices[node->lr->left]:node->lr->vpindex);
+         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
+         else if (currentCluster != commonCluster) return;
+      }
       if (node->rr) {
          size_t currentCluster = ds.find_set((node->rr->vpindex == SIZE_MAX)?_indices[node->rr->left]:node->rr->vpindex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
+#endif
       node->sameCluster = true;
    }
 }

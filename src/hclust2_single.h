@@ -27,7 +27,7 @@
 
 // #define MB_IMPROVEMENT
 // #define USE_BOOST_DISJOINT_SETS
-
+#define USE_ONEWAY_VPTREE
 
 // ************************************************************************
 
