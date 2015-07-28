@@ -5,6 +5,21 @@
 
 using namespace Rcpp;
 
+// hclust3
+SEXP hclust3(SEXP const method_, SEXP const metric_, SEXP X_, SEXP members_, SEXP p_);
+RcppExport SEXP DataStructures_hclust3(SEXP method_SEXP, SEXP metric_SEXP, SEXP X_SEXP, SEXP members_SEXP, SEXP p_SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< SEXP const >::type method_(method_SEXP);
+    Rcpp::traits::input_parameter< SEXP const >::type metric_(metric_SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type X_(X_SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type members_(members_SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type p_(p_SEXP);
+    __result = Rcpp::wrap(hclust3(method_, metric_, X_, members_, p_));
+    return __result;
+END_RCPP
+}
 // hclust2_complete
 RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfElementsInLeaves);
 RcppExport SEXP DataStructures_hclust2_complete(SEXP distanceSEXP, SEXP objectsSEXP, SEXP maxNumberOfElementsInLeavesSEXP) {

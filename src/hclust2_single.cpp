@@ -186,6 +186,7 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
 // #endif
 
    size_t median = ( right + left - 1 ) / 2;
+   // size_t median = std::max(left+1, (size_t)(left + (right - left)*0.2));
    std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
                     DistanceComparator(vpi, _distance));
    // std::sort(_indices.begin() + left+1, _indices.begin() + right,
