@@ -50,13 +50,62 @@
 namespace DataStructures
 {
 
+struct HClustGnatSingleNode
+{
+   size_t vpindex;
+   size_t left;
+   size_t right;
+   double radius;
+   bool sameCluster;
+   HClustGnatSingleNode *ll, *rl;
+#ifndef USE_ONEWAY_VPTREE
+   HClustGnatSingleNode *lr, *rr;
+#endif
+
+   HClustGnatSingleNode() :
+      vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+      sameCluster(false)  {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#endif
+      }
+
+   HClustGnatSingleNode(size_t left, size_t right) :
+      vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+      sameCluster(false)  {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#endif
+      }
+
+   HClustGnatSingleNode(size_t vpindex, double radius) :
+      vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+      sameCluster(false)  {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#endif
+      }
+
+   ~HClustGnatSingleNode() {
+      if(ll) delete ll;
+      if(rl) delete rl;
+#ifndef USE_ONEWAY_VPTREE
+      if(lr) delete lr;
+      if(rr) delete rr;
+#endif
+   }
+};
+
 class HClustGnatSingle
 {
 protected:
 
    HClustBiVpTreeOptions opts;
 
-   HClustBiVpTreeNode* _root;
+   HClustGnatSingleNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -74,9 +123,9 @@ protected:
    PhatDisjointSets ds;
 
    int chooseNewVantagePoint(size_t left, size_t right);
-   HClustBiVpTreeNode* buildFromPoints(size_t left, size_t right);
+   HClustGnatSingleNode* buildFromPoints(size_t left, size_t right);
 
-   void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeNode* node,
+   void getNearestNeighborsFromMinRadiusRecursive(HClustGnatSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap);
 

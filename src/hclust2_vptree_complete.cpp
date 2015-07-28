@@ -98,7 +98,7 @@ int HClustBiVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t right)
+HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t right)
 {
    if(right - left <= maxNumberOfElementsInLeaves)
    {
@@ -108,7 +108,7 @@ HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t 
             maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
       }
 
-      return new HClustBiVpTreeNode(left, right);
+      return new HClustBiVpTreeCompleteNode(left, right);
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
@@ -127,7 +127,7 @@ HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t 
    // printf("(%d,%d,%d)\n", left, median, right);
    // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
    // printf("\n");
-   HClustBiVpTreeNode* node = new HClustBiVpTreeNode(vpi, (*_distance)(vpi, _indices[median]));
+   HClustBiVpTreeCompleteNode* node = new HClustBiVpTreeCompleteNode(vpi, (*_distance)(vpi, _indices[median]));
 
 
    size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
@@ -149,17 +149,17 @@ HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t 
 
    /*
 
-   size_t calculateHClustBiVpTreeNodeSize(HClustBiVpTreeNode* node)
+   size_t calculateHClustBiVpTreeCompleteNodeSize(HClustBiVpTreeCompleteNode* node)
    {
       return node->radiuses.size()*sizeof(double)
          + node->points.size()*sizeof(int)
-         + node->children.size()*sizeof(HClustBiVpTreeNode*)
-         + sizeof(HClustBiVpTreeNode);
+         + node->children.size()*sizeof(HClustBiVpTreeCompleteNode*)
+         + sizeof(HClustBiVpTreeCompleteNode);
    }
 
-   size_t treeSize_rec(HClustBiVpTreeNode* node)
+   size_t treeSize_rec(HClustBiVpTreeCompleteNode* node)
    {
-      size_t size = calculateHClustBiVpTreeNodeSize(node);
+      size_t size = calculateHClustBiVpTreeCompleteNodeSize(node);
       for(int i=0;i<node->childCount;i++)
       {
          size += treeSize_rec(node->children[i]);
@@ -167,7 +167,7 @@ HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t 
       return size;
    }
 
-   int treeHeight_rec(HClustBiVpTreeNode* node)
+   int treeHeight_rec(HClustBiVpTreeCompleteNode* node)
    {
       int maxH = 0;
       for(int i=0;i<node->childCount;i++)
@@ -178,7 +178,7 @@ HClustBiVpTreeNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t 
    }
 */
 
-void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
+void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeCompleteNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {
@@ -406,7 +406,7 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
   }
 }
 
-void HClustBiVpTreeComplete::print(HClustBiVpTreeNode* n) {
+void HClustBiVpTreeComplete::print(HClustBiVpTreeCompleteNode* n) {
    if (n->ll) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
       print(n->ll);

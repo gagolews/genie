@@ -26,7 +26,7 @@
 // ************************************************************************
 
 // #define USE_BOOST_DISJOINT_SETS
-// #define USE_ONEWAY_VPTREE
+#define USE_ONEWAY_VPTREE
 
 // ************************************************************************
 
@@ -57,13 +57,71 @@
 namespace DataStructures
 {
 
+struct HClustBiVpTreeSingleNode
+{
+   size_t vpindex;
+   size_t left;
+   size_t right;
+   double radius;
+   bool sameCluster;
+   HClustBiVpTreeSingleNode *ll, *rl;
+#ifndef USE_ONEWAY_VPTREE
+   HClustBiVpTreeSingleNode *lr, *rr;
+#else
+   size_t maxindex;
+#endif
+
+   HClustBiVpTreeSingleNode() :
+      vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+      sameCluster(false)  {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#else
+         maxindex = SIZE_MAX;
+#endif
+      }
+
+   HClustBiVpTreeSingleNode(size_t left, size_t right) :
+      vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+      sameCluster(false)   {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#else
+         maxindex = SIZE_MAX;
+#endif
+      }
+
+   HClustBiVpTreeSingleNode(size_t vpindex, double radius) :
+      vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+      sameCluster(false)   {
+         ll = NULL; rl = NULL;
+#ifndef USE_ONEWAY_VPTREE
+         lr = NULL; rr = NULL;
+#else
+         maxindex = SIZE_MAX;
+#endif
+      }
+
+   ~HClustBiVpTreeSingleNode() {
+      if(ll) delete ll;
+      if(rl) delete rl;
+#ifndef USE_ONEWAY_VPTREE
+      if(lr) delete lr;
+      if(rr) delete rr;
+#endif
+   }
+};
+
+
 class HClustBiVpTreeSingle
 {
 protected:
 
    HClustBiVpTreeOptions opts;
 
-   HClustBiVpTreeNode* _root;
+   HClustBiVpTreeSingleNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -88,13 +146,13 @@ protected:
 #endif
 
    int chooseNewVantagePoint(size_t left, size_t right);
-   HClustBiVpTreeNode* buildFromPoints(size_t left, size_t right);
+   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
-   void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeNode* node,
+   void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap);
 
-   void print(HClustBiVpTreeNode* n);
+   void print(HClustBiVpTreeSingleNode* n);
 
 
 public:

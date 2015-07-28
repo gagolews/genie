@@ -133,7 +133,7 @@ int HClustGnatSingle::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
+HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
@@ -146,7 +146,7 @@ HClustBiVpTreeNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
             // maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
       // }
 
-      return new HClustBiVpTreeNode(left, right);
+      return new HClustGnatSingleNode(left, right);
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
@@ -166,7 +166,7 @@ HClustBiVpTreeNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
    // printf("(%d,%d,%d)\n", left, median, right);
    // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
    // printf("\n");
-   HClustBiVpTreeNode* node = new HClustBiVpTreeNode(vpi, (*_distance)(vpi, _indices[median]));
+   HClustGnatSingleNode* node = new HClustGnatSingleNode(vpi, (*_distance)(vpi, _indices[median]));
 
 #ifdef USE_ONEWAY_VPTREE
    if (median+1 - left > 0)     node->ll = buildFromPoints(left, median+1);
@@ -184,7 +184,7 @@ HClustBiVpTreeNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
 }
 
 
-void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
+void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSingleNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {

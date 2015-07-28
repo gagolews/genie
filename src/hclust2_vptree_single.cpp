@@ -156,29 +156,26 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
+HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
-      ++stats.nodeCount;
+   ++stats.nodeCount;
 #endif
-   if(right - left <= opts.maxLeavesElems)
+   if (right - left <= opts.maxLeavesElems)
    {
-      // for (size_t i=left; i<right; ++i) {
-         // size_t j = _indices[(i+1 < right)?(i+1):left];
-         // if (_indices[i] < j)
-            // maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
-      // }
-
-      return new HClustBiVpTreeNode(left, right);
+      HClustBiVpTreeSingleNode* leaf = new HClustBiVpTreeSingleNode(left, right);
+#ifdef USE_ONEWAY_VPTREE
+      leaf->maxindex = _indices[left];
+      for (size_t i=left+1; i<right; ++i)
+         if (_indices[i] > leaf->maxindex)
+            leaf->maxindex = _indices[i];
+#endif
+      return leaf;
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
    std::swap(_indices[left], _indices[vpi_idx]);
    size_t vpi = _indices[left];
-
-// #if VERBOSE > 7
-//       ((EuclideanDistance*)_distance)->isVP[vpi] = true;
-// #endif
 
    size_t median = ( right + left - 1 ) / 2;
    // size_t median = std::max(left+1, (size_t)(left + (right - left)*0.2));
@@ -189,11 +186,19 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
    // printf("(%d,%d,%d)\n", left, median, right);
    // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
    // printf("\n");
-   HClustBiVpTreeNode* node = new HClustBiVpTreeNode(vpi, (*_distance)(vpi, _indices[median]));
+   HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, (*_distance)(vpi, _indices[median]));
 
 #ifdef USE_ONEWAY_VPTREE
-   if (median+1 - left > 0)     node->ll = buildFromPoints(left, median+1);
-   if (right - median-1 > 0)    node->rl = buildFromPoints(median+1, right);
+   size_t maxindex = 0;
+   if (median+1 - left > 0) {
+      node->ll = buildFromPoints(left, median+1);
+      if (node->ll->maxindex > maxindex) maxindex = node->ll->maxindex;
+   }
+   if (right - median-1 > 0) {
+      node->rl = buildFromPoints(median+1, right);
+      if (node->rl->maxindex > maxindex) maxindex = node->rl->maxindex;
+   }
+   node->maxindex = maxindex;
 #else
    size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
    size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
@@ -207,7 +212,7 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
 }
 
 
-void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
+void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeSingleNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {
@@ -286,7 +291,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
    if ( dist < node->radius ) {
       if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->ll)
+         if (node->ll && index < node->ll->maxindex)
             getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
 #else
          if (node->ll && index <= node->vpindex)
@@ -298,7 +303,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 
       if ( dist + maxR >= node->radius ) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->rl)
+         if (node->rl && index < node->rl->maxindex)
             getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
 #else
          if (node->rl && index <= node->vpindex)
@@ -311,7 +316,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
    } else /* ( dist >= node->radius ) */ {
       if ( dist + maxR >= node->radius ) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->rl)
+         if (node->rl && index < node->rl->maxindex)
             getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
 #else
          if (node->rl && index <= node->vpindex)
@@ -323,7 +328,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 
       if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
 #ifdef USE_ONEWAY_VPTREE
-         if (node->ll)
+         if (node->ll && index < node->ll->maxindex)
             getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
 #else
          if (node->ll && index <= node->vpindex)
@@ -513,23 +518,27 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 }
 
 
-void HClustBiVpTreeSingle::print(HClustBiVpTreeNode* n) {
+void HClustBiVpTreeSingle::print(HClustBiVpTreeSingleNode* n) {
    if (n->ll) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
       print(n->ll);
    }
+#ifndef USE_ONEWAY_VPTREE
    if (n->lr) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"LR\"];\n", (unsigned long long)n, (unsigned long long)(n->lr));
       print(n->lr);
    }
+#endif
    if (n->rl) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"RL\"];\n", (unsigned long long)n, (unsigned long long)(n->rl));
       print(n->rl);
    }
+#ifndef USE_ONEWAY_VPTREE
    if (n->rr) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"RR\"];\n", (unsigned long long)n, (unsigned long long)(n->rr));
       print(n->rr);
    }
+#endif
    if (n->vpindex == SIZE_MAX) {
       for (size_t i=n->left; i<n->right; ++i)
          Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)n, (unsigned long long)_indices[i]+1);

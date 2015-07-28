@@ -96,36 +96,6 @@ struct IndexComparator
 };
 
 
-struct HClustBiVpTreeNode
-{
-   size_t vpindex;
-   size_t left;
-   size_t right;
-   double radius;
-   bool sameCluster;
-   HClustBiVpTreeNode *ll, *lr, *rl, *rr;
-
-   HClustBiVpTreeNode() :
-      vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
-      sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-   HClustBiVpTreeNode(size_t left, size_t right) :
-      vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
-      sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-   HClustBiVpTreeNode(size_t vpindex, double radius) :
-      vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
-      sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
-
-   ~HClustBiVpTreeNode() {
-      if(ll) delete ll;
-      if(lr) delete lr;
-      if(rl) delete rl;
-      if(rr) delete rr;
-   }
-};
-
-
 struct HClustBiVpTreeOptions
 {
    size_t maxLeavesElems;
