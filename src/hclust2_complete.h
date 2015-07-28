@@ -2,7 +2,7 @@
 #define __HCLUST2_COMPLETE_H
 // ************************************************************************
 
-// #define MB_IMPROVEMENT
+//#define MB_IMPROVEMENT
 //#define USE_BOOST_DISJOINT_SETS
 
 
@@ -82,6 +82,9 @@ protected:
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
+   unordered_map<SortedPoint, KKItem> KK;
+   unordered_map<size_t, size_t> timestamp;
+
    std::map<size_t,size_t> rank;
    std::map<size_t,size_t> parent;
 
@@ -123,7 +126,6 @@ public:
    HClustBiVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves);
    virtual ~HClustBiVpTreeComplete();
    void print();
-   size_t clusterCount(size_t cluster);
    HeapHierarchicalItemMax calculateCluster2ClusterMaxDistance(size_t item1, size_t item2, size_t iter);
    NumericMatrix compute();
 

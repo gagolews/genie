@@ -29,6 +29,7 @@ using namespace DataStructures;
 
 #define VERBOSE 0
 #define UPDATEKK
+#define CALCULATETIMEFORCLUSTERDISTANCE
 
 int HClustBiVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
 {
@@ -177,6 +178,12 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {
+   /*if(index == 3)
+   {
+      Rcout << "index 3 to klaster " << clusterIndex << endl;
+      Rcout << "maxR = " << maxR << endl;
+      Rcout << "minR = " << minR << endl;
+   }*/
    // search within (minR, maxR]
    if (node == NULL) return;
 
@@ -201,9 +208,37 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
       double distToCluster = INFINITY;
       if(mbimprovement && distToClusterIterator != distClust.end())
          distToCluster = distToClusterIterator->second;
+#else
+      size_t s = ds.find_set(_indices[node->left]);
 #endif
+      /*
+      for(size_t i=node->left; i<node->right; i++)
+      {
+         if(index == 3)
+         {
+            Rcout << "bedac 4, moglbym napotkac "<<  _indices[i] + 1 << "z klastra "<< ds.find_set(_indices[i]) + 1 << endl;
+         }
+      }*/
+      //if(KK.find(SortedPoint(clusterIndex, s)) != KK.end()) return; //very important line
+      auto s1s2dist = KK.find(SortedPoint(clusterIndex, s));
+      if(s1s2dist != KK.end())
+      {
+         /*if(index == 3)
+         {
+            Rcout << "index 3, a to klaster " << s<< " ktory odrzucam, bo znaleziona odleglosc to " << s1s2dist->second.dist << endl;
+            Rcout << ds.find_set(8) << endl;
+         }*/
+         if(timestamp.find(clusterIndex)->second < s1s2dist->second.iter
+               && timestamp.find(s)->second < s1s2dist->second.iter)
+         return; //very important line
+      }
+
          for(size_t i=node->left; i<node->right; i++)
          {
+            /*if(index == 3)
+            {
+               Rcout << "bedac 4, napotkalem na "<<  _indices[i] + 1 << endl;
+            }*/
             if(index >= _indices[i]) continue;
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
@@ -214,7 +249,6 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
                continue;
             }
 #endif
-
             if (heap.size() >= maxNearestNeighborPrefetch) {
                if (dist2 < maxR) {
                   while (!heap.empty() && heap.top().dist == maxR) {
@@ -234,6 +268,10 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
          size_t commonCluster = ds.find_set(_indices[node->left]);
          for(size_t i=node->left; i<node->right; i++)
          {
+            /*if(index == 3)
+            {
+               Rcout << "bedac 4, napotkalem na "<<  _indices[i] + 1 << endl;
+            }*/
             size_t currentCluster = ds.find_set(_indices[i]);
 #ifdef MB_IMPROVEMENT
             std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
@@ -243,8 +281,23 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
             if(mbimprovement && distToClusterIterator != distClust.end())
                distToCluster = distToClusterIterator->second;
 #endif
+
+
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
+
+            auto s1s2dist = KK.find(SortedPoint(clusterIndex, currentCluster));
+
+            if(s1s2dist != KK.end())
+               {
+               /*if(index == 3)
+               {
+                  Rcout << "index 3, a to klaster " << currentCluster<< "ktory odrzucam, bo znaleziona odleglosc to " << s1s2dist->second.dist << endl;
+               }*/
+               if(timestamp.find(clusterIndex)->second < s1s2dist->second.iter
+                     && timestamp.find(currentCluster)->second < s1s2dist->second.iter)
+               continue; //very important line
+               }
 
             if (index >= _indices[i]) continue;
 
@@ -268,7 +321,14 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
                distClust.emplace(SortedPoint(currentCluster, clusterIndex), dist2);
 #endif
          }
-         if (commonCluster != SIZE_MAX) node->sameCluster = true;
+         if (commonCluster != SIZE_MAX)
+            {
+               /*for(size_t i=node->left; i<node->right; i++)
+               {
+                  Rcout << "ustawiam sameCluster na true, bo "<<  _indices[i] + 1 << "z klastra "<< ds.find_set(_indices[i]) + 1 << endl;
+               }*/
+               node->sameCluster = true;
+            }
       }
       return;
    }
@@ -485,19 +545,6 @@ void HClustBiVpTreeComplete::print() {
    Rprintf("}\n");
 }
 
-size_t HClustBiVpTreeComplete::clusterCount(size_t cluster)
-{
-   size_t clusterRepresentant = ds.find_set(cluster);
-   size_t ret = 0;
-   for(size_t i=0;i<_n;++i)
-   {
-      size_t clusterRepresentant2 = ds.find_set(i);
-      if(clusterRepresentant2 == clusterRepresentant)
-         ret++;
-   }
-   return ret;
-}
-
 HClustBiVpTreeComplete::HeapHierarchicalItemMax HClustBiVpTreeComplete::calculateCluster2ClusterMaxDistance(size_t item1, size_t item2, size_t iter)
 {
    size_t s1 = ds.find_set(item1);
@@ -525,11 +572,16 @@ HClustBiVpTreeComplete::HeapHierarchicalItemMax HClustBiVpTreeComplete::calculat
 NumericMatrix HClustBiVpTreeComplete::compute()
 {
    Rcout << "wchodze do complete!" << endl;
+   static double timeForClusterDistance = 0;
+   static double timeForKKUpdate = 0;
+   static double timeForMinSearch1 = 0;
+   static double timeForMinSearch2 = 0;
+   static double timeForMinSearchPrefetch = 0;
+   static double timeForPriorityQueues = 0;
    NumericMatrix ret(_n-1, 2);
    priority_queue<HeapHierarchicalItem> pqMin;
    priority_queue<HeapHierarchicalItemMax> pqMax;
-   unordered_map<size_t, size_t> timestamp;
-   unordered_map<SortedPoint, KKItem> KK;
+
    //vector<bool> stillExists(_n, true);
 
    for(size_t i=0;i<_n;i++)
@@ -550,8 +602,10 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 #if VERBOSE > 7
       Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
 #endif
+      double before = clock()/(double)CLOCKS_PER_SEC;
       HeapNeighborItem hi=getNearestNeighbor(i);
-
+      double after = clock()/(double)CLOCKS_PER_SEC;
+      timeForMinSearchPrefetch += after - before;
       if(hi.index != SIZE_MAX)
       {
          //Rcout <<"dla " << i << "najblizszym jest " << hi->index << endl;
@@ -568,19 +622,26 @@ NumericMatrix HClustBiVpTreeComplete::compute()
    size_t i = 0;
    size_t iter = 0;
    pqMax.push(HeapHierarchicalItemMax(SIZE_MAX, SIZE_MAX, INFINITY, SIZE_MAX));
+   pqMin.push(HeapHierarchicalItem(SIZE_MAX, SIZE_MAX, INFINITY));
    bool awaria = false;
    while(i < _n - 1)
    {
       iter++;
-     // if(iter > 179) {awaria = true; break;}
-#if VERBOSE > 11
+      //if(iter > 3000) {awaria = true; break;}
+#if VERBOSE > 10
       Rcout << "i " << i << endl;
       Rcout << "iteracja " << iter << endl;
       Rcout << "pqMin size = " << pqMin.size()<< endl;
       Rcout << "pqMax size = " << pqMax.size()<< endl;
 #endif
+      double beforeQueue = clock()/(double)CLOCKS_PER_SEC;
       HeapHierarchicalItem hhiMin = pqMin.top();
       HeapHierarchicalItemMax hhiMax = pqMax.top();
+#if VERBOSE > 11
+         Rcout << hhiMin.index1+1 << " " <<hhiMin.index2+1 <<" " << hhiMin.dist << " w pqMin" << endl;
+#endif
+
+
 #ifdef UPDATEKK
       if(hhiMax.iter != SIZE_MAX)
       {
@@ -633,7 +694,14 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 #if VERBOSE > 11
          Rcout << hhiMax.index1+1 << " " <<hhiMax.index2+1 <<" " << hhiMax.dist << " nieaktualne" << endl;
 #endif
+#ifdef CALCULATETIMEFORCLUSTERDISTANCE
+         double  before = clock()/(double)CLOCKS_PER_SEC;
+#endif
          HeapHierarchicalItemMax hhim = calculateCluster2ClusterMaxDistance(hhiMax.index1, hhiMax.index2, iter);
+#ifdef CALCULATETIMEFORCLUSTERDISTANCE
+         double after = clock()/(double)CLOCKS_PER_SEC;
+         timeForClusterDistance += after - before;
+#endif
 #if VERBOSE > 11
          Rcout << "najwieksza odleglosc klastrowa to" << hhim.dist << endl;
          Rcout << "wrzucam " << hhim.index1+1 << ", " << hhim.index2+1 << endl;
@@ -643,7 +711,8 @@ NumericMatrix HClustBiVpTreeComplete::compute()
          pqMax.push(hhim);
          continue;
       }
-
+      double afterQueue = clock()/(double)CLOCKS_PER_SEC;
+      timeForPriorityQueues = afterQueue - beforeQueue;
       if(hhiMin.dist < hhiMax.dist) //przetwarzamy element z PQmin
       {
          pqMin.pop();
@@ -686,7 +755,14 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 #if VERBOSE > 11
                      Rcout << "odleglosc aktualna" << endl;
 #endif
+                     double before = clock()/(double)CLOCKS_PER_SEC;
                      HeapNeighborItem hi=getNearestNeighbor(hhiMin.index1);
+                     double after = clock()/(double)CLOCKS_PER_SEC;
+#if VERBOSE > 11
+         Rcout << "Dla " << hhiMin.index1+1 << " znaleziono " <<hi.index+1 <<" jako najblizszego sasiada (dist = " << hi.dist << " )" << endl;
+#endif
+
+                     timeForMinSearch1 += after - before;
                      if(hi.index != SIZE_MAX)
                         pqMin.push(HeapHierarchicalItem(hhiMin.index1, hi.index, hi.dist));
                      continue;
@@ -698,7 +774,14 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 #if VERBOSE > 11
                Rcout << "odleglosci nie ma albo nieaktualna" << endl;
 #endif
+#ifdef CALCULATETIMEFORCLUSTERDISTANCE
+               double before = clock()/(double)CLOCKS_PER_SEC;
+#endif
                HeapHierarchicalItemMax hhim = calculateCluster2ClusterMaxDistance(s1,s2,iter);
+#ifdef CALCULATETIMEFORCLUSTERDISTANCE
+               double after = clock()/(double)CLOCKS_PER_SEC;
+               timeForClusterDistance += after - before;
+#endif
 #if VERBOSE > 11
                Rcout << "najwieksza odleglosc klastrowa to" << hhim.dist << endl;
                Rcout << "wrzucam " << hhim.index1+1 << ", " << hhim.index2+1 << endl;
@@ -708,7 +791,13 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 
             }
          }
+         double before = clock()/(double)CLOCKS_PER_SEC;
          HeapNeighborItem hi=getNearestNeighbor(hhiMin.index1);
+         double after = clock()/(double)CLOCKS_PER_SEC;
+#if VERBOSE > 11
+         Rcout << "Dla " << hhiMin.index1+1 << " znaleziono " <<hi.index+1 <<" jako najblizszego sasiada (dist = " << hi.dist << " )" << endl;
+#endif
+         timeForMinSearch2 += after - before;
          if(hi.index != SIZE_MAX)
             pqMin.push(HeapHierarchicalItem(hhiMin.index1, hi.index, hi.dist));
       }
@@ -729,6 +818,12 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 #endif
 #ifdef UPDATEKK
          //idz po wszystykich entry w KK, aktualizuj i dawaj timestamp nowy!
+
+#if VERBOSE > 10
+               Rcout << "KK size = " << KK.size() << endl;
+#endif
+         double before = clock()/(double)CLOCKS_PER_SEC;
+
          for ( auto it = KK.begin(); it != KK.end(); ++it )
          {
             size_t otherCluster;
@@ -751,6 +846,8 @@ NumericMatrix HClustBiVpTreeComplete::compute()
                KK.erase(SortedPoint(otherCluster, hhiMax.index2));
             }
          }
+         double after = clock()/(double)CLOCKS_PER_SEC;
+         timeForKKUpdate += after - before;
 #endif
       }
 
@@ -767,6 +864,15 @@ NumericMatrix HClustBiVpTreeComplete::compute()
 Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
    Rcpp::checkUserInterrupt();
+
+#ifdef CALCULATETIMEFORCLUSTERDISTANCE
+   Rcout << "time for calculating cluster distances = " << timeForClusterDistance << endl;
+   Rcout << "time for updating KK = " << timeForKKUpdate << endl;
+   Rcout << "timeForMinSearch1 = " << timeForMinSearch1 << endl;
+   Rcout << "timeForMinSearch2 = " << timeForMinSearch2 << endl;
+   Rcout << "timeForMinSearchPrefetch = " << timeForMinSearchPrefetch << endl;
+   Rcout << "timeForPriorityQueues = " << timeForPriorityQueues << endl;
+#endif
 
    MergeMatrixGenerator mmg(ret.nrow());
    if(!awaria)
