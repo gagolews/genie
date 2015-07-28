@@ -28,8 +28,6 @@
  * 1. add custom sort of input objects
  *       useful for Levenshtein distance
  *       long strings should be put at the end
- *
- * 2. don't keep vps in leaves
  */
 
 
@@ -194,9 +192,9 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
    HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, (*_distance)(vpi, _indices[median]));
 
 #ifdef USE_ONEWAY_VPTREE
-   size_t maxindex = 0;
-   if (median+1 - left > 0) {
-      node->children[CHILD_L] = buildFromPoints(left, median+1);
+   size_t maxindex = vpi;
+   if (median - left > 0) { // don't include vpi
+      node->children[CHILD_L] = buildFromPoints(left+1, median+1);
       if (node->children[CHILD_L]->maxindex > maxindex)
          maxindex = node->children[CHILD_L]->maxindex;
    }
@@ -207,9 +205,10 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
    }
    node->maxindex = maxindex;
 #else
-   size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
+   // assert: _indices[left] == vpi
+   size_t middle1 = std::partition(_indices.begin() + left + 1,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
    size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
-   if (middle1 - left > 0)     node->children[CHILD_LL] = buildFromPoints(left, middle1);
+   if (middle1 - left-1 > 0)   node->children[CHILD_LL] = buildFromPoints(left+1, middle1);
    if (median+1 - middle1 > 0) node->children[CHILD_LR] = buildFromPoints(middle1, median + 1);
    if (middle2 - median-1 > 0) node->children[CHILD_RL] = buildFromPoints(median + 1, middle2);
    if (right-middle2 > 0)      node->children[CHILD_RR] = buildFromPoints(middle2, right);
@@ -266,7 +265,20 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
       return; // nothing more to do
    }
    // else // not a leaf
+
+   // first visit the vantage point
    double dist = (*_distance)(node->vpindex, index); // the slow part
+   if (ds.find_set(node->vpindex) != clusterIndex && index < node->vpindex) {
+      if (dist <= maxR && dist > minR) {
+         if (heap.size() >= opts.maxNNPrefetch && dist < maxR) {
+            while (!heap.empty() && heap.top().dist == maxR) {
+               heap.pop();
+            }
+         }
+         heap.push( HeapNeighborItem(node->vpindex, dist) );
+         maxR = heap.top().dist;
+      }
+   }
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
@@ -321,7 +333,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 
    if (node->sameCluster) return;
    // otherwise check if node->sameCluster flag needs updating
-   size_t commonCluster = SIZE_MAX;
+   size_t commonCluster = ds.find_set(node->vpindex);
    for (size_t i=0; i<CHILD_NUM; ++i) { // pray for loop unrolling
       if (node->children[i]) {
          if (!node->children[i]->sameCluster) return; // not ready yet
@@ -329,8 +341,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             (node->children[i]->vpindex == SIZE_MAX)?
             _indices[node->children[i]->left]:node->children[i]->vpindex
          );
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return; // not ready yet
+         if (currentCluster != commonCluster) return; // not ready yet
       }
    }
    node->sameCluster = true;
