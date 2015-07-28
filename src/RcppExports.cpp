@@ -20,16 +20,16 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// hclust2_complete
-RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfElementsInLeaves);
-RcppExport SEXP DataStructures_hclust2_complete(SEXP distanceSEXP, SEXP objectsSEXP, SEXP maxNumberOfElementsInLeavesSEXP) {
+// hclust_gnat_single
+RObject hclust_gnat_single(RObject distance, RObject objects, RObject control);
+RcppExport SEXP DataStructures_hclust_gnat_single(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
     Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< int >::type maxNumberOfElementsInLeaves(maxNumberOfElementsInLeavesSEXP);
-    __result = Rcpp::wrap(hclust2_complete(distance, objects, maxNumberOfElementsInLeaves));
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(hclust_gnat_single(distance, objects, control));
     return __result;
 END_RCPP
 }
@@ -41,6 +41,19 @@ BEGIN_RCPP
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericMatrix >::type x(xSEXP);
     __result = Rcpp::wrap(generateMergeMatrix(x));
+    return __result;
+END_RCPP
+}
+// hclust2_complete
+RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfElementsInLeaves);
+RcppExport SEXP DataStructures_hclust2_complete(SEXP distanceSEXP, SEXP objectsSEXP, SEXP maxNumberOfElementsInLeavesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< int >::type maxNumberOfElementsInLeaves(maxNumberOfElementsInLeavesSEXP);
+    __result = Rcpp::wrap(hclust2_complete(distance, objects, maxNumberOfElementsInLeaves));
     return __result;
 END_RCPP
 }

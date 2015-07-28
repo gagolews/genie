@@ -5,12 +5,16 @@
     .Call('DataStructures_hclust3', PACKAGE = 'DataStructures', method_, metric_, X_, members_, p_)
 }
 
-.hclust2_complete <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
-    .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
+hclust_gnat_single <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_hclust_gnat_single', PACKAGE = 'DataStructures', distance, objects, control)
 }
 
 generateMergeMatrix <- function(x) {
     .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
+}
+
+.hclust2_complete <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
+    .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
 
 .hclust2_single <- function(distance, objects, control = NULL) {

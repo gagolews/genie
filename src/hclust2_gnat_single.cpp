@@ -19,18 +19,7 @@
  * ************************************************************************* */
 
 
-#include "hclust2_single.h"
-
-
-
-/* improvement idea:
- * add custom sort of _indices
- *
- * useful for Levenshtein distance
- * long strings should be put at the end
- * ?
- */
-
+#include "hclust2_gnat_single.h"
 
 using namespace Rcpp;
 using namespace std;
@@ -39,7 +28,7 @@ using namespace DataStructures;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
+HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
    opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
    _indices(dist->getObjectCount()),
    neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
@@ -50,15 +39,8 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
 #ifdef GENERATE_STATS
    stats(HClustBiVpTreeStats()),
 #endif
-#ifdef USE_BOOST_DISJOINT_SETS
-   ds(make_assoc_property_map(rank), make_assoc_property_map(parent))
-#else
    ds(dist->getObjectCount())
-#endif
 {
-#ifdef USE_BOOST_DISJOINT_SETS
-   Rcpp::Rcout << "Warning: USE_BOOST_DISJOINT_SETS is defined in hclust2_single.h\n";
-#endif
 #if VERBOSE > 5
    Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
@@ -68,21 +50,11 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
    for(size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
 
-   for(size_t i=0; i<_n; i++)
-   {
-#ifdef USE_BOOST_DISJOINT_SETS
-     ds.make_set(i);
-#endif
-#ifdef MB_IMPROVEMENT
-     clusters.emplace(i);
-#endif // MB_IMPROVEMENT
-   }
-
    _root = buildFromPoints(0, _n);
 }
 
 
-HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
+HClustGnatSingle::~HClustGnatSingle() {
 // #if VERBOSE > 5
 //       Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 // #endif
@@ -90,7 +62,7 @@ HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
 }
 
 
-int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
+int HClustGnatSingle::chooseNewVantagePoint(size_t left, size_t right)
 {
    if (opts.vpSelectScheme == 1) {
       // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
@@ -161,7 +133,7 @@ int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
+HClustBiVpTreeNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
@@ -212,7 +184,7 @@ HClustBiVpTreeNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t ri
 }
 
 
-void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
+void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {
@@ -232,29 +204,12 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
    if (node->vpindex == SIZE_MAX) // leaf
    {
       if (node->sameCluster) {
-#ifdef MB_IMPROVEMENT
-      size_t s = SIZE_MAX;
-      if (mbimprovement)
-         s = ds.find_set(_indices[node->left]);
-      std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
-      if (mbimprovement)
-         distToClusterIterator = distClust.find(SortedPoint(s, clusterIndex));
-      double distToCluster = INFINITY;
-      if (mbimprovement && distToClusterIterator != distClust.end())
-         distToCluster = distToClusterIterator->second;
-#endif // MB_IMPROVEMENT
+
          for (size_t i=node->left; i<node->right; i++)
          {
             if (index >= _indices[i]) continue;
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
-
-#ifdef MB_IMPROVEMENT
-            if (mbimprovement && dist2 > distToCluster) {
-               //Rcout << "odrzucam!" << endl;
-               continue;
-            }
-#endif // MB_IMPROVEMENT
 
             if (heap.size() >= opts.maxNNPrefetch) {
                if (dist2 < maxR) {
@@ -265,10 +220,6 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             }
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             maxR = heap.top().dist;
-#ifdef MB_IMPROVEMENT
-            if (mbimprovement)
-               distClust.emplace(SortedPoint(s, clusterIndex), dist2);
-#endif // MB_IMPROVEMENT
          }
       }
       else {
@@ -276,14 +227,6 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
          for (size_t i=node->left; i<node->right; i++)
          {
             size_t currentCluster = ds.find_set(_indices[i]);
-#ifdef MB_IMPROVEMENT
-            std::unordered_map<SortedPoint,double>::const_iterator distToClusterIterator;
-            if (mbimprovement)
-               distToClusterIterator = distClust.find(SortedPoint(currentCluster, clusterIndex));
-            double distToCluster = INFINITY;
-            if (mbimprovement && distToClusterIterator != distClust.end())
-               distToCluster = distToClusterIterator->second;
-#endif // MB_IMPROVEMENT
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
 
@@ -291,9 +234,6 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
-#ifdef MB_IMPROVEMENT
-            if (mbimprovement && dist2 > distToCluster) continue;
-#endif // MB_IMPROVEMENT
 
             if (heap.size() >= opts.maxNNPrefetch) {
                if (dist2 < maxR) {
@@ -304,10 +244,6 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
             }
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             maxR = heap.top().dist;
-#ifdef MB_IMPROVEMENT
-            if (mbimprovement)
-               distClust.emplace(SortedPoint(currentCluster, clusterIndex), dist2);
-#endif // MB_IMPROVEMENT
          }
          if (commonCluster != SIZE_MAX) node->sameCluster = true;
       }
@@ -412,7 +348,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive( HClustBiVp
 }
 
 
-HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
+HeapNeighborItem HClustGnatSingle::getNearestNeighbor(size_t index)
 {
 #if VERBOSE > 5
    // Rprintf(".");
@@ -484,7 +420,7 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
 }
 
 
-NumericMatrix HClustBiVpTreeSingle::compute()
+NumericMatrix HClustGnatSingle::compute()
 {
    NumericMatrix ret(_n-1, 2);
    priority_queue<HeapHierarchicalItem> pq;
@@ -513,10 +449,6 @@ NumericMatrix HClustBiVpTreeSingle::compute()
    Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
-#ifdef MB_IMPROVEMENT
-   int nsqrt = (int)sqrt((double)_n);
-#endif  // MB_IMPROVEMENT
-
    size_t i = 0;
    while(i < _n - 1)
    {
@@ -535,56 +467,6 @@ NumericMatrix HClustBiVpTreeSingle::compute()
          ret(i,1)=(double)hhi.index2;
          ++i;
          ds.link(s1, s2);
-#ifdef MB_IMPROVEMENT
-         size_t s_new = ds.find_set(s1);
-         size_t s_old;
-         //Rcout << "przed usuwaniem z clusters" << endl;
-         if(s1==s_new)
-         {
-         	clusters.erase(s2);
-         	s_old = s2;
-         }
-         else
-         {
-         	clusters.erase(s1);
-         	s_old = s1;
-         }
-         //Rcout << "clusters size = " << clusters.size() << endl;
-         if(i >= _n - nsqrt)
-         {
-            //Rcout << "po sqrt" << endl;
-            mbimprovement = true;
-            //Rcout << "aktualizuje clusters dist" << endl;
-            for ( auto it = clusters.begin(); it != clusters.end(); ++it )
-            {
-               if(*it == s_new || *it == s_old) continue;
-               SortedPoint spold = SortedPoint(*it, s_old);
-               SortedPoint spnew = SortedPoint(*it, s_new);
-               auto dold = distClust.find(spold);
-               auto dnew = distClust.find(spnew);
-               if(dold != distClust.end() && dnew != distClust.end())
-               {
-                  //Rcout << "znaleziono obie" << endl;
-                  dnew->second = min(dnew->second, dold->second);
-                  //Rcout << "po aktu" << endl;
-               }
-               else if(dold != distClust.end())
-               {
-                  //Rcout << "znaleziono tylko stara" << endl;
-                  distClust.emplace(spnew, dold->second);
-                  //Rcout << "po aktu2" << endl;
-               }
-
-               if(dold != distClust.end())
-               {
-                  //Rcout << "znaleziono stara" << endl;
-                  distClust.erase(spold);
-                  //Rcout << "po aktu3" << endl;
-               }
-            }
-            //Rcout << "po aktualizacji clusters dist" << endl;
-         }
-#endif // MB_IMPROVEMENT
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
@@ -608,44 +490,10 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 }
 
 
-void HClustBiVpTreeSingle::print(HClustBiVpTreeNode* n) {
-   if (n->ll) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
-      print(n->ll);
-   }
-   if (n->lr) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"LR\"];\n", (unsigned long long)n, (unsigned long long)(n->lr));
-      print(n->lr);
-   }
-   if (n->rl) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"RL\"];\n", (unsigned long long)n, (unsigned long long)(n->rl));
-      print(n->rl);
-   }
-   if (n->rr) {
-      Rprintf("\"%llx\" -> \"%llx\" [label=\"RR\"];\n", (unsigned long long)n, (unsigned long long)(n->rr));
-      print(n->rr);
-   }
-   if (n->vpindex == SIZE_MAX) {
-      for (size_t i=n->left; i<n->right; ++i)
-         Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)n, (unsigned long long)_indices[i]+1);
-   }
-   else {
-      Rprintf("\"%llx\" [label=\"(%llu, %g)\"];\n", (unsigned long long)n, (unsigned long long)n->vpindex+1, n->radius);
-   }
-}
 
 
-void HClustBiVpTreeSingle::print() {
-   Rprintf("digraph vptree {\n");
-   Rprintf("size=\"6,6\";\n");
-   Rprintf("node [color=lightblue2, style=filled];");
-   print(_root);
-   Rprintf("}\n");
-}
-
-
-// [[Rcpp::export(".hclust2_single")]]
-RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilValue) {
+// [[Rcpp::export]]
+RObject hclust_gnat_single(RObject distance, RObject objects, RObject control=R_NilValue) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
 #endif
@@ -654,7 +502,7 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustBiVpTreeSingle hclust(dist, control);
+      DataStructures::HClustGnatSingle hclust(dist, control);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,

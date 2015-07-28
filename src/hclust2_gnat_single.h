@@ -18,16 +18,13 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-#ifndef __HCLUST2_SINGLE_H
-#define __HCLUST2_SINGLE_H
+#ifndef __HCLUST2_GNAT_SINGLE_H
+#define __HCLUST2_GNAT_SINGLE_H
 
 
 
 // ************************************************************************
 
-// #define MB_IMPROVEMENT
-// #define USE_BOOST_DISJOINT_SETS
-#define USE_ONEWAY_VPTREE
 
 // ************************************************************************
 
@@ -47,23 +44,13 @@
 
 #include "hclust2_common.h"
 #include "hclust2_merge.h"
-#ifdef USE_BOOST_DISJOINT_SETS
-#include <boost/pending/disjoint_sets.hpp>
-#include <boost/property_map/property_map.hpp>
-#else
 #include "disjoint_sets.h"
-#endif
-
-#ifdef MB_IMPROVEMENT
-#include <unordered_set>
-#endif // MB_IMPROVEMENT
-
 
 
 namespace DataStructures
 {
 
-class HClustBiVpTreeSingle
+class HClustGnatSingle
 {
 protected:
 
@@ -84,21 +71,7 @@ protected:
    std::map<size_t,size_t> parent;
 
    HClustBiVpTreeStats stats;
-
-#ifdef USE_BOOST_DISJOINT_SETS
-   boost::disjoint_sets<
-     associative_property_map< std::map<size_t,size_t> >,
-     associative_property_map< std::map<size_t,size_t> > > ds;
-#else
    PhatDisjointSets ds;
-#endif
-
-#ifdef MB_IMPROVEMENT
-   std::unordered_map<SortedPoint, double> distClust;
-   std::unordered_set<size_t> clusters;
-   bool mbimprovement = false;
-#endif  // MB_IMPROVEMENT
-
 
    int chooseNewVantagePoint(size_t left, size_t right);
    HClustBiVpTreeNode* buildFromPoints(size_t left, size_t right);
@@ -107,15 +80,11 @@ protected:
       size_t index, size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap);
 
-   void print(HClustBiVpTreeNode* n);
-
-
 public:
 
-   HClustBiVpTreeSingle(Distance* dist, RObject control);
-   ~HClustBiVpTreeSingle();
+   HClustGnatSingle(Distance* dist, RObject control);
+   ~HClustGnatSingle();
 
-   void print();
    NumericMatrix compute();
 
    HeapNeighborItem getNearestNeighbor(size_t index);

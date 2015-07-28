@@ -20,14 +20,18 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-#include "hclust2_complete.h"
+#include "hclust2_vptree_complete.h"
 
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
 using namespace DataStructures;
 
+#ifdef VERBOSE
+#undef VERBOSE
 #define VERBOSE 0
+#endif
+
 #define UPDATEKK
 #define CALCULATETIMEFORCLUSTERDISTANCE
 
@@ -733,7 +737,7 @@ NumericMatrix HClustBiVpTreeComplete::compute()
                ret(i,1)=(double)hhiMin.index2;
                ++i;
                ds.link(s1, s2);
-               size_t s = ds.find_set(hhiMin.index1);
+               // size_t s = ds.find_set(hhiMin.index1);
                timestamp[hhiMin.index1] = iter;
                timestamp[hhiMin.index2] = iter;
                /*if(hhiMin.index1 != s)
