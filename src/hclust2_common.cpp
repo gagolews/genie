@@ -30,6 +30,7 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
    vpSelectCand   = DEFAULT_VP_SELECT_CAND;
    vpSelectTest   = DEFAULT_VP_SELECT_TEST;
    degree = DEFAULT_GNAT_DEGREE;
+   candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -57,11 +58,19 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
       if (control2.containsElementNamed("degree")) {
          degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
       }
+
+      if (control2.containsElementNamed("candidatesTimes")) {
+         candidatesTimes = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["candidatesTimes"])[0];
+      }
    }
 
    if (degree < 2 || degree > 2000) {
       degree = DEFAULT_GNAT_DEGREE;
       Rf_warning("wrong degree value. using default");
+   }
+   if (candidatesTimes < 2 || candidatesTimes > 2000) {
+      candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
+      Rf_warning("wrong candidatesTimes value. using default");
    }
    if (maxLeavesElems < 2 || maxLeavesElems > 64) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;

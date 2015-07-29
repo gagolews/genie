@@ -64,7 +64,9 @@ HClustGnatSingle::~HClustGnatSingle() {
 
 vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left, size_t right)
 {
-   const size_t candidatesTimes = 3;
+   Rcout <<"left= "<<left << " right= " << right << endl;
+   const size_t candidatesTimes = opts.candidatesTimes;
+
    vector<size_t> splitPoints(degree);
    if(right-left <= degree)
    {
@@ -76,6 +78,7 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    }
    //wybierz losowo podzbior candidatesTimes * degree punktow
    size_t candidatesNumber = min(candidatesTimes*degree, right-left);
+   Rcout <<"candidatesNumber= "<<candidatesNumber << endl;
    if(candidatesNumber > right-left)
    {
       for(size_t i=0;i<candidatesNumber;++i)
@@ -213,13 +216,17 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
 #endif
-   if(right - left <= opts.maxLeavesElems)
+   if(right - left <= opts.candidatesTimes*opts.degree) //@TODO: pomyslec, jaki tak naprawde mamy warunek stopu
    {
+      Rcout << "tworze leaf" << endl;
       return new HClustGnatSingleNode(left, right);
    }
+   Rcout << "split points" << endl;
    vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right);
+   Rcout << "boundaries" << endl;
    vector<size_t> boundaries = groupPointsToSplitPoints(splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
    //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
+   Rcout << "tworze nonleaf" << endl;
    return createNonLeafNode(degree, left, right, splitPoints, boundaries);
 }
 
@@ -547,6 +554,7 @@ void hclust_gnat_single_test(RObject distance, RObject objects, RObject control=
    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
    DataStructures::HClustGnatSingle hclust(dist, control);
    //RObject merge = hclust.compute();
+   Rcpp::stop("GNAT zbudowany!");
    hclust.FindNeighborTest(index, R);
    if (dist) delete dist;
 }
