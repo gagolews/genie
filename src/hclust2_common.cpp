@@ -29,6 +29,7 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
    vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
    vpSelectCand   = DEFAULT_VP_SELECT_CAND;
    vpSelectTest   = DEFAULT_VP_SELECT_TEST;
+   degree = DEFAULT_GNAT_DEGREE;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);

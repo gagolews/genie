@@ -233,17 +233,18 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
 #ifdef GENERATE_STATS
    ++stats.nodeVisit;
 #endif
+   /*
    if (node->sameCluster) {
       if (node->splitPointIndex == SIZE_MAX) {
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
       } else {
          if (ds.find_set(node->splitPointIndex) == clusterIndex) return;
       }
-   }
+   }*/
 
    if (node->degree == SIZE_MAX) // leaf
    {
-      if (node->sameCluster)
+      /*if (node->sameCluster)
       {
          for (size_t i=node->left; i<node->right; i++)
          {
@@ -262,14 +263,14 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             maxR = heap.top().dist;
          }
       }
-      else
+      else*/
       {
-         size_t commonCluster = ds.find_set(_indices[node->left]);
+         //size_t commonCluster = ds.find_set(_indices[node->left]);
          for (size_t i=node->left; i<node->right; i++)
          {
-            size_t currentCluster = ds.find_set(_indices[i]);
-            if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
-            if (currentCluster == clusterIndex) continue;
+            //size_t currentCluster = ds.find_set(_indices[i]);
+            //if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
+            //if (currentCluster == clusterIndex) continue;
 
             if (index >= _indices[i]) continue;
 
@@ -286,7 +287,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             maxR = heap.top().dist;
          }
-         if (commonCluster != SIZE_MAX) node->sameCluster = true;
+         //if (commonCluster != SIZE_MAX) node->sameCluster = true;
       }
       return;
    }
@@ -381,6 +382,18 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       node->sameCluster = true;
    }
    */
+}
+
+void HClustGnatSingle::FindNeighborTest(size_t index, double R)
+{
+   std::priority_queue<HeapNeighborItem> heap;
+   size_t clusterIndex = ds.find_set(index);
+   double _tau = R;
+   getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, minRadiuses[index], _tau, heap );
+   while( !heap.empty() ) {
+      Rcout << heap.top().index << ", " << heap.top().dist << endl;
+      heap.pop();
+   }
 }
 
 
@@ -529,6 +542,16 @@ NumericMatrix HClustGnatSingle::compute()
 
 
 // [[Rcpp::export]]
+void hclust_gnat_single_test(RObject distance, RObject objects, RObject control=R_NilValue, int index=0, double R=0) {
+   RObject result(R_NilValue);
+   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
+   DataStructures::HClustGnatSingle hclust(dist, control);
+   //RObject merge = hclust.compute();
+   hclust.FindNeighborTest(index, R);
+   if (dist) delete dist;
+}
+
+// [[Rcpp::export]]
 RObject hclust_gnat_single(RObject distance, RObject objects, RObject control=R_NilValue) {
 #if VERBOSE > 5
    Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
@@ -570,3 +593,5 @@ RObject hclust_gnat_single(RObject distance, RObject objects, RObject control=R_
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;
 }
+
+
