@@ -25,10 +25,6 @@
 
 // ************************************************************************
 
-// #define USE_BOOST_DISJOINT_SETS
-#define USE_ONEWAY_VPTREE
-
-// ************************************************************************
 
 #include <Rcpp.h>
 #include <R.h>
@@ -46,28 +42,11 @@
 
 #include "hclust2_common.h"
 #include "hclust2_merge.h"
-#ifdef USE_BOOST_DISJOINT_SETS
-#include <boost/pending/disjoint_sets.hpp>
-#include <boost/property_map/property_map.hpp>
-#else
 #include "disjoint_sets.h"
-#endif
 
 
 namespace DataStructures
 {
-
-#ifdef USE_ONEWAY_VPTREE
-   #define CHILD_L  0
-   #define CHILD_R  1
-   #define CHILD_NUM 2
-#else
-   #define CHILD_LL 0
-   #define CHILD_LR 1
-   #define CHILD_RL 2
-   #define CHILD_RR 3
-   #define CHILD_NUM 4
-#endif
 
 struct HClustBiVpTreeSingleNode
 {
@@ -76,68 +55,25 @@ struct HClustBiVpTreeSingleNode
    size_t right;
    double radius;
    bool sameCluster;
-#ifndef USE_ONEWAY_VPTREE
-   HClustBiVpTreeSingleNode* children[4];
-#else
-   HClustBiVpTreeSingleNode* children[2];
    size_t maxindex;
-#endif
+   HClustBiVpTreeSingleNode* childL;
+   HClustBiVpTreeSingleNode* childR;
 
    HClustBiVpTreeSingleNode() :
          vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
-         sameCluster(false)  {
-#ifdef USE_ONEWAY_VPTREE
-      maxindex = SIZE_MAX;
-      children[CHILD_L] = NULL;
-      children[CHILD_R] = NULL;
-#else
-      children[CHILD_LL] = NULL;
-      children[CHILD_LR] = NULL;
-      children[CHILD_RL] = NULL;
-      children[CHILD_RR] = NULL;
-#endif
-      }
+         sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
    HClustBiVpTreeSingleNode(size_t left, size_t right) :
          vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
-         sameCluster(false)   {
-#ifdef USE_ONEWAY_VPTREE
-      maxindex = SIZE_MAX;
-      children[CHILD_L] = NULL;
-      children[CHILD_R] = NULL;
-#else
-      children[CHILD_LL] = NULL;
-      children[CHILD_LR] = NULL;
-      children[CHILD_RL] = NULL;
-      children[CHILD_RR] = NULL;
-#endif
-      }
+         sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
-   HClustBiVpTreeSingleNode(size_t vpindex, double radius) :
-         vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
-         sameCluster(false)   {
-#ifdef USE_ONEWAY_VPTREE
-      maxindex = SIZE_MAX;
-      children[CHILD_L] = NULL;
-      children[CHILD_R] = NULL;
-#else
-      children[CHILD_LL] = NULL;
-      children[CHILD_LR] = NULL;
-      children[CHILD_RL] = NULL;
-      children[CHILD_RR] = NULL;
-#endif
-      }
+   HClustBiVpTreeSingleNode(size_t vpindex, size_t left, size_t right, double radius) :
+         vpindex(vpindex), left(left), right(right), radius(radius),
+         sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
    ~HClustBiVpTreeSingleNode() {
-#ifdef USE_ONEWAY_VPTREE
-      if (children[CHILD_L])  delete children[CHILD_L];
-      if (children[CHILD_R])  delete children[CHILD_R];
-#else
-      if (children[CHILD_LL]) delete children[CHILD_LL];
-      if (children[CHILD_LR]) delete children[CHILD_LR];
-      if (children[CHILD_RL]) delete children[CHILD_RL];
-      if (children[CHILD_RR]) delete children[CHILD_RR];
-#endif
+      if (childL) delete childL;
+      if (childR) delete childR;
    }
 };
 
@@ -159,25 +95,17 @@ protected:
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
-   std::map<size_t,size_t> rank;
-   std::map<size_t,size_t> parent;
-
    HClustBiVpTreeStats stats;
 
-#ifdef USE_BOOST_DISJOINT_SETS
-   boost::disjoint_sets<
-     associative_property_map< std::map<size_t,size_t> >,
-     associative_property_map< std::map<size_t,size_t> > > ds;
-#else
-   PhatDisjointSets ds;
-#endif
+   DisjointSets ds;
+   std::priority_queue<HeapNeighborItem> heap;
+   bool prefetch;
 
    int chooseNewVantagePoint(size_t left, size_t right);
    HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
-      size_t index, size_t clusterIndex, double minR, double& maxR,
-      std::priority_queue<HeapNeighborItem>& heap);
+      size_t index, size_t clusterIndex, double minR, double& maxR);
 
    void print(HClustBiVpTreeSingleNode* n);
 
