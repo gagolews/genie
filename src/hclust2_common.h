@@ -28,6 +28,7 @@
 #define DEFAULT_VP_SELECT_SCHEME 3
 #define DEFAULT_VP_SELECT_CAND 5
 #define DEFAULT_VP_SELECT_TEST 12
+#define DEFAULT_GNAT_DEGREE 5
 
 // ---------------------------------------------------------------------------
 
@@ -98,6 +99,7 @@ struct IndexComparator
 
 struct HClustBiVpTreeOptions
 {
+   size_t degree;         // for GNAT
    size_t maxLeavesElems;
    size_t maxNNPrefetch;
    size_t vpSelectScheme;

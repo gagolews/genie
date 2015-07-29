@@ -52,8 +52,16 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
       if (control2.containsElementNamed("vpSelectTest")) {
          vpSelectTest = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectTest"])[0];
       }
+
+      if (control2.containsElementNamed("degree")) {
+         degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
+      }
    }
 
+   if (degree < 2 || degree > 2000) {
+      degree = DEFAULT_GNAT_DEGREE;
+      Rf_warning("wrong degree value. using default");
+   }
    if (maxLeavesElems < 2 || maxLeavesElems > 64) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
       Rf_warning("wrong maxLeavesElems value. using default");
@@ -84,7 +92,8 @@ Rcpp::NumericVector HClustBiVpTreeOptions::toR() const
       Rcpp::_["maxNNPrefetch"] = maxNNPrefetch,
       Rcpp::_["vpSelectScheme"] = vpSelectScheme,
       Rcpp::_["vpSelectCand"] = vpSelectCand,
-      Rcpp::_["vpSelectTest"] = vpSelectTest
+      Rcpp::_["vpSelectTest"] = vpSelectTest,
+      Rcpp::_["degree"] = degree
    );
 }
 

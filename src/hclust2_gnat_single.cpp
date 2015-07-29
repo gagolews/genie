@@ -50,7 +50,7 @@ HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
    for(size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
 
-   _root = buildFromPoints(0, _n);
+   _root = buildFromPoints(opts.degree, 0, _n);
 }
 
 
@@ -62,125 +62,165 @@ HClustGnatSingle::~HClustGnatSingle() {
 }
 
 
-int HClustGnatSingle::chooseNewVantagePoint(size_t left, size_t right)
+vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left, size_t right)
 {
-   if (opts.vpSelectScheme == 1) {
-      // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
-      //    search given pair-wise distances"
-      if (left + opts.vpSelectCand + opts.vpSelectTest > right )
-         return left;
-
-      // randomize:
-      for (size_t i=left; i<left+opts.vpSelectCand+opts.vpSelectTest; ++i)
-         std::swap(_indices[i], _indices[i+(size_t)(unif_rand()*(right-i))]);
-
-      // maximize variance
-      size_t bestIndex = -1;
-      double bestSigma = -INFINITY;
-      for(size_t i=left; i<left+opts.vpSelectCand; i++) {
-         accumulators::accumulator_set< double,
-            accumulators::features<accumulators::tag::variance> > acc;
-         for (size_t j = left+opts.vpSelectCand; j < left+opts.vpSelectCand+opts.vpSelectTest; ++j)
-            acc( (*_distance)( _indices[i], _indices[j] ) );
-         double curSigma = accumulators::variance(acc);
-         if (curSigma > bestSigma) {
-            bestSigma = curSigma;
-            bestIndex = i;
+   const size_t candidatesTimes = 3;
+   vector<size_t> splitPoints(degree);
+   if(right-left <= degree)
+   {
+      for(size_t i=0;i<right-left;++i)
+      {
+         splitPoints[i] = _indices[left+i];
+      }
+      return splitPoints;
+   }
+   //wybierz losowo podzbior candidatesTimes * degree punktow
+   size_t candidatesNumber = min(candidatesTimes*degree, right-left);
+   if(candidatesNumber > right-left)
+   {
+      for(size_t i=0;i<candidatesNumber;++i)
+      {
+         size_t tmpIndex = i + left + (size_t)(unif_rand()*(right-left-i));
+         size_t tmp = _indices[tmpIndex];
+         _indices[tmpIndex] = _indices[left+i];
+         _indices[left+i] = tmp;
+      }
+   }
+   //wybierz z tego podzbioru punkt
+   size_t tmpIndex = left+(size_t)(unif_rand()*(candidatesNumber));
+   size_t tmp = _indices[tmpIndex];
+   _indices[tmpIndex] = _indices[left+0];
+   _indices[left+0] = tmp;
+   size_t lastAddedSplitPoint = splitPoints[0] = tmp;
+   vector<vector<double>> dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
+   for(size_t i = 0; i<degree-1; ++i)
+      dynamicProgrammingTable[i] = vector<double>(candidatesNumber);
+   //znajdz jego najdalszego sasiada
+   for(size_t i = 0; i<degree-1; ++i)
+   {
+      //znajdz kolejnego najdalszego do tych dwoch (minimum z dwoch dystansow musi byc najwieksze)
+      //zrob  to z uzyciem programowania dynamicznego w O(nm), n-liczba kandydatow(candidatesTimes * degree), m-degree
+      for(size_t j = 0; j<candidatesNumber; ++j)
+      {
+         if(j == lastAddedSplitPoint)
+         {
+            dynamicProgrammingTable[i][j] = 0;
+            continue;
+         }
+         if(i > 0)
+            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], (*_distance)(lastAddedSplitPoint, _indices[left+j]));
+         else
+            dynamicProgrammingTable[i][j] = (*_distance)(lastAddedSplitPoint, _indices[left+j]);
+      }
+      size_t maxIndex = 0;
+      size_t maxDist = dynamicProgrammingTable[i][0];
+      for(size_t j = 1; j<candidatesNumber; ++j)
+      {
+         if(dynamicProgrammingTable[i][j] > maxDist)
+         {
+            maxIndex = j;
+            maxDist = dynamicProgrammingTable[i][j];
          }
       }
-
-      return bestIndex;
+      size_t tmp = _indices[left+maxIndex];
+      _indices[left+maxIndex] = _indices[left+i];
+      _indices[left+i] = tmp;
+      lastAddedSplitPoint = splitPoints[i+1] = tmp;
    }
-   else if (opts.vpSelectScheme == 2) {
-      // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
-      //      for similarity search queries"
 
-      // randomize:
-      std::swap(_indices[left], _indices[left+(size_t)(unif_rand()*(right-left))]);
+   return splitPoints;
+}
 
-      // which one maximizes dist to _indices[left]?
-      size_t bestIndex = left;
-      double bestDist  = 0.0;
-      for (size_t i=left+1; i<right; ++i) {
-         double curDist = (*_distance)(_indices[left], _indices[i]);
-         if (curDist > bestDist) {
-            bestDist = curDist;
-            bestIndex = i;
+HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries)
+{
+   HClustGnatSingleNode* node = new HClustGnatSingleNode();
+   node->degree = degree;
+   node->children = vector<HClustGnatSingleNode*>(degree);
+   size_t childLeft = left+degree;
+   size_t childRight;
+   //assert: splitPoints.size() == degree
+   //assert: boundaries.size() == degree //zawiera same prawe granice
+   for(size_t i=0; i<degree; ++i)
+   {
+      childRight = boundaries[i];
+      HClustGnatSingleNode* child = buildFromPoints(degree, childLeft, childRight);
+      child->splitPointIndex = splitPoints[i];
+      node->children[i] = child;
+      childLeft = childRight;
+   }
+
+   return node;
+}
+
+vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right)
+{
+   vector<vector<size_t>> groups(splitPoints.size());
+   vector<size_t> boundaries(splitPoints.size());
+   vector<double> distances(splitPoints.size());
+   for(size_t i=left+splitPoints.size();i<right;++i)
+   {
+      size_t mySplitPointIndex = 0;
+      double mySplitPointDistance = (*_distance)(splitPoints[0], _indices[i]);
+      distances[0] = mySplitPointDistance;
+      for(size_t j=1;j<splitPoints.size();++j)
+      {
+         double d = (*_distance)(splitPoints[j], _indices[i]);
+         distances[j] = d;
+         if(d < mySplitPointDistance)
+         {
+            mySplitPointIndex = j;
+            mySplitPointDistance = d;
          }
       }
-   //       for (size_t i=left+2; i<right; ++i) {
-   //          double curDist = (*_distance)(_indices[left+1], _indices[i]);
-   //          if (curDist > bestDist) {
-   //             bestDist = curDist;
-   //             bestIndex = i;
-   //          }
-   //       }
-   //       for (size_t i=left+3; i<right; ++i) {
-   //          double curDist = (*_distance)(_indices[left+2], _indices[i]);
-   //          if (curDist > bestDist) {
-   //             bestDist = curDist;
-   //             bestIndex = i;
-   //          }
-   //       }
-      return bestIndex;
+      groups[mySplitPointIndex].push_back(_indices[i]);
+
+      for(size_t j=0;j<splitPoints.size();++j)
+      {
+         if(mySplitPointIndex == j)
+            continue;
+         auto rangeIterator = splitPointsRanges.find(SortedPoint(mySplitPointIndex, j));
+         if(rangeIterator != splitPointsRanges.end())
+         {
+            if(distances[j] < rangeIterator->second.min)
+            {
+               rangeIterator->second.min = distances[j];
+            }
+            if(distances[j] > rangeIterator->second.max)
+            {
+               rangeIterator->second.max = distances[j];
+            }
+         }
+         else
+         {
+            splitPointsRanges.emplace(SortedPoint(mySplitPointIndex, j), HClustGnatRange(distances[j], distances[j]));
+         }
+      }
    }
-   else {
-      // return random index
-      // don'use left one (even if sample seems to be randomized already,
-      // vp in subtrees is already on the left...)
-      return left+(size_t)(unif_rand()*(right-left));
+   size_t cumsum = 0;
+   for(size_t i = 0; i<splitPoints.size(); ++i)
+   {
+      for(size_t j = 0; j<groups[i].size(); ++j)
+      {
+         _indices[left+splitPoints.size()+cumsum+j] = groups[i][j];
+      }
+      cumsum += groups[i].size();
+      boundaries[i] = left+splitPoints.size()+cumsum;
    }
 }
 
-
-HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t left, size_t right)
+HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
 #endif
    if(right - left <= opts.maxLeavesElems)
    {
-      // for (size_t i=left; i<right; ++i) {
-         // size_t j = _indices[(i+1 < right)?(i+1):left];
-         // if (_indices[i] < j)
-            // maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
-      // }
-
       return new HClustGnatSingleNode(left, right);
    }
-
-   size_t vpi_idx = chooseNewVantagePoint(left, right);
-   std::swap(_indices[left], _indices[vpi_idx]);
-   size_t vpi = _indices[left];
-
-// #if VERBOSE > 7
-//       ((EuclideanDistance*)_distance)->isVP[vpi] = true;
-// #endif
-
-   size_t median = ( right + left - 1 ) / 2;
-   // size_t median = std::max(left+1, (size_t)(left + (right - left)*0.2));
-   std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
-                    DistanceComparator(vpi, _distance));
-   // std::sort(_indices.begin() + left+1, _indices.begin() + right,
-                    // DistanceComparator(vpi, &_distance ));
-   // printf("(%d,%d,%d)\n", left, median, right);
-   // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
-   // printf("\n");
-   HClustGnatSingleNode* node = new HClustGnatSingleNode(vpi, (*_distance)(vpi, _indices[median]));
-
-#ifdef USE_ONEWAY_VPTREE
-   if (median+1 - left > 0)     node->ll = buildFromPoints(left, median+1);
-   if (right - median-1 > 0)    node->rl = buildFromPoints(median+1, right);
-#else
-   size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
-   size_t middle2 = std::partition(_indices.begin() + median + 1,  _indices.begin() + right, IndexComparator(vpi)) - _indices.begin();
-   if (middle1 - left > 0)     node->ll = buildFromPoints(left, middle1);
-   if (median+1 - middle1 > 0) node->lr = buildFromPoints(middle1, median + 1);
-   if (middle2 - median-1 > 0) node->rl = buildFromPoints(median + 1, middle2);
-   if (right-middle2 > 0)      node->rr = buildFromPoints(middle2, right);
-#endif
-
-   return node;
+   vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right);
+   vector<size_t> boundaries = groupPointsToSplitPoints(splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
+   //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
+   return createNonLeafNode(degree, left, right, splitPoints, boundaries);
 }
 
 
@@ -194,17 +234,17 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    ++stats.nodeVisit;
 #endif
    if (node->sameCluster) {
-      if (node->vpindex == SIZE_MAX) {
+      if (node->splitPointIndex == SIZE_MAX) {
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
       } else {
-         if (ds.find_set(node->vpindex) == clusterIndex) return;
+         if (ds.find_set(node->splitPointIndex) == clusterIndex) return;
       }
    }
 
-   if (node->vpindex == SIZE_MAX) // leaf
+   if (node->degree == SIZE_MAX) // leaf
    {
-      if (node->sameCluster) {
-
+      if (node->sameCluster)
+      {
          for (size_t i=node->left; i<node->right; i++)
          {
             if (index >= _indices[i]) continue;
@@ -222,7 +262,8 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             maxR = heap.top().dist;
          }
       }
-      else {
+      else
+      {
          size_t commonCluster = ds.find_set(_indices[node->left]);
          for (size_t i=node->left; i<node->right; i++)
          {
@@ -250,68 +291,62 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       return;
    }
    // else // not a leaf
-   double dist = (*_distance)(node->vpindex, index);
+   //1. z artykulu
+   vector<bool> shouldVisit(node->degree, true);
+   for(size_t i=0;i<node->degree; ++i) //4. z artykulu
+   {
+      if(shouldVisit[i])
+      {
+         size_t pi = node->children[i]->splitPointIndex;
+         //2. z artykulu
+         double dist = (*_distance)(node->children[i]->splitPointIndex, index);
 
-// this MB's improvement is not well-tested:
-//       if (dist < maxR && dist > minR && index < node->vpindex && ds.find_set(node->vpindex) != clusterIndex) {
-//
-//          heap.push( HeapNeighborItem(node->vpindex, dist) );
-//          maxR = heap.top().dist;
-//       }
+         if (ds.find_set(node->splitPointIndex) != clusterIndex && index < node->splitPointIndex) {
+               if (dist <= maxR && dist > minR) {
+                  if (heap.size() >= opts.maxNNPrefetch && dist < maxR) {
+                     while (!heap.empty() && heap.top().dist == maxR) {
+                        heap.pop();
+                     }
+                  }
+                  heap.push( HeapNeighborItem(node->splitPointIndex, dist) );
+                  maxR = heap.top().dist;
+               }
+            }
+         //3. z artykulu
+         for(size_t j=0;j<node->degree;++j)
+         {
+            if(i != j && shouldVisit[j])
+            {
+               size_t pj = node->children[j]->splitPointIndex;
+               auto rangeIterator = splitPointsRanges.find(SortedPoint(pi, pj));
+               //assert: rangeIterator != splitPointsRanges.end()
+               HClustGnatRange range = rangeIterator->second;
+               double leftRange = dist-maxR;
+               double rightRange = dist+maxR;
+               if(leftRange <= range.max && range.min <= rightRange) //http://world.std.com/~swmcd/steven/tech/interval.html
+               {//they intersect
+                  ;
+               }
+               else
+               {//disjoint
+                  shouldVisit[j] = false;
+               }
+            }
+         }
 
-
-   if ( dist < node->radius ) {
-      if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
-#ifdef USE_ONEWAY_VPTREE
-         if (node->ll)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-#else
-         if (node->ll && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if (node->lr)
-            getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
-#endif
       }
-
-      if ( dist + maxR >= node->radius ) {
-#ifdef USE_ONEWAY_VPTREE
-         if (node->rl)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-#else
-         if (node->rl && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if (node->rr)
-            getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
-#endif
-      }
-
-   } else /* ( dist >= node->radius ) */ {
-      if ( dist + maxR >= node->radius ) {
-#ifdef USE_ONEWAY_VPTREE
-         if (node->rl)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-#else
-         if (node->rl && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->rl, index, clusterIndex, minR, maxR, heap );
-         if (node->rr)
-            getNearestNeighborsFromMinRadiusRecursive( node->rr, index, clusterIndex, minR, maxR, heap );
-#endif
-      }
-
-      if ( dist - maxR <= node->radius && dist + node->radius > minR ) {
-#ifdef USE_ONEWAY_VPTREE
-         if (node->ll)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-#else
-         if (node->ll && index <= node->vpindex)
-            getNearestNeighborsFromMinRadiusRecursive( node->ll, index, clusterIndex, minR, maxR, heap );
-         if (node->lr)
-            getNearestNeighborsFromMinRadiusRecursive( node->lr, index, clusterIndex, minR, maxR, heap );
-#endif
+   }
+   //5. z artykulu
+   for(size_t i=0;i<node->degree; ++i) //4. z artykulu
+   {
+      if(shouldVisit[i])
+      {
+         getNearestNeighborsFromMinRadiusRecursive(node->children[i], index, clusterIndex, minR, maxR, heap);
       }
    }
 
-   if (   !node->sameCluster
+   //@TODO: robic same cluster
+   /*if (   !node->sameCluster
       && (!node->ll || node->ll->sameCluster)
       && (!node->rl || node->rl->sameCluster)
 #ifndef USE_ONEWAY_VPTREE
@@ -322,29 +357,30 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    {
       size_t commonCluster = SIZE_MAX;
       if (node->ll) {
-         size_t currentCluster = ds.find_set((node->ll->vpindex == SIZE_MAX)?_indices[node->ll->left]:node->ll->vpindex);
+         size_t currentCluster = ds.find_set((node->ll->splitPointIndex == SIZE_MAX)?_indices[node->ll->left]:node->ll->splitPointIndex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
       if (node->rl) {
-         size_t currentCluster = ds.find_set((node->rl->vpindex == SIZE_MAX)?_indices[node->rl->left]:node->rl->vpindex);
+         size_t currentCluster = ds.find_set((node->rl->splitPointIndex == SIZE_MAX)?_indices[node->rl->left]:node->rl->splitPointIndex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
 #ifndef USE_ONEWAY_VPTREE
       if (node->lr) {
-         size_t currentCluster = ds.find_set((node->lr->vpindex == SIZE_MAX)?_indices[node->lr->left]:node->lr->vpindex);
+         size_t currentCluster = ds.find_set((node->lr->splitPointIndex == SIZE_MAX)?_indices[node->lr->left]:node->lr->splitPointIndex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
       if (node->rr) {
-         size_t currentCluster = ds.find_set((node->rr->vpindex == SIZE_MAX)?_indices[node->rr->left]:node->rr->vpindex);
+         size_t currentCluster = ds.find_set((node->rr->splitPointIndex == SIZE_MAX)?_indices[node->rr->left]:node->rr->splitPointIndex);
          if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
          else if (currentCluster != commonCluster) return;
       }
 #endif
       node->sameCluster = true;
    }
+   */
 }
 
 

@@ -50,52 +50,52 @@
 namespace DataStructures
 {
 
+struct HClustGnatRange
+{
+   double min;
+   double max;
+   HClustGnatRange()
+      : min(-INFINITY), max(INFINITY)
+   {
+
+   }
+   HClustGnatRange(double min, double max)
+      : min(min), max(max)
+   {
+
+   }
+};
+
 struct HClustGnatSingleNode
 {
-   size_t vpindex;
+   size_t degree;
+   size_t splitPointIndex;
    size_t left;
    size_t right;
-   double radius;
    bool sameCluster;
-   HClustGnatSingleNode *ll, *rl;
-#ifndef USE_ONEWAY_VPTREE
-   HClustGnatSingleNode *lr, *rr;
-#endif
+   vector<HClustGnatSingleNode *> children;
 
    HClustGnatSingleNode() :
-      vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
+      splitPointIndex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX),
       sameCluster(false)  {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
-#endif
       }
 
    HClustGnatSingleNode(size_t left, size_t right) :
-      vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
+      splitPointIndex(SIZE_MAX), left(left), right(right), degree(SIZE_MAX),
       sameCluster(false)  {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
-#endif
       }
 
-   HClustGnatSingleNode(size_t vpindex, double radius) :
-      vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
+   HClustGnatSingleNode(size_t vpindex) :
+      splitPointIndex(vpindex), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX),
       sameCluster(false)  {
-         ll = NULL; rl = NULL;
-#ifndef USE_ONEWAY_VPTREE
-         lr = NULL; rr = NULL;
-#endif
       }
 
    ~HClustGnatSingleNode() {
-      if(ll) delete ll;
-      if(rl) delete rl;
-#ifndef USE_ONEWAY_VPTREE
-      if(lr) delete lr;
-      if(rr) delete rr;
-#endif
+      for(size_t i = 0; i<children.size(); ++i)
+      {
+         if(children[i]) //it should always be true
+            delete children[i];
+      }
    }
 };
 
@@ -122,8 +122,12 @@ protected:
    HClustBiVpTreeStats stats;
    PhatDisjointSets ds;
 
-   int chooseNewVantagePoint(size_t left, size_t right);
-   HClustGnatSingleNode* buildFromPoints(size_t left, size_t right);
+   unordered_map<SortedPoint, HClustGnatRange> splitPointsRanges;
+
+   vector<size_t> chooseNewSplitPoints(size_t degree, size_t left, size_t right);
+   vector<size_t> groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right);
+   HClustGnatSingleNode* buildFromPoints(size_t degree, size_t left, size_t right);
+   HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustGnatSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR,
