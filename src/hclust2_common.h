@@ -23,7 +23,7 @@
 
 // ---------------------------------------------------------------------------
 
-#define DEFAULT_MAX_LEAVES_ELEMS 2
+#define DEFAULT_MAX_LEAVES_ELEMS 4
 #define DEFAULT_MAX_NN_PREFETCH 2
 #define DEFAULT_VP_SELECT_SCHEME 3
 #define DEFAULT_VP_SELECT_CAND 5
