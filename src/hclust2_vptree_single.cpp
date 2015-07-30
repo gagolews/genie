@@ -377,7 +377,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 
    prefetch = false;
    size_t i = 0;
-   while(i < _n - 1)
+   while(true)
    {
       //Rcout << "iteracja " << i << endl;
       //Rcout << "pq size = " << pq.size()<< endl;
@@ -392,8 +392,10 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 
          ret(i,0)=(double)hhi.index1;
          ret(i,1)=(double)hhi.index2;
-         ++i;
          ds.link(s1, s2);
+
+         ++i;
+         if (i == _n-1) break; /* avoid computing unnecessary nn */
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
