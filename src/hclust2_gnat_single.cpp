@@ -107,6 +107,7 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    vector<vector<double>> dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
    for(size_t i = 0; i<degree-1; ++i)
       dynamicProgrammingTable[i] = vector<double>(candidatesNumber);
+   vector<double> distances(candidatesNumber);
    //znajdz jego najdalszego sasiada
    for(size_t i = 0; i<degree-1; ++i)
    {
@@ -120,7 +121,10 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
             continue;
          }
          if(i > 0)
-            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], (*_distance)(_indices[lastAddedSplitPoint], _indices[left+j]));
+         {
+            distances[j] = (*_distance)(_indices[lastAddedSplitPoint], _indices[left+j]);
+            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], distances[j]);
+         }
          else
             dynamicProgrammingTable[i][j] = (*_distance)(_indices[lastAddedSplitPoint], _indices[left+j]);
       }
@@ -141,6 +145,13 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
       //_indices[left+maxIndex] = _indices[left+i];
       //_indices[left+i] = tmp;
       lastAddedSplitPoint = splitPoints[i+1] = maxIndex;
+      //@TODO: to jest zle!
+      for(size_t l=1;l<=i;++l)
+      {
+         splitPointsRanges.emplace(SortedPoint(_indices[left+splitPoints[l]], _indices[left+splitPoints[i+1]]),
+               HClustGnatRange(distances[l], distances[l]));
+      }
+
    }
 
    Rcout << "gole indeksy" << endl;
@@ -233,7 +244,7 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& 
       {
          if(mySplitPointIndex == j)
             continue;
-         //Rcout << "szukam/wstawiam dla " <<  splitPoints[mySplitPointIndex] << ""
+         Rcout << "szukam/wstawiam dla " <<  splitPoints[mySplitPointIndex] << " i " << splitPoints[j] << endl;
          auto rangeIterator = splitPointsRanges.find(SortedPoint(splitPoints[mySplitPointIndex], splitPoints[j]));
          if(rangeIterator != splitPointsRanges.end())
          {
@@ -295,7 +306,7 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
    Rcout << "degree = " << degree << endl;
    if(right - left <= opts.candidatesTimes*opts.degree) //@TODO: pomyslec, jaki tak naprawde mamy warunek stopu
    {
-      Rcout << "tworze leaf" << endl;
+      Rcout << "tworze leaf, left= " <<left << " right= " <<right << endl;
       return new HClustGnatSingleNode(left, right);
    }
    //Rcout << "split points" << endl;
