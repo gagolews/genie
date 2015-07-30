@@ -74,11 +74,10 @@ HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
 }
 
 
-int HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
+size_t HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 {
    if (opts.vpSelectScheme == 1) {
-      // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
-      //    search given pair-wise distances"
+      // idea by Yianilos (original vp-tree paper)
       if (left + opts.vpSelectCand + opts.vpSelectTest > right)
          return left;
 
@@ -223,7 +222,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
                }
             }
             heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
+            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
          }
          if (commonCluster != SIZE_MAX)
             node->sameCluster = true; // set to true (btw, may be true already)
@@ -240,7 +239,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
                }
             }
             heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
+            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
          }
       }
       return; // nothing more to do
@@ -257,7 +256,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             }
          }
          heap.push( HeapNeighborItem(node->vpindex, dist) );
-         maxR = heap.top().dist;
+         if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
       }
    }
 

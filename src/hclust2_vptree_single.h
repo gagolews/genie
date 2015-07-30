@@ -101,7 +101,7 @@ protected:
    std::priority_queue<HeapNeighborItem> heap;
    bool prefetch;
 
-   int chooseNewVantagePoint(size_t left, size_t right);
+   size_t chooseNewVantagePoint(size_t left, size_t right);
    HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
