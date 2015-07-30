@@ -30,6 +30,9 @@
 #define DEFAULT_VP_SELECT_TEST 12
 #define DEFAULT_GNAT_DEGREE 5
 #define DEFAULT_GNAT_CANDIDATES_TIMES 3
+#define DEFAULT_GNAT_MIN_DEGREE 2
+#define DEFAULT_GNAT_MAX_DEGREE 200
+#define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
 
 // ---------------------------------------------------------------------------
 
@@ -102,6 +105,9 @@ struct HClustBiVpTreeOptions
 {
    size_t degree;         // for GNAT
    size_t candidatesTimes;//for GNAT
+   size_t minDegree;         // for GNAT
+   size_t maxDegree;         // for GNAT
+   size_t maxTimesDegree;         // for GNAT
    size_t maxLeavesElems;
    size_t maxNNPrefetch;
    size_t vpSelectScheme;

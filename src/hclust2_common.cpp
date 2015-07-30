@@ -31,6 +31,9 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
    vpSelectTest   = DEFAULT_VP_SELECT_TEST;
    degree = DEFAULT_GNAT_DEGREE;
    candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
+   minDegree = DEFAULT_GNAT_MIN_DEGREE;
+   maxDegree = DEFAULT_GNAT_MAX_DEGREE;
+   maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -59,6 +62,18 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
          degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
       }
 
+      if (control2.containsElementNamed("minDegree")) {
+         minDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minDegree"])[0];
+      }
+
+      if (control2.containsElementNamed("maxDegree")) {
+         maxDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxDegree"])[0];
+      }
+
+      if (control2.containsElementNamed("maxTimesDegree")) {
+         maxTimesDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxTimesDegree"])[0];
+      }
+
       if (control2.containsElementNamed("candidatesTimes")) {
          candidatesTimes = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["candidatesTimes"])[0];
       }
@@ -67,6 +82,18 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
    if (degree < 2 || degree > 2000) {
       degree = DEFAULT_GNAT_DEGREE;
       Rf_warning("wrong degree value. using default");
+   }
+   if (minDegree < 2 || minDegree > 2000) {
+      minDegree = DEFAULT_GNAT_MIN_DEGREE;
+         Rf_warning("wrong min degree. using default");
+      }
+   if (maxDegree < 2 || maxDegree > 2000) {
+      maxDegree = DEFAULT_GNAT_MAX_DEGREE;
+      Rf_warning("wrong max degree. using default");
+   }
+   if (maxTimesDegree < 2 || maxTimesDegree > 2000) {
+      maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
+      Rf_warning("wrong max times degree. using default");
    }
    if (candidatesTimes < 2 || candidatesTimes > 2000) {
       candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
