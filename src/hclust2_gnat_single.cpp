@@ -107,7 +107,7 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    vector<vector<double>> dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
    for(size_t i = 0; i<degree-1; ++i)
       dynamicProgrammingTable[i] = vector<double>(candidatesNumber);
-   vector<double> distances(candidatesNumber);
+   unordered_map<SortedPoint, HClustGnatRange> splitPointsRanges_small;
    //znajdz jego najdalszego sasiada
    for(size_t i = 0; i<degree-1; ++i)
    {
@@ -120,13 +120,17 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
             dynamicProgrammingTable[i][j] = 0;
             continue;
          }
+         Rcout << "licze odleglosc miedzy " << _indices[left+lastAddedSplitPoint]<< " a " << _indices[left+j] << endl;
+         double d = (*_distance)(_indices[left+lastAddedSplitPoint], _indices[left+j]);
+         splitPointsRanges_small.emplace(SortedPoint(_indices[left+lastAddedSplitPoint], _indices[left+j]), HClustGnatRange(d,d));
          if(i > 0)
          {
-            distances[j] = (*_distance)(_indices[lastAddedSplitPoint], _indices[left+j]);
-            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], distances[j]);
+            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], d);
          }
          else
-            dynamicProgrammingTable[i][j] = (*_distance)(_indices[lastAddedSplitPoint], _indices[left+j]);
+         {
+            dynamicProgrammingTable[i][j] = d;
+         }
       }
       size_t maxIndex = 0;
       double maxDist = dynamicProgrammingTable[i][0];
@@ -145,13 +149,6 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
       //_indices[left+maxIndex] = _indices[left+i];
       //_indices[left+i] = tmp;
       lastAddedSplitPoint = splitPoints[i+1] = maxIndex;
-      //@TODO: to jest zle!
-      for(size_t l=1;l<=i;++l)
-      {
-         splitPointsRanges.emplace(SortedPoint(_indices[left+splitPoints[l]], _indices[left+splitPoints[i+1]]),
-               HClustGnatRange(distances[l], distances[l]));
-      }
-
    }
 
    Rcout << "gole indeksy" << endl;
@@ -191,6 +188,17 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
          _indices[left+index] = tmp;
          splitPoints[i] = tmp;
          index++;
+      }
+   }
+
+   for(auto iter = splitPointsRanges_small.begin(); iter != splitPointsRanges_small.end();iter++)
+   {
+      Rcout << "rozwazam " << iter->first.i << " i " << iter->first.j <<endl;
+      if(find(splitPoints.begin(), splitPoints.end(), iter->first.i) != splitPoints.end() &&
+            find(splitPoints.begin(), splitPoints.end(), iter->first.j) != splitPoints.end()) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
+      {
+         Rcout << "wrzucam dla " << iter->first.i << " i " << iter->first.j <<endl;
+         splitPointsRanges.insert(*iter);
       }
    }
 
