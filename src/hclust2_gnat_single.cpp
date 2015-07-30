@@ -49,6 +49,7 @@ HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
    for(size_t i=0;i<_n;i++) _indices[i] = i;
    for(size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+   printIndices();
 
    _root = buildFromPoints(opts.degree, 0, _n);
 }
@@ -61,6 +62,12 @@ HClustGnatSingle::~HClustGnatSingle() {
    if(_root) delete _root;
 }
 
+void HClustGnatSingle::printIndices()
+{
+   for(size_t i=0;i<_indices.size();++i)
+      Rcout << _indices[i] << ", ";
+   Rcout << endl;
+}
 
 vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left, size_t right)
 {
@@ -136,11 +143,19 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
       lastAddedSplitPoint = splitPoints[i+1] = maxIndex;
    }
 
+   Rcout << "gole indeksy" << endl;
    for(size_t i = 0; i < splitPoints.size(); ++i)
    {
       Rcout << splitPoints[i]  <<" ";
    }
    Rcout << endl;
+   Rcout << "indeksy punktow" << endl;
+   for(size_t i = 0; i < splitPoints.size(); ++i)
+   {
+      Rcout << _indices[left+splitPoints[i]]  <<" ";
+   }
+   Rcout << endl;
+
 
    vector<bool> canSwap(splitPoints.size(), true);
    sort(splitPoints.begin(), splitPoints.end());
@@ -149,24 +164,29 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    {
       if(splitPoints[i] < degree)
       {
+
          canSwap[splitPoints[i]] = false;
          size_t tmp = _indices[left+splitPoints[i]];
+         Rcout << "zostawie" << tmp << " na indeksie "<< splitPoints[i] << endl;
          splitPoints[i] = tmp;
+
       }
       else
       {
          while(!canSwap[index]) index++;
          size_t tmp = _indices[left+splitPoints[i]];
+         Rcout << "wstawie" << tmp << " na indeksie "<< left+index << endl;
          _indices[left+splitPoints[i]] = _indices[left+index];
          _indices[left+index] = tmp;
          splitPoints[i] = tmp;
+         index++;
       }
    }
 
    return splitPoints;
 }
 
-HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries)
+HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees)
 {
    HClustGnatSingleNode* node = new HClustGnatSingleNode();
    node->degree = degree;
@@ -178,7 +198,7 @@ HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree, size_t 
    for(size_t i=0; i<degree; ++i)
    {
       childRight = boundaries[i];
-      HClustGnatSingleNode* child = buildFromPoints(degree, childLeft, childRight);
+      HClustGnatSingleNode* child = buildFromPoints(degrees[i], childLeft, childRight);
       child->splitPointIndex = splitPoints[i];
       node->children[i] = child;
       childLeft = childRight;
@@ -247,6 +267,26 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& 
    return boundaries;
 }
 
+vector<size_t> HClustGnatSingle::chooseDegrees(size_t left, size_t allPointsCount, const vector<size_t>& boundaries)
+{
+   /*//left should be after splitpoints!
+   vector<size_t> degrees(boundaries.size());
+   size_t whole = opts.degree*boundaries.size();
+   for(size_t i=0;i<boundaries.size(); ++i)
+   {
+      size_t elementsCount = i == 0 ? boundaries[i]-left : boundaries[i] - boundaries[i-1];
+      degrees[i] = min(max(((elementsCount)/(double)allPointsCount)*whole,(double)opts.minDegree),(double)min(opts.degree*opts.maxTimesDegree, opts.maxDegree));
+      Rcout << "degrees[" << i << "]=" << degrees[i] << endl;
+   }
+   return degrees;*/
+   vector<size_t> degrees(boundaries.size());
+   for(size_t i=0;i<boundaries.size(); ++i)
+   {
+      degrees[i] = opts.degree;
+   }
+   return degrees;
+}
+
 HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
@@ -260,15 +300,18 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
    }
    //Rcout << "split points" << endl;
    vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right);
-   /*for(size_t i=0;i<splitPoints.size();i++)
-      Rcout << "splitpoint[" << i << "]=" << splitPoints[i] << endl;*/
+   for(size_t i=0;i<splitPoints.size();i++)
+      Rcout << "splitpoint[" << i << "]=" << splitPoints[i] << endl;
    //Rcout << "boundaries" << endl;
+   printIndices();
    vector<size_t> boundaries = groupPointsToSplitPoints(splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
-   /*for(size_t i=0;i<boundaries.size();i++)
-         Rcout << "boundaries[" << i << "]=" << boundaries[i] << endl;*/
+   for(size_t i=0;i<boundaries.size();i++)
+         Rcout << "boundaries[" << i << "]=" << boundaries[i] << endl;
+   printIndices();
    //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
+   vector<size_t> degrees = chooseDegrees(left+degree, right-(left+degree), boundaries);
    //Rcout << "tworze nonleaf" << endl;
-   return createNonLeafNode(degree, left, right, splitPoints, boundaries);
+   return createNonLeafNode(degree, left, right, splitPoints, boundaries, degrees);
 }
 
 
@@ -296,7 +339,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
 
    if (node->degree == SIZE_MAX) // leaf
    {
-      Rcout << "leaf" << endl;
+      //Rcout << "leaf" << endl;
       /*if (node->sameCluster)
       {
          for (size_t i=node->left; i<node->right; i++)
@@ -324,8 +367,8 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             //size_t currentCluster = ds.find_set(_indices[i]);
             //if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             //if (currentCluster == clusterIndex) continue;
-
-            //if (index >= _indices[i]) continue;
+            //Rcout << "szukam dla indeksu " << index+1<< ", a porownuje z " <<_indices[i]+1 << endl;
+            if (index >= _indices[i]) continue;
 
             double dist2 = (*_distance)(index, _indices[i]);
             if (dist2 > maxR || dist2 <= minR) continue;
@@ -337,17 +380,17 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   }
                }
             }
-            Rcout << "new object added: " << _indices[i] << " " << dist2 << endl;
+            Rcout << "new object added: " << _indices[i] + 1 << " " << dist2 << endl;
 
             heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
+            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
          }
          //if (commonCluster != SIZE_MAX) node->sameCluster = true;
       }
       return;
    }
-   Rcout << "not leaf" << endl;
-   Rcout << "I have "<< node->children.size()<<"children" << endl;
+   //Rcout << "not leaf" << endl;
+   //Rcout << "I have "<< node->children.size()<<"children" << endl;
    // else // not a leaf
    //1. z artykulu
    vector<bool> shouldVisit(node->degree, true);
@@ -365,16 +408,18 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
          double dist = (*_distance)(node->children[i]->splitPointIndex, index);
 
          //if (ds.find_set(node->splitPointIndex) != clusterIndex && index < node->splitPointIndex) {
+         if(index < node->children[i]->splitPointIndex){
                if (dist <= maxR && dist > minR) {
                   if (heap.size() >= opts.maxNNPrefetch && dist < maxR) {
                      while (!heap.empty() && heap.top().dist == maxR) {
                         heap.pop();
                      }
                   }
-                  Rcout << "new object added (splitPoint): " << node->splitPointIndex << " " << dist << endl;
-                  heap.push( HeapNeighborItem(node->splitPointIndex, dist) );
-                  maxR = heap.top().dist;
+                  Rcout << "new object added (splitPoint): " << node->children[i]->splitPointIndex + 1<< " " << dist << endl;
+                  heap.push( HeapNeighborItem(node->children[i]->splitPointIndex, dist) );
+                  if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
                }
+         }
          // }
          //3. z artykulu
          for(size_t j=0;j<node->degree;++j)
@@ -507,6 +552,7 @@ HeapNeighborItem HClustGnatSingle::getNearestNeighbor(size_t index)
 #ifdef GENERATE_STATS
       ++stats.nnCals;
 #endif
+      Rcout << "minRadius for " << index+1 << " is " <<  minRadiuses[index] << endl;
       getNearestNeighborsFromMinRadiusRecursive( _root, index, clusterIndex, minRadiuses[index], _tau, heap );
       while( !heap.empty() ) {
          nearestNeighbors[index].push_front(heap.top());
@@ -559,6 +605,7 @@ NumericMatrix HClustGnatSingle::compute()
 
       if (hi.index != SIZE_MAX)
       {
+         Rcout << "Nearest for " << i+1 << " is " << hi.index +1 <<" dist=" << hi.dist << endl;
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
       }
    }
@@ -570,7 +617,7 @@ NumericMatrix HClustGnatSingle::compute()
 #endif
 
    size_t i = 0;
-   while(i < _n - 1)
+   while(true)
    {
       //Rcout << "iteracja " << i << endl;
       //Rcout << "pq size = " << pq.size()<< endl;
@@ -587,6 +634,7 @@ NumericMatrix HClustGnatSingle::compute()
          ret(i,1)=(double)hhi.index2;
          ++i;
          ds.link(s1, s2);
+         if(i == _n - 1) break;
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
@@ -595,7 +643,10 @@ NumericMatrix HClustGnatSingle::compute()
       // ASSERT: hhi.index1 < hhi.index2
       HeapNeighborItem hi=getNearestNeighbor(hhi.index1);
       if(hi.index != SIZE_MAX)
+      {
+         Rcout << "Nearest for " << hhi.index1 +1<< " is " << hi.index+1 <<" dist=" << hi.dist << endl;
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+      }
    }
 #if VERBOSE > 7
    Rprintf("\r             %d / %d\n", _n, _n);
