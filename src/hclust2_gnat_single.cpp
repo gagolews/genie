@@ -21,8 +21,6 @@
 
 #include "hclust2_gnat_single.h"
 
-#define VERBOSE 0
-
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
@@ -44,7 +42,7 @@ HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
    ds(dist->getObjectCount())
 {
 #if VERBOSE > 5
-   Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
+   Rprintf("[%010.3f] building gnat\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
    // starting _indices: random permutation of {0,1,...,_n-1}
@@ -79,7 +77,7 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    RCOUT("left= "<<left << " right= " << right,11)
    const size_t candidatesTimes = opts.candidatesTimes;
 
-   vector<size_t> splitPoints(degree);
+   vector<size_t> splitPoints(degree); // @TODO: uzyc jednej wspoldzielonej tablicy, bedzie szybciej
    if(right-left <= degree)
    {
       for(size_t i=0;i<right-left;++i)
@@ -111,7 +109,7 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
    RCOUT("indices[tmpIndex] = " << _indices[left+tmpIndex],11)
    vector<vector<double>> dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
    for(size_t i = 0; i<degree-1; ++i)
-      dynamicProgrammingTable[i] = vector<double>(candidatesNumber);
+      dynamicProgrammingTable[i] = vector<double>(candidatesNumber); // @TODO: nie szybciej stworzyc jedna dluga tablice (degree-1)*candidatesNum? najlepiej wspoldzielona?
    unordered_map<SortedPoint, HClustGnatRange> splitPointsRanges_small;
    //znajdz jego najdalszego sasiada
    for(size_t i = 0; i<degree-1; ++i)
@@ -320,14 +318,14 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
 #endif
-   RCOUT("degree = " << degree, 11)
+   RCOUT("degree = " << degree, 11) // @TODO: lepiej to pousuwac potem, bo to spowalnia dla malych wartosci VERBOSE (jest duzo if'ow w srodku), ewentualnie zrobic makro specialnie na diagnostic msgs, dla verbose>=11 cos w stylu DIAGNOSTIC_MESSAGE("aaa")
    if(right - left <= opts.candidatesTimes*opts.degree) //@TODO: pomyslec, jaki tak naprawde mamy warunek stopu
    {
       RCOUT("tworze leaf, left= " <<left << " right= " <<right,11)
       return new HClustGnatSingleNode(left, right);
    }
    //Rcout << "split points" << endl;
-   vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right);
+   vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right); //@TODO: szybciej bedzie uzyc jednej, wspoldzielonej tablicy (private class member)
 #if VERBOSE > 11
    for(size_t i=0;i<splitPoints.size();i++)
    {
@@ -373,6 +371,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
          if (node->splitPointIndex != SIZE_MAX && ds.find_set(node->splitPointIndex) == clusterIndex) return; //@TODO: czy na pewno node->splitPointIndex? Jak to wyglada w pierwszym node?
       }
    }
+   //@TODO: sprawdz, czy liczba elementow w nodzie nie jest za duza; 4 do 16 powinno byc najlepiej - i jeszcze lepiej dobrze tym sterowac jako jakims parametrem
    RCOUT("po sprawdzaniu same cluster z poczatku",11);
    if (node->degree == SIZE_MAX) // leaf
    {
@@ -467,7 +466,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
          }
          // }
          //3. z artykulu
-         for(size_t j=0;j<node->degree;++j)
+         for(size_t j=0;j<node->degree;++j) // @TODO: use https://google-styleguide.googlecode.com/svn/trunk/cppguide.html -> for (x; y; z) { ---- but use 3 spaces
          {
             if(i != j && shouldVisit[j])
             {
@@ -489,13 +488,13 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   //double rightRangeMin = minR + dist;
                   if(leftRangeMin >= range.max)
                   {
-                     RCOUT("odrzucam ze wzgledu na min R", 8);
+                     // RCOUT("odrzucam ze wzgledu na min R", 8);
                      shouldVisit[j] = false;
                   }
                }
                else
                {//disjoint
-                  RCOUT("odrzucam ze wzgledu na max R", 8);
+                  // RCOUT("odrzucam ze wzgledu na max R", 8);
                   shouldVisit[j] = false;
                }
             }
