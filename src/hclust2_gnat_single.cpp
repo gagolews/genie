@@ -21,6 +21,8 @@
 
 #include "hclust2_gnat_single.h"
 
+#define VERBOSE 0
+
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
@@ -357,23 +359,27 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       Rcout << "very strange, node==NULL" << endl;
       return; // this should not happen
       }
+
 #ifdef GENERATE_STATS
    ++stats.nodeVisit;
 #endif
-   /*
+   RCOUT("poczatkowe sprawdzanie same cluster",11);
    if (node->sameCluster) {
-      if (node->splitPointIndex == SIZE_MAX) {
+      if (node->degree == SIZE_MAX) {
+         RCOUT("To jest leaf, sprawdzam lewego",11);
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
       } else {
-         if (ds.find_set(node->splitPointIndex) == clusterIndex) return;
+         RCOUT("To jest non leaf, sprawdzam jego split pointa",11);
+         if (node->splitPointIndex != SIZE_MAX && ds.find_set(node->splitPointIndex) == clusterIndex) return; //@TODO: czy na pewno node->splitPointIndex? Jak to wyglada w pierwszym node?
       }
-   }*/
-
+   }
+   RCOUT("po sprawdzaniu same cluster z poczatku",11);
    if (node->degree == SIZE_MAX) // leaf
    {
-      //Rcout << "leaf" << endl;
-      /*if (node->sameCluster)
+      RCOUT("leaf",11);
+      if (node->sameCluster)
       {
+         RCOUT("leaf - same cluster",11);
          for (size_t i=node->left; i<node->right; i++)
          {
             if (index >= _indices[i]) continue;
@@ -387,43 +393,49 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   }
                }
             }
-            heap.push( HeapNeighborItem(_indices[i], dist2) );
-            maxR = heap.top().dist;
-         }
-      }
-      else*/
-      {
-         //size_t commonCluster = ds.find_set(_indices[node->left]);
-         for (size_t i=node->left; i<node->right; i++)
-         {
-            //size_t currentCluster = ds.find_set(_indices[i]);
-            //if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
-            //if (currentCluster == clusterIndex) continue;
-            //Rcout << "szukam dla indeksu " << index+1<< ", a porownuje z " <<_indices[i]+1 << endl;
-            if (index >= _indices[i]) continue;
-
-            double dist2 = (*_distance)(index, _indices[i]);
-            if (dist2 > maxR || dist2 <= minR) continue;
-
-            if (heap.size() >= opts.maxNNPrefetch) {
-               if (dist2 < maxR) {
-                  while (!heap.empty() && heap.top().dist == maxR) {
-                     heap.pop();
-                  }
-               }
-            }
-#if VERBOSE > 11
-            Rcout << "new object added: " << _indices[i] + 1 << " " << dist2 << endl;
-#endif
-
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
          }
-         //if (commonCluster != SIZE_MAX) node->sameCluster = true;
+      }
+      else
+      {
+         if(node->left == node->right) return; //this is possible and this is nothing wrong. This node is needed, because it has split point. Of course, we could have them in node above...
+         RCOUT("leaf - NOT same cluster",11);
+         RCOUT("_indices[node->left] = " <<_indices[node->left],11);
+         RCOUT("node->left = " << node->left,11);
+         RCOUT("node->right = " << node->right,11);
+         size_t commonCluster = ds.find_set(_indices[node->left]);
+         RCOUT("common cluster sprawdzony",11);
+         for (size_t i=node->left; i<node->right; i++)
+         {
+            size_t currentCluster = ds.find_set(_indices[i]);
+            RCOUT("current cluster sprawdzony",11);
+            if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
+            RCOUT("common cluster != common cluster sprawdzone",11);
+            if (currentCluster == clusterIndex) continue;
+            RCOUT("common cluster == cluster index sprawdzone",11);
+            if (index >= _indices[i]) continue;
+            RCOUT("zaraz bede liczyl dystans",11);
+            double dist2 = (*_distance)(index, _indices[i]);
+            if (dist2 > maxR || dist2 <= minR) continue;
+            if (heap.size() >= opts.maxNNPrefetch) {
+               if (dist2 < maxR) {
+                  while (!heap.empty() && heap.top().dist == maxR) {
+                     heap.pop();
+                  }
+               }
+            }
+            RCOUT("new object added: " << _indices[i] + 1 << " " << dist2,11)
+            heap.push( HeapNeighborItem(_indices[i], dist2) );
+            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
+         }
+
+         if (commonCluster != SIZE_MAX && ds.find_set(node->splitPointIndex) == commonCluster)
+         {node->sameCluster = true;}
       }
       return;
    }
-   //Rcout << "not leaf" << endl;
+   RCOUT("not leaf",11);
    //Rcout << "I have "<< node->children.size()<<"children" << endl;
    // else // not a leaf
    //1. z artykulu
@@ -434,24 +446,21 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       {
          if(node->children[i]==NULL)
          {
-            Rcout<<"child is null!"<<endl;
+            RCOUT("child is null!",9);
          }
          size_t pi = node->children[i]->splitPointIndex;
          //Rcout << "i got splitPointIndex" << endl;
          //2. z artykulu
          double dist = (*_distance)(node->children[i]->splitPointIndex, index);
 
-         //if (ds.find_set(node->splitPointIndex) != clusterIndex && index < node->splitPointIndex) {
-         if(index < node->children[i]->splitPointIndex){
+         if (ds.find_set(node->children[i]->splitPointIndex) != clusterIndex && index < node->children[i]->splitPointIndex) {
                if (dist <= maxR && dist > minR) {
                   if (heap.size() >= opts.maxNNPrefetch && dist < maxR) {
                      while (!heap.empty() && heap.top().dist == maxR) {
                         heap.pop();
                      }
                   }
-#if VERBOSE > 11
-                  Rcout << "new object added (splitPoint): " << node->children[i]->splitPointIndex + 1<< " " << dist << endl;
-#endif
+                  RCOUT("new object added (splitPoint): " << node->children[i]->splitPointIndex + 1<< " " << dist,11)
                   heap.push( HeapNeighborItem(node->children[i]->splitPointIndex, dist) );
                   if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
                }
@@ -468,7 +477,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                //assert: rangeIterator != splitPointsRanges.end()
                if(rangeIterator == splitPointsRanges.end())
                {
-                  Rcout << "distance not found!" << endl;
+                  RCOUT("distance not found!",11)
                }
                HClustGnatRange range = rangeIterator->second;
                //Rcout << "distance found!" << range.min<< ", " << range.max<<endl;
@@ -476,10 +485,17 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                double rightRange = dist+maxR;
                if(leftRange <= range.max && range.min <= rightRange) //http://world.std.com/~swmcd/steven/tech/interval.html
                {//they intersect
-                  ;
+                  double leftRangeMin  = minR - dist;
+                  //double rightRangeMin = minR + dist;
+                  if(leftRangeMin >= range.max)
+                  {
+                     RCOUT("odrzucam ze wzgledu na min R", 8);
+                     shouldVisit[j] = false;
+                  }
                }
                else
                {//disjoint
+                  RCOUT("odrzucam ze wzgledu na max R", 8);
                   shouldVisit[j] = false;
                }
             }
@@ -487,54 +503,45 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
 
       }
    }
-#if VERBOSE > 11
-   Rcout << "I have pruned P, i go into my children" << endl;
-#endif
+
+   RCOUT("I have pruned P, i go into my children", 11)
+
    //5. z artykulu
    for(size_t i=0;i<node->degree; ++i) //4. z artykulu
    {
       if(shouldVisit[i])
       {
+         if(node->children[i] == NULL)
+         {
+            RCOUT("My child is null :(",11);
+         }
          getNearestNeighborsFromMinRadiusRecursive(node->children[i], index, clusterIndex, minR, maxR, heap);
       }
    }
-
-   //@TODO: robic same cluster
-   /*if (   !node->sameCluster
-      && (!node->ll || node->ll->sameCluster)
-      && (!node->rl || node->rl->sameCluster)
-#ifndef USE_ONEWAY_VPTREE
-      && (!node->lr || node->lr->sameCluster)
-      && (!node->rr || node->rr->sameCluster)
-#endif
-      )
+   RCOUT("teraz robie rozna magie z same cluster", 11)
+   if (node->sameCluster) return;
+   RCOUT("sprawdzam, czy dzieci moje sa wszystkie same cluster", 11)
+   bool ret = false;
+   for(size_t i = 0; i<node->children.size(); ++i)
    {
-      size_t commonCluster = SIZE_MAX;
-      if (node->ll) {
-         size_t currentCluster = ds.find_set((node->ll->splitPointIndex == SIZE_MAX)?_indices[node->ll->left]:node->ll->splitPointIndex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
+      if(!node->children[i]->sameCluster)
+      {
+         ret = true;
+         break;
       }
-      if (node->rl) {
-         size_t currentCluster = ds.find_set((node->rl->splitPointIndex == SIZE_MAX)?_indices[node->rl->left]:node->rl->splitPointIndex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-#ifndef USE_ONEWAY_VPTREE
-      if (node->lr) {
-         size_t currentCluster = ds.find_set((node->lr->splitPointIndex == SIZE_MAX)?_indices[node->lr->left]:node->lr->splitPointIndex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-      if (node->rr) {
-         size_t currentCluster = ds.find_set((node->rr->splitPointIndex == SIZE_MAX)?_indices[node->rr->left]:node->rr->splitPointIndex);
-         if (commonCluster == SIZE_MAX) commonCluster = currentCluster;
-         else if (currentCluster != commonCluster) return;
-      }
-#endif
-      node->sameCluster = true;
    }
-   */
+   if(ret) return;
+   RCOUT("czy aby wszystkie dzieci moje sa z klastra tego samego?", 11)
+   // otherwise check if node->sameCluster flag needs updating
+   size_t commonCluster = ds.find_set(node->splitPointIndex);
+
+   for(size_t i = 0; i<node->children.size(); ++i)
+   {
+      size_t currentCluster = ds.find_set(node->children[i]->splitPointIndex);
+      if (currentCluster != commonCluster) return; // not ready yet
+   }
+   RCOUT("teraz moge spokojnie przypisac samecluster = true", 11)
+   node->sameCluster = true;
 }
 
 void HClustGnatSingle::FindNeighborTest(size_t index, double R)
