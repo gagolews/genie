@@ -100,6 +100,7 @@ struct IndexComparator
    }
 };
 
+bool comparer_gt(size_t i, size_t j) { return (i>j); } 
 
 struct HClustBiVpTreeOptions
 {

@@ -73,21 +73,22 @@ struct HClustGnatSingleNode
    size_t left;
    size_t right;
    size_t degree;
+   size_t maxindex;
    bool sameCluster;
    vector<HClustGnatSingleNode *> children;
 
    HClustGnatSingleNode() :
-      splitPointIndex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX),
+      splitPointIndex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
       sameCluster(false)  {
       }
 
    HClustGnatSingleNode(size_t left, size_t right) :
-      splitPointIndex(SIZE_MAX), left(left), right(right), degree(SIZE_MAX),
+      splitPointIndex(SIZE_MAX), left(left), right(right), degree(SIZE_MAX), maxindex(SIZE_MAX),
       sameCluster(false)  {
       }
 
    HClustGnatSingleNode(size_t vpindex) :
-      splitPointIndex(vpindex), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX),
+      splitPointIndex(vpindex), left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
       sameCluster(false)  {
       }
 
