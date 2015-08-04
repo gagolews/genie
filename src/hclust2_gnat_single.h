@@ -131,7 +131,7 @@ protected:
    vector<size_t> groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right);
    HClustGnatSingleNode* buildFromPoints(size_t degree, size_t left, size_t right);
    HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees);
-   vector<size_t> chooseDegrees(size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
+   vector<size_t> chooseDegrees(size_t degree, size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
 
    void printIndices();
 

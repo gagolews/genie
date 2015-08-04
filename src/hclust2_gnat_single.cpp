@@ -306,15 +306,25 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& 
    return boundaries;
 }
 
-vector<size_t> HClustGnatSingle::chooseDegrees(size_t left, size_t allPointsCount, const vector<size_t>& boundaries)
+vector<size_t> HClustGnatSingle::chooseDegrees(size_t degree, size_t left, size_t allPointsCount, const vector<size_t>& boundaries)
 {
    //left should be after splitpoints!
    vector<size_t> degrees(boundaries.size());
-   size_t whole = opts.degree*boundaries.size();
+   size_t whole = opts.degree*degree; //opts.degree , mamy do rozdania tyle optymalnych stopni, na ile dzielimy node
+   if(whole > allPointsCount)
+   {//pod koniec robi sie patologia, bo mamy bardzo malo punktow, nie ma potrzeby miec tylu split pointow
+      whole = opts.degree;
+   }
    for(size_t i=0;i<boundaries.size(); ++i)
    {
       size_t elementsCount = i == 0 ? boundaries[i]-left : boundaries[i] - boundaries[i-1];
-      degrees[i] = min(max(((elementsCount)/(double)allPointsCount)*whole,(double)opts.minDegree),(double)min(opts.degree*opts.maxTimesDegree, opts.maxDegree));
+      degrees[i] = min( //zeby nie wyszlo za duzo
+            max( //zeby nie wyszlo za malo
+                  ((elementsCount)/(double)allPointsCount)*whole,
+                  (double)opts.minDegree // zeby nie wyszlo za malo
+               ),
+            (double)min(opts.degree*opts.maxTimesDegree, opts.maxDegree) // tutaj uwazamy, zeby nie wyszlo nam za duzo
+            );
       //RCOUT("degrees[" << i << "]=" << degrees[i],11);
    }
    return degrees;
@@ -332,7 +342,7 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
       ++stats.nodeCount;
 #endif
    //RCOUT("degree = " << degree, 11) // @TODO: lepiej to pousuwac potem, bo to spowalnia dla malych wartosci VERBOSE (jest duzo if'ow w srodku), ewentualnie zrobic makro specialnie na diagnostic msgs, dla verbose>=11 cos w stylu DIAGNOSTIC_MESSAGE("aaa")
-   if(right - left <= degree) //@TODO: pomyslec, jaki tak naprawde mamy warunek stopu
+   if(right - left <= min(degree, opts.degree)) //@TODO: pomyslec, jaki tak naprawde mamy warunek stopu
    {
    #ifdef GENERATE_STATS
       ++stats.leafCount;
@@ -360,7 +370,7 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree, size_t le
 #endif
    //printIndices();
    //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
-   vector<size_t> degrees = chooseDegrees(left+degree, right-(left+degree), boundaries);
+   vector<size_t> degrees = chooseDegrees(degree, left+degree, right-(left+degree), boundaries);
    //Rcout << "tworze nonleaf" << endl;
    return createNonLeafNode(degree, left, right, splitPoints, boundaries, degrees);
 }
@@ -417,7 +427,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       }
       else
       {
-         if(node->left == node->right) return; //this is possible and this is nothing wrong. This node is needed, because it has split point. Of course, we could have them in node above...    
+         //if(node->left == node->right) return; //this is possible and this is nothing wrong. This node is needed, because it has split point. Of course, we could have them in node above...    
          size_t commonCluster = ds.find_set(_indices[node->left]);
          for (size_t i=node->left; i<node->right; i++)
          {
@@ -474,6 +484,11 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
                }
          }
+         if(!node->children[i])
+         {
+            shouldVisit[i]=false;
+            continue;
+         }
       //}
          /*if(node->children[i]->left < SIZE_MAX && node->children[i]->right == node->children[i]->left)
          {
@@ -499,7 +514,11 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                //assert: rangeIterator != splitPointsRanges.end()
                if(rangeIterator == splitPointsRanges.end())
                {
-
+                  if(!node->children[j])
+                  {
+                     //shouldVisit[j] = false;
+                     continue;
+                  }
                   int aaaaz=666666;
                   RCOUT("distance not found for: " << endl,6) 
                   RCOUT("i= "<< i,6)
@@ -543,7 +562,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       {
          //RCOUT("moje " << i <<"-te dziecko jest warte odwiedzenia", 6)
          /*if(node->children[i] == NULL)
-         {
+           {
             RCOUT("My child is null :(",11);
          }*/
          getNearestNeighborsFromMinRadiusRecursive(node->children[i], index, clusterIndex, minR, maxR, heap);
@@ -555,7 +574,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    bool ret = false;
    for(size_t i = 0; i<node->children.size(); ++i)
    {
-      if(node->children[i] && !node->children[i]->sameCluster)
+      if(node->children[i] && !(node->children[i]->sameCluster))
       {
          ret = true;
          break;
@@ -566,10 +585,28 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    // otherwise check if node->sameCluster flag needs updating
    size_t commonCluster = ds.find_set(node->splitPoints[0]);
 
-   for(size_t i = 1; i<node->children.size(); ++i)
+   for(size_t i = 1; i<node->splitPoints.size(); ++i)
    {
       size_t currentCluster = ds.find_set(node->splitPoints[i]);
       if (currentCluster != commonCluster) return; // not ready yet
+   }
+   
+   for(size_t i=0; i<node->children.size(); ++i)
+   {
+      if(node->children[i])
+      {
+         if(node->children[i]->degree==SIZE_MAX)
+         {
+            size_t currentCluster = ds.find_set(_indices[node->children[i]->left]);
+            if(currentCluster != commonCluster) return;
+         }
+         else
+         {
+            size_t currentCluster = ds.find_set(_indices[node->children[i]->splitPoints[0]]);
+            if(currentCluster != commonCluster) return;
+         }
+         //Rcout << node->children[i]->left << endl;
+      }
    }
    //RCOUT("teraz moge spokojnie przypisac samecluster = true", 11)
    node->sameCluster = true;
