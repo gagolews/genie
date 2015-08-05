@@ -332,7 +332,7 @@ vector<size_t> HClustGnatSingle::chooseDegrees(size_t degree, size_t optdegree, 
                ),
             (double)min(opts.degree*opts.maxTimesDegree, opts.maxDegree) // tutaj uwazamy, zeby nie wyszlo nam za duzo
             );
-      
+
       if(degrees[i] < 2) degrees[i] = 2;
 
       while(elementsCount < degrees[i]*degrees[i] && degrees[i] > 2) //bo potem wykonujemy n^2 porownan miedzy split pointami w node
@@ -390,14 +390,14 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree,size_t opt
 }
 
 void HClustGnatSingle::excludeRegions(HClustGnatSingleNode* node, vector<bool>& shouldVisit, vector<double>& distances, double minR, double& maxR)
-{   
+{
    for(size_t i=0;i<node->degree; ++i) //4. z artykulu
    {
       if(shouldVisit[i])
       {
          size_t pi = node->splitPoints[i];
          double dist = distances[i];//(*_distance)(pi, index);
-         
+
          //3. z artykulu
          for(size_t j=0; j<node->degree; ++j)
          {
@@ -453,24 +453,24 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
 #ifdef GENERATE_STATS
    ++stats.nodeVisit;
 #endif
-   
+
    if (node->sameCluster) {
       if (node->degree == SIZE_MAX) {
-         
+
          if (ds.find_set(_indices[node->left]) == clusterIndex) return;
       } else {
-         
+
          if (ds.find_set(node->splitPoints[0]) == clusterIndex) return; //@TODO: czy na pewno node->splitPointIndex? Jak to wyglada w pierwszym node?
       }
    }
    //@TODO: sprawdz, czy liczba elementow w nodzie nie jest za duza; 4 do 16 powinno byc najlepiej - i jeszcze lepiej dobrze tym sterowac jako jakims parametrem
-   
+
    if (node->degree == SIZE_MAX) // leaf
    {
-      
+
       if (node->sameCluster)
       {
-         
+
          for (size_t i=node->left; i<node->right; i++)
          {
             if (index >= _indices[i]) break; //they are sorted
@@ -490,11 +490,11 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       }
       else
       {
-         //if(node->left == node->right) return; //this is possible and this is nothing wrong. This node is needed, because it has split point. Of course, we could have them in node above...    
+         //if(node->left == node->right) return; //this is possible and this is nothing wrong. This node is needed, because it has split point. Of course, we could have them in node above...
          size_t commonCluster = ds.find_set(_indices[node->left]);
          for (size_t i=node->left; i<node->right; i++)
          {
-            size_t currentCluster = ds.find_set(_indices[i]);  
+            size_t currentCluster = ds.find_set(_indices[i]);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
             if (index >= _indices[i]) continue;
@@ -507,7 +507,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   }
                }
             }
-            
+
             heap.push( HeapNeighborItem(_indices[i], dist2) );
             if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
          }
@@ -517,8 +517,8 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       }
       return;
    }
-  
- 
+
+
    // else // not a leaf
    //1. z artykulu
    vector<bool> shouldVisit(node->degree, true);
@@ -544,7 +544,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                         heap.pop();
                      }
                   }
-                
+
                   heap.push( HeapNeighborItem(pi, dist) );
                   if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
                }
@@ -560,13 +560,13 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             shouldVisit[i] = false;
             //RCOUT("i= "<< i,6)
             //RCOUT("left= " << node->children[i]->left << " right= " << node->children[i]->right << " len= " << node->children[i]->right-node->children[i]->left,6);
-            continue;        
+            continue;
          }*/
-      
+
          for(size_t j=0; j<node->degree; ++j)
          {
             if(index > node->maxindex)
-              shouldVisit[j] = false; 
+              shouldVisit[j] = false;
          }
          //3. z artykulu
          for(size_t j=0; j<node->degree; ++j) // @TODO: use https://google-styleguide.googlecode.com/svn/trunk/cppguide.html -> for (x; y; z) { ---- but use 3 spaces
@@ -584,8 +584,8 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                      //shouldVisit[j] = false;
                      continue;
                   }
-                  int aaaaz=666666;
-                  RCOUT("distance not found for: " << endl,6) 
+                  // int aaaaz=666666;
+                  RCOUT("distance not found for: " << endl,6)
                   RCOUT("i= "<< i,6)
                   RCOUT("j= "<< j,6)
                   RCOUT("left= " << node->children[i]->left << " right= " << node->children[i]->right << " len= " << node->children[i]->right-node->children[i]->left,6);
@@ -632,13 +632,13 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
          }*/
          getNearestNeighborsFromMinRadiusRecursive(node->children[i], index, clusterIndex, minR, maxR, heap);
       }
-     /* 
+     /*
       if(i < node->degree - 1)
       {
          excludeRegions(node, shouldVisit, distances,  minR, maxR);
       }
       */
-      
+
    }
    //RCOUT("teraz robie rozna magie z same cluster", 11)
    if (node->sameCluster) return;
@@ -662,7 +662,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
       size_t currentCluster = ds.find_set(node->splitPoints[i]);
       if (currentCluster != commonCluster) return; // not ready yet
    }
-   
+
    for(size_t i=0; i<node->children.size(); ++i)
    {
       if(node->children[i])
