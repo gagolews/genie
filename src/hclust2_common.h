@@ -158,8 +158,41 @@ struct SortedPoint
    }
 };
 
+struct Point
+{
+   size_t i;
+   size_t j;
+
+   Point()
+      :i(0),j(0) {}
+
+   Point(size_t _i, size_t _j) {
+         i = _i;
+         j = _j;
+   }
+
+   inline bool operator==(const Point &other) const {
+      return (i == other.i && j == other.j);
+   }
+};
+
 } // namespace DataStructures
 
+
+namespace std
+{
+
+template <> struct hash<DataStructures::Point>
+{
+   std::size_t operator()(const DataStructures::Point& k) const {
+     std::size_t seed = 0;
+     boost::hash_combine(seed, k.i);
+     boost::hash_combine(seed, k.j);
+     return seed;
+   }
+};
+
+}
 
 namespace std
 {

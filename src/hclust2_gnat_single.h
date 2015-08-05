@@ -125,15 +125,17 @@ protected:
    HClustBiVpTreeStats stats;
    PhatDisjointSets ds;
 
-   unordered_map<SortedPoint, HClustGnatRange> splitPointsRanges;
+   unordered_map<Point, HClustGnatRange> splitPointsRanges; //to oznacza, ze dla Point(i,j) dostajemy range(p_i, D_pj), szczegoly w artykule, niesymetryczne!
 
    vector<size_t> chooseNewSplitPoints(size_t degree, size_t left, size_t right);
    vector<size_t> groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right);
-   HClustGnatSingleNode* buildFromPoints(size_t degree, size_t left, size_t right);
-   HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees);
-   vector<size_t> chooseDegrees(size_t degree, size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
+   HClustGnatSingleNode* buildFromPoints(size_t degree, size_t optdegree,  size_t left, size_t right);
+   HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t optdegree,  size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees);
+   vector<size_t> chooseDegrees(size_t degree, size_t optdegree,  size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
 
    void printIndices();
+   void excludeRegions(HClustGnatSingleNode* node, vector<bool>& shouldFind, vector<double>& distances, double minR, double& maxR);
+   size_t degreeDecreaser(size_t optdegree);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustGnatSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR,
