@@ -207,6 +207,17 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
          size_t tmpIndex = i + left + (size_t)(unif_rand()*(right-left-i));
          std::swap(_indices[tmpIndex], _indices[left+i]);
       }
+      for(size_t i=0; i<degree; ++i)
+         for(size_t j=0;j<degree; ++j)
+         {
+            if(i != j)
+            {
+               double d = (*_distance)(_indices[left+i], _indices[left+j]);
+               node->splitPointsRanges.emplace(Point(_indices[left+i], _indices[left+j]), HClustGnatRange(d,d));
+               node->splitPointsRanges.emplace(Point(_indices[left+j], _indices[left+i]), HClustGnatRange(d,d));
+            }
+            
+         }
       for (size_t i=0; i<degree; ++i) {
          node->splitPoints[i] = _indices[left+i];
       }
@@ -232,6 +243,7 @@ HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,
    for(size_t i=0;i<boundaries.size();i++)
          RCOUT("boundaries[" << i << "]=" << boundaries[i],15);
 #endif
+
    //printIndices();
    //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
    vector<size_t> degrees = chooseDegrees(degree, optdegree, left+degree, right-(left+degree), boundaries);
@@ -243,7 +255,8 @@ HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,
    //assert: splitPoints.size() == degree
    //assert: boundaries.size() == degree //zawiera same prawe granice
    node->maxindex = -1;
-   node->splitPoints = vector<size_t>(degree);
+   //node->splitPoints = vector<size_t>(degree);
+
    for(size_t i=0; i<degree; ++i)
    {
       childRight = boundaries[i];
