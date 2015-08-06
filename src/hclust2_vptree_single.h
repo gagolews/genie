@@ -82,7 +82,7 @@ class HClustBiVpTreeSingle
 {
 protected:
 
-   HClustBiVpTreeOptions opts;
+   HClustTreeOptions opts;
 
    HClustBiVpTreeSingleNode* _root;
    size_t _n;
@@ -95,7 +95,7 @@ protected:
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
-   HClustBiVpTreeStats stats;
+   HClustTreeStats stats;
 
    DisjointSets ds;
    std::priority_queue<HeapNeighborItem> heap;
@@ -109,7 +109,6 @@ protected:
 
    void print(HClustBiVpTreeSingleNode* n);
 
-
 public:
 
    HClustBiVpTreeSingle(Distance* dist, RObject control);
@@ -120,8 +119,8 @@ public:
 
    HeapNeighborItem getNearestNeighbor(size_t index);
 
-   inline const HClustBiVpTreeStats& getStats() { return stats; }
-   inline const HClustBiVpTreeOptions& getOptions() { return opts; }
+   inline const HClustTreeStats& getStats() { return stats; }
+   inline const HClustTreeOptions& getOptions() { return opts; }
 
 }; // class
 

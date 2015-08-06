@@ -23,7 +23,7 @@
 using namespace DataStructures;
 
 
-HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
+HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
    maxNNPrefetch  = DEFAULT_MAX_NN_PREFETCH;
    vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
@@ -122,7 +122,7 @@ HClustBiVpTreeOptions::HClustBiVpTreeOptions(Rcpp::RObject control) {
 }
 
 
-Rcpp::NumericVector HClustBiVpTreeOptions::toR() const
+Rcpp::NumericVector HClustTreeOptions::toR() const
 {
    return Rcpp::NumericVector::create(
       Rcpp::_["maxLeavesElems"] = maxLeavesElems,
@@ -135,10 +135,10 @@ Rcpp::NumericVector HClustBiVpTreeOptions::toR() const
 }
 
 
-HClustBiVpTreeStats::HClustBiVpTreeStats() :
+HClustTreeStats::HClustTreeStats() :
    nodeCount(0), leafCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
 
-HClustBiVpTreeStats::~HClustBiVpTreeStats() {
+HClustTreeStats::~HClustTreeStats() {
    #if VERBOSE > 0
    Rprintf("             vp-tree: nodeCount=%.0f, leafCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f\n",
       (double)nodeCount, (double)leafCount, (double)nodeVisit, (double)nnCals, (double)nnCount);
@@ -146,7 +146,7 @@ HClustBiVpTreeStats::~HClustBiVpTreeStats() {
 }
 
 
-Rcpp::NumericVector HClustBiVpTreeStats::toR() const {
+Rcpp::NumericVector HClustTreeStats::toR() const {
    return Rcpp::NumericVector::create(
       Rcpp::_["nodeCount"]
          = (nodeCount>0)?(double)nodeCount:NA_REAL,

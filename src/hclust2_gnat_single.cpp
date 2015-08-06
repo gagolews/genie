@@ -37,7 +37,7 @@ HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
    shouldFind(vector<bool>(dist->getObjectCount(), true)),
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
 #ifdef GENERATE_STATS
-   stats(HClustBiVpTreeStats()),
+   stats(HClustTreeStats()),
 #endif
    ds(dist->getObjectCount())
 {
@@ -46,11 +46,12 @@ HClustGnatSingle::HClustGnatSingle(Distance* dist, RObject control) :
 #endif
 
    // starting _indices: random permutation of {0,1,...,_n-1}
-   for(size_t i=0;i<_n;i++) _indices[i] = i;
-   for(size_t i=_n-1; i>= 1; i--)
+   for (size_t i=0;i<_n;i++) _indices[i] = i;
+   for (size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+#if VERBOSE > 11
    printIndices();
-
+#endif
    _root = buildFromPoints(opts.degree, opts.degree, 0, _n);
 }
 
@@ -64,168 +65,168 @@ HClustGnatSingle::~HClustGnatSingle() {
 
 void HClustGnatSingle::printIndices()
 {
-#if VERBOSE > 11
    for(size_t i=0;i<_indices.size();++i)
       Rcout << _indices[i] << ", ";
    Rcout << endl;
-#endif
-   ;
 }
 
-vector<size_t> HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,  size_t degree, size_t left, size_t right)
+void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
+   size_t degree, size_t left, size_t right)
 {
-   //RCOUT("left= "<<left << " right= " << right,15)
-   const size_t candidatesTimes = opts.candidatesTimes;
-
-   vector<size_t> splitPoints(degree); // @TODO: uzyc jednej wspoldzielonej tablicy, bedzie szybciej
-   if(right-left <= degree)
-   {
-      for(size_t i=0;i<right-left;++i)
+   node->splitPoints.resize(degree); // @TODO: uzyc jednej wspoldzielonej tablicy, bedzie szybciej
+#ifdef GNAT_DEBUG
+   if (right-left <= degree) stop("error in chooseNewSplitPoints()");
+#endif
+   
+   
+   if (opts.vpSelectScheme == 1) {
+      //RCOUT("left= "<<left << " right= " << right,15)
+      const size_t candidatesTimes = opts.candidatesTimes;
+      
+      //wybierz losowo podzbior candidatesTimes * degree punktow
+      size_t candidatesNumber = min(candidatesTimes*degree, right-left);
+      RCOUT("candidatesNumber= "<<candidatesNumber,11)
+      if (candidatesNumber > right-left)
       {
-         splitPoints[i] = _indices[left+i];
-      }
-      return splitPoints;
-   }
-   //wybierz losowo podzbior candidatesTimes * degree punktow
-   size_t candidatesNumber = min(candidatesTimes*degree, right-left);
-   RCOUT("candidatesNumber= "<<candidatesNumber,11)
-   if(candidatesNumber > right-left)
-   {
-      for(size_t i=0;i<candidatesNumber;++i)
-      {
-         size_t tmpIndex = i + left + (size_t)(unif_rand()*(right-left-i));
-         size_t tmp = _indices[tmpIndex];
-         _indices[tmpIndex] = _indices[left+i];
-         _indices[left+i] = tmp;
-      }
-   }
-   //wybierz z tego podzbioru punkt
-   size_t tmpIndex = (size_t)(unif_rand()*(candidatesNumber));
-   //size_t tmp = _indices[tmpIndex];
-   //_indices[tmpIndex] = _indices[left+0];
-   //_indices[left+0] = tmp;
-   RCOUT("tmpIndex = " << tmpIndex,15)
-   size_t lastAddedSplitPoint = splitPoints[0] = tmpIndex;
-   RCOUT("indices[tmpIndex] = " << _indices[left+tmpIndex],15)
-   vector<vector<double>> dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
-   for(size_t i = 0; i<degree-1; ++i)
-      dynamicProgrammingTable[i] = vector<double>(candidatesNumber); // @TODO: nie szybciej stworzyc jedna dluga tablice (degree-1)*candidatesNum? najlepiej wspoldzielona?
-   unordered_map<Point, HClustGnatRange> splitPointsRanges_small;
-   //znajdz jego najdalszego sasiada
-   for(size_t i = 0; i<degree-1; ++i)
-   {
-      //znajdz kolejnego najdalszego do tych dwoch (minimum z dwoch dystansow musi byc najwieksze)
-      //zrob  to z uzyciem programowania dynamicznego w O(nm), n-liczba kandydatow(candidatesTimes * degree), m-degree
-      for(size_t j = 0; j<candidatesNumber; ++j)
-      {
-         if(j == lastAddedSplitPoint)
+         for (size_t i=0;i<candidatesNumber;++i) // permute
          {
-            dynamicProgrammingTable[i][j] = 0;
-            continue;
+            size_t tmpIndex = i + left + (size_t)(unif_rand()*(right-left-i));
+            std::swap(_indices[tmpIndex], _indices[left+i]);
          }
-         RCOUT("licze odleglosc miedzy " << _indices[left+lastAddedSplitPoint]<< " a " << _indices[left+j], 11)
-         double d = (*_distance)(_indices[left+lastAddedSplitPoint], _indices[left+j]);
-         splitPointsRanges_small.emplace(Point(_indices[left+lastAddedSplitPoint], _indices[left+j]), HClustGnatRange(d,d));
-         splitPointsRanges_small.emplace(Point(_indices[left+j], _indices[left+lastAddedSplitPoint]), HClustGnatRange(d,d));
-         if(i > 0)
+      }
+      //wybierz z tego podzbioru punkt
+      size_t tmpIndex = (size_t)(unif_rand()*(candidatesNumber));
+      size_t lastAddedSplitPoint = node->splitPoints[0] = tmpIndex;
+      vector< vector<double> > dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
+      for(size_t i = 0; i<degree-1; ++i)
+         dynamicProgrammingTable[i].resize(candidatesNumber); // @TODO: nie szybciej stworzyc jedna dluga tablice (degree-1)*candidatesNum? najlepiej wspoldzielona?
+      
+      unordered_map<Point, HClustGnatRange> splitPointsRanges_small;
+      //znajdz jego najdalszego sasiada
+      for(size_t i = 0; i<degree-1; ++i)
+      {
+         //znajdz kolejnego najdalszego do tych dwoch (minimum z dwoch dystansow musi byc najwieksze)
+         //zrob  to z uzyciem programowania dynamicznego w O(nm), n-liczba kandydatow(candidatesTimes * degree), m-degree
+         for(size_t j = 0; j<candidatesNumber; ++j)
          {
-            dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], d);
+            if(j == lastAddedSplitPoint)
+            {
+               dynamicProgrammingTable[i][j] = 0;
+               continue;
+            }
+            RCOUT("licze odleglosc miedzy " << _indices[left+lastAddedSplitPoint]<< " a " << _indices[left+j], 11)
+            double d = (*_distance)(_indices[left+lastAddedSplitPoint], _indices[left+j]);
+            splitPointsRanges_small.emplace(Point(_indices[left+lastAddedSplitPoint], _indices[left+j]), HClustGnatRange(d,d));
+            splitPointsRanges_small.emplace(Point(_indices[left+j], _indices[left+lastAddedSplitPoint]), HClustGnatRange(d,d));
+            if(i > 0)
+            {
+               dynamicProgrammingTable[i][j] = min(dynamicProgrammingTable[i-1][j], d);
+            }
+            else
+            {
+               dynamicProgrammingTable[i][j] = d;
+            }
+         }
+         size_t maxIndex = 0;
+         double maxDist = dynamicProgrammingTable[i][0];
+         //Rcout <<"dynamicProgrammingTable["<<i<<"][0]=" <<maxDist << endl;
+         for(size_t j = 1; j<candidatesNumber; ++j)
+         {
+            //Rcout <<"dynamicProgrammingTable["<<i<<"]["<<j<<"]=" <<dynamicProgrammingTable[i][j] << endl;
+            if(dynamicProgrammingTable[i][j] > maxDist)
+            {
+               maxIndex = j;
+               maxDist = dynamicProgrammingTable[i][j];
+               //Rcout << "chosen " <<_indices[left+maxIndex] << " i.e. " << maxIndex<< "with distance" <<maxDist << endl;
+            }
+         }
+         //size_t tmp = _indices[left+maxIndex];
+         //_indices[left+maxIndex] = _indices[left+i];
+         //_indices[left+i] = tmp;
+         lastAddedSplitPoint = node->splitPoints[i+1] = maxIndex;
+      }
+
+   #if VERBOSE > 15
+      Rcout << "gole indeksy" << endl;
+      for(size_t i = 0; i < node->splitPoints.size(); ++i)
+      {
+         Rcout << node->splitPoints[i]  <<" ";
+      }
+      Rcout << endl;
+
+      Rcout << "indeksy punktow" << endl;
+      for(size_t i = 0; i < node->splitPoints.size(); ++i)
+      {
+         Rcout << _indices[left+node->splitPoints[i]]  <<" ";
+      }
+      Rcout << endl;
+   #endif
+
+      vector<bool> canSwap(node->splitPoints.size(), true);
+      std::sort(node->splitPoints.begin(), node->splitPoints.end());
+      int index = 0;
+      for (size_t i = 0; i < node->splitPoints.size(); ++i)
+      {
+         if (node->splitPoints[i] < degree)
+         {
+
+            canSwap[node->splitPoints[i]] = false;
+            size_t tmp = _indices[left+node->splitPoints[i]];
+            RCOUT("zostawie" << tmp << " na indeksie "<< node->splitPoints[i], 15)
+            node->splitPoints[i] = tmp;
+
          }
          else
          {
-            dynamicProgrammingTable[i][j] = d;
+            while(!canSwap[index]) index++;
+            size_t tmp = _indices[left+node->splitPoints[i]];
+            RCOUT("wstawie" << tmp << " na indeksie "<< left+index,15)
+            _indices[left+node->splitPoints[i]] = _indices[left+index];
+            _indices[left+index] = tmp;
+            node->splitPoints[i] = tmp;
+            index++;
          }
       }
-      size_t maxIndex = 0;
-      double maxDist = dynamicProgrammingTable[i][0];
-      //Rcout <<"dynamicProgrammingTable["<<i<<"][0]=" <<maxDist << endl;
-      for(size_t j = 1; j<candidatesNumber; ++j)
+
+      for (auto iter = splitPointsRanges_small.begin(); iter != splitPointsRanges_small.end();iter++)
       {
-         //Rcout <<"dynamicProgrammingTable["<<i<<"]["<<j<<"]=" <<dynamicProgrammingTable[i][j] << endl;
-         if(dynamicProgrammingTable[i][j] > maxDist)
+         //Rcout << "rozwazam " << iter->first.i << " i " << iter->first.j <<endl;
+         if (find(node->splitPoints.begin(), node->splitPoints.end(), iter->first.i) != node->splitPoints.end() &&
+               find(node->splitPoints.begin(), node->splitPoints.end(), iter->first.j) != node->splitPoints.end()) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
          {
-            maxIndex = j;
-            maxDist = dynamicProgrammingTable[i][j];
-            //Rcout << "chosen " <<_indices[left+maxIndex] << " i.e. " << maxIndex<< "with distance" <<maxDist << endl;
+            //Rcout << "wrzucam dla " << iter->first.i << " i " << iter->first.j <<endl;
+            node->splitPointsRanges.insert(*iter);
+            //splitPointsRanges.insert(*iter);
          }
       }
-      //size_t tmp = _indices[left+maxIndex];
-      //_indices[left+maxIndex] = _indices[left+i];
-      //_indices[left+i] = tmp;
-      lastAddedSplitPoint = splitPoints[i+1] = maxIndex;
    }
-
-#if VERBOSE > 15
-   Rcout << "gole indeksy" << endl;
-   for(size_t i = 0; i < splitPoints.size(); ++i)
-   {
-      Rcout << splitPoints[i]  <<" ";
-   }
-   Rcout << endl;
-
-   Rcout << "indeksy punktow" << endl;
-   for(size_t i = 0; i < splitPoints.size(); ++i)
-   {
-      Rcout << _indices[left+splitPoints[i]]  <<" ";
-   }
-   Rcout << endl;
-#endif
-
-   vector<bool> canSwap(splitPoints.size(), true);
-   sort(splitPoints.begin(), splitPoints.end());
-   int index = 0;
-   for(size_t i = 0; i < splitPoints.size(); ++i)
-   {
-      if(splitPoints[i] < degree)
+   else { // choose split points at random
+      for (size_t i=0; i<degree; ++i) // permute
       {
-
-         canSwap[splitPoints[i]] = false;
-         size_t tmp = _indices[left+splitPoints[i]];
-         RCOUT("zostawie" << tmp << " na indeksie "<< splitPoints[i], 15)
-         splitPoints[i] = tmp;
-
+         size_t tmpIndex = i + left + (size_t)(unif_rand()*(right-left-i));
+         std::swap(_indices[tmpIndex], _indices[left+i]);
       }
-      else
-      {
-         while(!canSwap[index]) index++;
-         size_t tmp = _indices[left+splitPoints[i]];
-         RCOUT("wstawie" << tmp << " na indeksie "<< left+index,15)
-         _indices[left+splitPoints[i]] = _indices[left+index];
-         _indices[left+index] = tmp;
-         splitPoints[i] = tmp;
-         index++;
+      for (size_t i=0; i<degree; ++i) {
+         node->splitPoints[i] = _indices[left+i];
       }
    }
-
-   for(auto iter = splitPointsRanges_small.begin(); iter != splitPointsRanges_small.end();iter++)
-   {
-      //Rcout << "rozwazam " << iter->first.i << " i " << iter->first.j <<endl;
-      if(find(splitPoints.begin(), splitPoints.end(), iter->first.i) != splitPoints.end() &&
-            find(splitPoints.begin(), splitPoints.end(), iter->first.j) != splitPoints.end()) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
-      {
-         //Rcout << "wrzucam dla " << iter->first.i << " i " << iter->first.j <<endl;
-         node->splitPointsRanges.insert(*iter);
-         //splitPointsRanges.insert(*iter);
-      }
-   }
-
-   return splitPoints;
 }
 
-HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,size_t optdegree,  size_t left, size_t right)
+HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,
+   size_t optdegree, size_t left, size_t right)
 {
    //Rcout << "split points" << endl;
    HClustGnatSingleNode* node = new HClustGnatSingleNode();
-   vector<size_t> splitPoints = chooseNewSplitPoints(node, degree, left, right); //@TODO: szybciej bedzie uzyc jednej, wspoldzielonej tablicy (private class member)
+   chooseNewSplitPoints(node, degree, left, right); //@TODO: szybciej bedzie uzyc jednej, wspoldzielonej tablicy (private class member)
 #if VERBOSE > 15
-   for(size_t i=0;i<splitPoints.size();i++)
+   for(size_t i=0;i<node->splitPoints.size();i++)
    {
-      RCOUT("splitpoint[" << i << "]=" << splitPoints[i], 15)
+      RCOUT("splitpoint[" << i << "]=" << node->splitPoints[i], 15)
    }
 #endif
    //Rcout << "boundaries" << endl;
    //printIndices();
-   vector<size_t> boundaries = groupPointsToSplitPoints(node, splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
+   vector<size_t> boundaries = groupPointsToSplitPoints(node, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
 #if VERBOSE > 15
    for(size_t i=0;i<boundaries.size();i++)
          RCOUT("boundaries[" << i << "]=" << boundaries[i],15);
@@ -256,28 +257,25 @@ HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,size_t o
             node->maxindex = child->maxindex;
          }
        }
-
-      //child->splitPointIndex = splitPoints[i];
-      node->splitPoints[i] = splitPoints[i];
       childLeft = childRight;
    }
 
    return node;
 }
 
-vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *node, const vector<size_t>& splitPoints, size_t left, size_t right)
+vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *node, size_t left, size_t right)
 {
-   vector<vector<size_t>> groups(splitPoints.size());
-   vector<size_t> boundaries(splitPoints.size());
-   vector<double> distances(splitPoints.size());
-   for(size_t i=left+splitPoints.size();i<right;++i)
+   vector<vector<size_t>> groups(node->splitPoints.size());
+   vector<size_t> boundaries(node->splitPoints.size());
+   vector<double> distances(node->splitPoints.size());
+   for(size_t i=left+node->splitPoints.size();i<right;++i)
    {
       size_t mySplitPointIndex = 0;
-      double mySplitPointDistance = (*_distance)(splitPoints[0], _indices[i]);
+      double mySplitPointDistance = (*_distance)(node->splitPoints[0], _indices[i]);
       distances[0] = mySplitPointDistance;
-      for(size_t j=1;j<splitPoints.size();++j)
+      for(size_t j=1;j<node->splitPoints.size();++j)
       {
-         double d = (*_distance)(splitPoints[j], _indices[i]);
+         double d = (*_distance)(node->splitPoints[j], _indices[i]);
          distances[j] = d;
          if(d < mySplitPointDistance)
          {
@@ -287,14 +285,14 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *
       }
       groups[mySplitPointIndex].push_back(_indices[i]);
 
-      for(size_t j=0;j<splitPoints.size();++j)
+      for(size_t j=0;j<node->splitPoints.size();++j)
       {
          if(mySplitPointIndex == j)
             continue;
 #if VERBOSE > 11
-         Rcout << "szukam/wstawiam dla " <<  splitPoints[mySplitPointIndex] << " i " << splitPoints[j] << endl;
+         Rcout << "szukam/wstawiam dla " <<  node->splitPoints[mySplitPointIndex] << " i " << node->splitPoints[j] << endl;
 #endif
-         auto rangeIterator = node->splitPointsRanges.find(Point(splitPoints[j], splitPoints[mySplitPointIndex]));
+         auto rangeIterator = node->splitPointsRanges.find(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]));
          if(rangeIterator != node->splitPointsRanges.end())
          {
             if(distances[j] < rangeIterator->second.min)
@@ -308,20 +306,20 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *
          }
          else
          {
-            node->splitPointsRanges.emplace(Point(splitPoints[j], splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
+            node->splitPointsRanges.emplace(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
          }
       }
    }
    size_t cumsum = 0;
-   for(size_t i = 0; i < splitPoints.size(); ++i)
+   for(size_t i = 0; i < node->splitPoints.size(); ++i)
    {
       for(size_t j = 0; j < groups[i].size(); ++j)
       {
-         _indices[left+splitPoints.size()+cumsum+j] = groups[i][j];
+         _indices[left+node->splitPoints.size()+cumsum+j] = groups[i][j];
       }
       cumsum += groups[i].size();
       //Rcout << "cumsum =" <<cumsum << endl;
-      boundaries[i] = left+splitPoints.size()+cumsum;
+      boundaries[i] = left+node->splitPoints.size()+cumsum;
       //Rcout << "boundaries[i] =" << boundaries[i] << endl;
    }
    return boundaries;
@@ -371,7 +369,9 @@ vector<size_t> HClustGnatSingle::chooseDegrees(size_t degree, size_t optdegree, 
    return degrees;*/
 }
 
-HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree,size_t optdegree, size_t left, size_t right)
+
+HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree,
+   size_t optdegree, size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
       ++stats.nodeCount;
@@ -383,7 +383,7 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree,size_t opt
       ++stats.leafCount;
    #endif
       RCOUT("tworze leaf, left= " <<left << " right= " <<right<<" length= "<<right-left,13)
-      HClustGnatSingleNode * leaf = new HClustGnatSingleNode(left, right);
+      HClustGnatSingleNode* leaf = new HClustGnatSingleNode(left, right);
       std::sort(_indices.begin()+left, _indices.begin()+right, comparer_gt);
       leaf->maxindex = _indices[left];
       return leaf;
@@ -588,6 +588,8 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   }
                   // int aaaaz=666666;
                   RCOUT("distance not found for: " << endl,6)
+                  RCOUT("pi= "<< pi,6)
+                  RCOUT("pj= "<< pj,6)
                   RCOUT("i= "<< i,6)
                   RCOUT("j= "<< j,6)
                   RCOUT("left= " << node->children[i]->left << " right= " << node->children[i]->right << " len= " << node->children[i]->right-node->children[i]->left,6);

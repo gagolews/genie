@@ -102,25 +102,25 @@ struct IndexComparator
 
 inline bool comparer_gt(size_t i, size_t j) { return (i>j); }
 
-struct HClustBiVpTreeOptions
+struct HClustTreeOptions
 {
-   size_t degree;         // for GNAT
-   size_t candidatesTimes;//for GNAT
-   size_t minDegree;         // for GNAT
-   size_t maxDegree;         // for GNAT
-   size_t maxTimesDegree;         // for GNAT
+   size_t degree;           // for GNAT
+   size_t candidatesTimes;  // for GNAT
+   size_t minDegree;        // for GNAT
+   size_t maxDegree;        // for GNAT
+   size_t maxTimesDegree;   // for GNAT
    size_t maxLeavesElems;
-   size_t maxNNPrefetch;
-   size_t vpSelectScheme;
-   size_t vpSelectCand;   // for vpSelectScheme == 1
-   size_t vpSelectTest;   // for vpSelectScheme == 1
+   size_t maxNNPrefetch;    // general
+   size_t vpSelectScheme;   // vp-tree and GNAT
+   size_t vpSelectCand;     // for vpSelectScheme == 1
+   size_t vpSelectTest;     // for vpSelectScheme == 1
 
-   HClustBiVpTreeOptions(Rcpp::RObject control);
+   HClustTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
 };
 
 
-struct HClustBiVpTreeStats
+struct HClustTreeStats
 {
    size_t nodeCount; // how many nodes are there in the tree
    size_t leafCount; // how many leaves
@@ -128,8 +128,8 @@ struct HClustBiVpTreeStats
    size_t nnCals;    // how many times NN search job was launched
    size_t nnCount;   // how many NNs were obtained in overall
 
-   HClustBiVpTreeStats();
-   ~HClustBiVpTreeStats();
+   HClustTreeStats();
+   ~HClustTreeStats();
    Rcpp::NumericVector toR() const;
 };
 
@@ -158,13 +158,14 @@ struct SortedPoint
    }
 };
 
+
 struct Point
 {
    size_t i;
    size_t j;
 
    Point()
-      :i(0),j(0) {}
+      : i(0),j(0) {}
 
    Point(size_t _i, size_t _j) {
          i = _i;
@@ -191,11 +192,6 @@ template <> struct hash<DataStructures::Point>
      return seed;
    }
 };
-
-}
-
-namespace std
-{
 
 template <> struct hash<DataStructures::SortedPoint>
 {

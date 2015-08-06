@@ -21,7 +21,7 @@
 #ifndef __HCLUST2_GNAT_SINGLE_H
 #define __HCLUST2_GNAT_SINGLE_H
 
-
+#define GNAT_DEBUG
 
 
 // ************************************************************************
@@ -55,16 +55,12 @@ struct HClustGnatRange
 {
    double min;
    double max;
+
    HClustGnatRange()
-      : min(-INFINITY), max(INFINITY)
-   {
+      : min(-INFINITY), max(INFINITY)   {   }
 
-   }
    HClustGnatRange(double min, double max)
-      : min(min), max(max)
-   {
-
-   }
+      : min(min), max(max)   {   }
 };
 
 struct HClustGnatSingleNode
@@ -73,11 +69,11 @@ struct HClustGnatSingleNode
    //size_t splitPointIndex;
    size_t left;
    size_t right;
-   size_t degree;
+   size_t degree; // splitPoints.size; ==0 => leaf
    size_t maxindex;
    bool sameCluster;
    vector<HClustGnatSingleNode *> children;
-   unordered_map<Point, HClustGnatRange> splitPointsRanges; 
+   unordered_map<Point, HClustGnatRange> splitPointsRanges;
 
    HClustGnatSingleNode() :
       left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
@@ -95,9 +91,9 @@ struct HClustGnatSingleNode
       }
 
    ~HClustGnatSingleNode() {
-      for(size_t i = 0; i<children.size(); ++i)
+      for (size_t i = 0; i<children.size(); ++i)
       {
-         if(children[i]) //it should always be true
+         if (children[i]) //it should always be true
             delete children[i];
       }
    }
@@ -107,7 +103,7 @@ class HClustGnatSingle
 {
 protected:
 
-   HClustBiVpTreeOptions opts;
+   HClustTreeOptions opts;
 
    HClustGnatSingleNode* _root;
    size_t _n;
@@ -123,13 +119,13 @@ protected:
    std::map<size_t,size_t> rank;
    std::map<size_t,size_t> parent;
 
-   HClustBiVpTreeStats stats;
+   HClustTreeStats stats;
    PhatDisjointSets ds;
 
-   unordered_map<Point, HClustGnatRange> splitPointsRanges; //to oznacza, ze dla Point(i,j) dostajemy range(p_i, D_pj), szczegoly w artykule, niesymetryczne!
+   // unordered_map<Point, HClustGnatRange> splitPointsRanges; //to oznacza, ze dla Point(i,j) dostajemy range(p_i, D_pj), szczegoly w artykule, niesymetryczne!
 
-   vector<size_t> chooseNewSplitPoints(HClustGnatSingleNode *node, size_t degree, size_t left, size_t right); 
-   vector<size_t> groupPointsToSplitPoints(HClustGnatSingleNode *node, const vector<size_t>& splitPoints, size_t left, size_t right);
+   void chooseNewSplitPoints(HClustGnatSingleNode *node, size_t degree, size_t left, size_t right);
+   vector<size_t> groupPointsToSplitPoints(HClustGnatSingleNode *node, size_t left, size_t right);
    HClustGnatSingleNode* buildFromPoints(size_t degree, size_t optdegree,  size_t left, size_t right);
    HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t optdegree,  size_t left, size_t right);
    vector<size_t> chooseDegrees(size_t degree, size_t optdegree,  size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
@@ -153,8 +149,8 @@ public:
 
    HeapNeighborItem getNearestNeighbor(size_t index);
 
-   inline const HClustBiVpTreeStats& getStats() { return stats; }
-   inline const HClustBiVpTreeOptions& getOptions() { return opts; }
+   inline const HClustTreeStats& getStats() { return stats; }
+   inline const HClustTreeOptions& getOptions() { return opts; }
 
 }; // class
 

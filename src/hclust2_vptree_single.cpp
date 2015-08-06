@@ -47,7 +47,7 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
    shouldFind(vector<bool>(dist->getObjectCount(), true)),
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
 #ifdef GENERATE_STATS
-   stats(HClustBiVpTreeStats()),
+   stats(HClustTreeStats()),
 #endif
    ds(dist->getObjectCount()),
    heap(std::priority_queue<HeapNeighborItem>())
