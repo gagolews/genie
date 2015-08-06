@@ -77,6 +77,7 @@ struct HClustGnatSingleNode
    size_t maxindex;
    bool sameCluster;
    vector<HClustGnatSingleNode *> children;
+   unordered_map<Point, HClustGnatRange> splitPointsRanges; 
 
    HClustGnatSingleNode() :
       left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
@@ -127,10 +128,10 @@ protected:
 
    unordered_map<Point, HClustGnatRange> splitPointsRanges; //to oznacza, ze dla Point(i,j) dostajemy range(p_i, D_pj), szczegoly w artykule, niesymetryczne!
 
-   vector<size_t> chooseNewSplitPoints(size_t degree, size_t left, size_t right);
-   vector<size_t> groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right);
+   vector<size_t> chooseNewSplitPoints(HClustGnatSingleNode *node, size_t degree, size_t left, size_t right); 
+   vector<size_t> groupPointsToSplitPoints(HClustGnatSingleNode *node, const vector<size_t>& splitPoints, size_t left, size_t right);
    HClustGnatSingleNode* buildFromPoints(size_t degree, size_t optdegree,  size_t left, size_t right);
-   HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t optdegree,  size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees);
+   HClustGnatSingleNode* createNonLeafNode(size_t degree, size_t optdegree,  size_t left, size_t right);
    vector<size_t> chooseDegrees(size_t degree, size_t optdegree,  size_t left, size_t allPointsCount, const vector<size_t>& boundaries);
 
    void printIndices();

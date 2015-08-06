@@ -72,7 +72,7 @@ void HClustGnatSingle::printIndices()
    ;
 }
 
-vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left, size_t right)
+vector<size_t> HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,  size_t degree, size_t left, size_t right)
 {
    //RCOUT("left= "<<left << " right= " << right,15)
    const size_t candidatesTimes = opts.candidatesTimes;
@@ -204,16 +204,36 @@ vector<size_t> HClustGnatSingle::chooseNewSplitPoints(size_t degree, size_t left
             find(splitPoints.begin(), splitPoints.end(), iter->first.j) != splitPoints.end()) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
       {
          //Rcout << "wrzucam dla " << iter->first.i << " i " << iter->first.j <<endl;
-         splitPointsRanges.insert(*iter);
+         node->splitPointsRanges.insert(*iter);
+         //splitPointsRanges.insert(*iter);
       }
    }
 
    return splitPoints;
 }
 
-HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,size_t optdegree,  size_t left, size_t right,const vector<size_t>& splitPoints, const vector<size_t>& boundaries, const vector<size_t>& degrees)
+HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,size_t optdegree,  size_t left, size_t right)
 {
+   //Rcout << "split points" << endl;
    HClustGnatSingleNode* node = new HClustGnatSingleNode();
+   vector<size_t> splitPoints = chooseNewSplitPoints(node, degree, left, right); //@TODO: szybciej bedzie uzyc jednej, wspoldzielonej tablicy (private class member)
+#if VERBOSE > 15
+   for(size_t i=0;i<splitPoints.size();i++)
+   {
+      RCOUT("splitpoint[" << i << "]=" << splitPoints[i], 15)
+   }
+#endif
+   //Rcout << "boundaries" << endl;
+   //printIndices();
+   vector<size_t> boundaries = groupPointsToSplitPoints(node, splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
+#if VERBOSE > 15
+   for(size_t i=0;i<boundaries.size();i++)
+         RCOUT("boundaries[" << i << "]=" << boundaries[i],15);
+#endif
+   //printIndices();
+   //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
+   vector<size_t> degrees = chooseDegrees(degree, optdegree, left+degree, right-(left+degree), boundaries);
+   //Rcout << "tworze nonleaf" << endl;
    node->degree = degree;
    node->children = vector<HClustGnatSingleNode*>(degree);
    size_t childLeft = left+degree;
@@ -245,7 +265,7 @@ HClustGnatSingleNode* HClustGnatSingle::createNonLeafNode(size_t degree,size_t o
    return node;
 }
 
-vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& splitPoints, size_t left, size_t right)
+vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *node, const vector<size_t>& splitPoints, size_t left, size_t right)
 {
    vector<vector<size_t>> groups(splitPoints.size());
    vector<size_t> boundaries(splitPoints.size());
@@ -274,8 +294,8 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& 
 #if VERBOSE > 11
          Rcout << "szukam/wstawiam dla " <<  splitPoints[mySplitPointIndex] << " i " << splitPoints[j] << endl;
 #endif
-         auto rangeIterator = splitPointsRanges.find(Point(splitPoints[j], splitPoints[mySplitPointIndex]));
-         if(rangeIterator != splitPointsRanges.end())
+         auto rangeIterator = node->splitPointsRanges.find(Point(splitPoints[j], splitPoints[mySplitPointIndex]));
+         if(rangeIterator != node->splitPointsRanges.end())
          {
             if(distances[j] < rangeIterator->second.min)
             {
@@ -288,14 +308,14 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(const vector<size_t>& 
          }
          else
          {
-            splitPointsRanges.emplace(Point(splitPoints[j], splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
+            node->splitPointsRanges.emplace(Point(splitPoints[j], splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
          }
       }
    }
    size_t cumsum = 0;
-   for(size_t i = 0; i<splitPoints.size(); ++i)
+   for(size_t i = 0; i < splitPoints.size(); ++i)
    {
-      for(size_t j = 0; j<groups[i].size(); ++j)
+      for(size_t j = 0; j < groups[i].size(); ++j)
       {
          _indices[left+splitPoints.size()+cumsum+j] = groups[i][j];
       }
@@ -367,26 +387,7 @@ HClustGnatSingleNode* HClustGnatSingle::buildFromPoints(size_t degree,size_t opt
       leaf->maxindex = _indices[left];
       return leaf;
    }
-   //Rcout << "split points" << endl;
-   vector<size_t> splitPoints = chooseNewSplitPoints(degree, left, right); //@TODO: szybciej bedzie uzyc jednej, wspoldzielonej tablicy (private class member)
-#if VERBOSE > 15
-   for(size_t i=0;i<splitPoints.size();i++)
-   {
-      RCOUT("splitpoint[" << i << "]=" << splitPoints[i], 15)
-   }
-#endif
-   //Rcout << "boundaries" << endl;
-   //printIndices();
-   vector<size_t> boundaries = groupPointsToSplitPoints(splitPoints, left, right); //@TODO: dobrze sie zastanowic, gdzie umieszczamy split pointy, aby nie szly w dol, gdzie sa granice!
-#if VERBOSE > 15
-   for(size_t i=0;i<boundaries.size();i++)
-         RCOUT("boundaries[" << i << "]=" << boundaries[i],15);
-#endif
-   //printIndices();
-   //@TODO: wybierac degree dziecka, zeby sie roznilo od degree aktualnego, jest w artykule
-   vector<size_t> degrees = chooseDegrees(degree, optdegree, left+degree, right-(left+degree), boundaries);
-   //Rcout << "tworze nonleaf" << endl;
-   return createNonLeafNode(degree, optdegree, left, right, splitPoints, boundaries, degrees);
+   return createNonLeafNode(degree, optdegree, left, right);
 }
 
 void HClustGnatSingle::excludeRegions(HClustGnatSingleNode* node, vector<bool>& shouldVisit, vector<double>& distances, double minR, double& maxR)
@@ -575,9 +576,9 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             {
                size_t pj = node->splitPoints[j];
                //Rcout << "i got splitPointIndex from pj" << endl;
-               auto rangeIterator = splitPointsRanges.find(Point(pi, pj));
+               auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
                //assert: rangeIterator != splitPointsRanges.end()
-               if(rangeIterator == splitPointsRanges.end())
+               if(rangeIterator == node->splitPointsRanges.end())
                {
                   if(!node->children[j])
                   {
