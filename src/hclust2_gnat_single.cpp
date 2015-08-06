@@ -153,6 +153,7 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
          Rcout << node->splitPoints[i]  <<" ";
       }
       Rcout << endl;
+      
 
       Rcout << "indeksy punktow" << endl;
       for(size_t i = 0; i < node->splitPoints.size(); ++i)
