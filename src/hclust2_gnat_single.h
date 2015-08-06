@@ -121,6 +121,7 @@ protected:
 
    HClustTreeStats stats;
    PhatDisjointSets ds;
+   bool prefetch;
 
    // unordered_map<Point, HClustGnatRange> splitPointsRanges; //to oznacza, ze dla Point(i,j) dostajemy range(p_i, D_pj), szczegoly w artykule, niesymetryczne!
 
