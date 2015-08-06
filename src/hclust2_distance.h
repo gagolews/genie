@@ -89,6 +89,26 @@ struct DistanceStats
       hashmapHit(0), hashmapMiss(0), distCallCount(0),
       distCallTheoretical(n*(n-1)/2) {}
 
+   void showStats() const
+   {
+   #if VERBOSE > 0
+   #if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
+      Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
+         (double)hashmapHit, (double)hashmapMiss,
+         8.0f*hashmapMiss/1000.0f/1000.0f,
+         8.0f*distCallTheoretical/1000.0f/1000.0f);
+   #endif
+   #if defined(GENERATE_STATS)
+      Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
+         (double)distCallCount,
+         (double)distCallCount*100.0/(double)distCallTheoretical,
+         (double)distCallTheoretical
+      );
+   #endif
+   #endif
+
+   }
+
    ~DistanceStats() {
    #if VERBOSE > 0
    #if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)

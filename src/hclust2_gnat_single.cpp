@@ -194,11 +194,21 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
       for (auto iter = splitPointsRanges_small.begin(); iter != splitPointsRanges_small.end();iter++)
       {
          //Rcout << "rozwazam " << iter->first.i << " i " << iter->first.j <<endl;
-         if (find(node->splitPoints.begin(), node->splitPoints.end(), iter->first.i) != node->splitPoints.end() &&
-               find(node->splitPoints.begin(), node->splitPoints.end(), iter->first.j) != node->splitPoints.end()) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
+         size_t index1=-1, index2=-1;
+         for(size_t ii = 0; ii < node->splitPoints.size(); ++ii)
+         {
+            if(node->splitPoints[ii] == iter->first.i)
+              index1 = ii;
+            if(node->splitPoints[ii] == iter->first.j)
+             index2 = ii; 
+         }
+
+         if (index1 != -1 && index2 != -1) //mamy taki wpis, ze jest to odleglosc miedzy rzeczywiscie wybranymi split pointami
          {
             //Rcout << "wrzucam dla " << iter->first.i << " i " << iter->first.j <<endl;
-            node->splitPointsRanges.insert(*iter);
+            //stop("not implemented yet! contact Maciej!");
+            node->splitPointsRanges(index1, index2) = iter->second; //wstawialismy dwa razy u gory, wiec tu raz
+            //node->splitPointsRanges.insert(*iter);
             //splitPointsRanges.insert(*iter);
          }
       }
@@ -215,9 +225,10 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
             if(i != j)
             {
                double d = (*_distance)(_indices[left+i], _indices[left+j]);
-               node->splitPointsRanges(
-               node->splitPointsRanges.emplace(Point(_indices[left+i], _indices[left+j]), HClustGnatRange(d,d));
-               node->splitPointsRanges.emplace(Point(_indices[left+j], _indices[left+i]), HClustGnatRange(d,d));
+               node->splitPointsRanges(i,j) = HClustGnatRange(d,d);
+               node->splitPointsRanges(j,i) = HClustGnatRange(d,d);
+               //node->splitPointsRanges.emplace(Point(_indices[left+i], _indices[left+j]), HClustGnatRange(d,d));
+               //node->splitPointsRanges.emplace(Point(_indices[left+j], _indices[left+i]), HClustGnatRange(d,d));
             }
 
          }
@@ -309,21 +320,24 @@ vector<size_t> HClustGnatSingle::groupPointsToSplitPoints(HClustGnatSingleNode *
 #if VERBOSE > 11
          Rcout << "szukam/wstawiam dla " <<  node->splitPoints[mySplitPointIndex] << " i " << node->splitPoints[j] << endl;
 #endif
-         auto rangeIterator = node->splitPointsRanges.find(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]));
-         if(rangeIterator != node->splitPointsRanges.end())
+         //auto rangeIterator = node->splitPointsRanges.find(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]));
+         if(node->splitPointsRanges(j, mySplitPointIndex).min != -INFINITY)
+         //if(rangeIterator != node->splitPointsRanges.end())
          {
-            if(distances[j] < rangeIterator->second.min)
+            //if(distances[j] < rangeIterator->second.min)
+            if(distances[j] < node->splitPointsRanges(j, mySplitPointIndex).min)
             {
-               rangeIterator->second.min = distances[j];
+               node->splitPointsRanges(j, mySplitPointIndex).min = distances[j];
             }
-            if(distances[j] > rangeIterator->second.max)
+            if(distances[j] > node->splitPointsRanges(j, mySplitPointIndex).max )
             {
-               rangeIterator->second.max = distances[j];
+               node->splitPointsRanges(j, mySplitPointIndex).max = distances[j];
             }
          }
          else
          {
-            node->splitPointsRanges.emplace(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
+            node->splitPointsRanges(j, mySplitPointIndex) = HClustGnatRange(distances[j], distances[j]);
+            //node->splitPointsRanges.emplace(Point(node->splitPoints[j], node->splitPoints[mySplitPointIndex]), HClustGnatRange(distances[j], distances[j]));
          }
       }
    }
@@ -418,21 +432,26 @@ void HClustGnatSingle::excludeRegions(HClustGnatSingleNode* node, vector<bool>& 
          double dist = distances[i];//(*_distance)(pi, index);
 
          //3. z artykulu
-         for(size_t j=0; j<node->degree; ++j)
+         for(size_t j=0; j<node->degree; ++j) 
          {
             if(i != j && shouldVisit[j])
             {
                size_t pj = node->splitPoints[j];
-               auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
-               if(rangeIterator == node->splitPointsRanges.end())
+               //Rcout << "i got splitPointIndex from pj" << endl;
+               //auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
+               //assert: rangeIterator != splitPointsRanges.end()
+               //if(rangeIterator == node->splitPointsRanges.end())
+               if(node->splitPointsRanges(i, j).min == -INFINITY)
                {
                   if(!node->children[j])
                   {
                      //shouldVisit[j] = false;
                      continue;
                   }
+                  // int aaaaz=666666;
+                  stop("distance not found!");
                }
-               HClustGnatRange range = rangeIterator->second;
+               HClustGnatRange range = node->splitPointsRanges(i,j); //rangeIterator->second;
                //Rcout << "distance found!" << range.min<< ", " << range.max<<endl;
                double leftRange = dist-maxR;
                double rightRange = dist+maxR;
@@ -453,7 +472,6 @@ void HClustGnatSingle::excludeRegions(HClustGnatSingleNode* node, vector<bool>& 
                }
             }
          }
-
       }
    }
 }
@@ -594,9 +612,10 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
             {
                size_t pj = node->splitPoints[j];
                //Rcout << "i got splitPointIndex from pj" << endl;
-               auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
+               //auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
                //assert: rangeIterator != splitPointsRanges.end()
-               if(rangeIterator == node->splitPointsRanges.end())
+               //if(rangeIterator == node->splitPointsRanges.end())
+               if(node->splitPointsRanges(i, j).min == -INFINITY)
                {
                   if(!node->children[j])
                   {
@@ -613,8 +632,9 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
                   RCOUT("left= " << node->children[j]->left << " right= " << node->children[j]->right << " len= " << node->children[j]->right-node->children[j]->left,6);
 
                   RCOUT("distance not found!",6)
+                  stop("distance not found!");
                }
-               HClustGnatRange range = rangeIterator->second;
+               HClustGnatRange range = node->splitPointsRanges(i,j); //rangeIterator->second;
                //Rcout << "distance found!" << range.min<< ", " << range.max<<endl;
                double leftRange = dist-maxR;
                double rightRange = dist+maxR;
@@ -897,6 +917,7 @@ RObject hclust_gnat_single(RObject distance, RObject objects, RObject control=R_
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
       DataStructures::HClustGnatSingle hclust(dist, control);
+      dist->getStats().showStats();
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,
