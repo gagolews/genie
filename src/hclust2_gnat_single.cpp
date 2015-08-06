@@ -345,13 +345,14 @@ vector<size_t> HClustGnatSingle::chooseDegrees(size_t degree, size_t optdegree, 
    for(size_t i=0;i<boundaries.size(); ++i)
    {
       size_t elementsCount = i == 0 ? boundaries[i]-left : boundaries[i] - boundaries[i-1];
-      degrees[i] = min( //zeby nie wyszlo za duzo
+      /*degrees[i] = min( //zeby nie wyszlo za duzo
             max( //zeby nie wyszlo za malo
                   ((elementsCount)/(double)allPointsCount)*whole,
                   (double)opts.minDegree // zeby nie wyszlo za malo
                ),
             (double)min(opts.degree*opts.maxTimesDegree, opts.maxDegree) // tutaj uwazamy, zeby nie wyszlo nam za duzo
-            );
+            );*/
+      degrees[i] = (size_t) sqrt(elementsCount);
 
       if(degrees[i] < 2) degrees[i] = 2;
 
@@ -405,8 +406,8 @@ void HClustGnatSingle::excludeRegions(HClustGnatSingleNode* node, vector<bool>& 
             if(i != j && shouldVisit[j])
             {
                size_t pj = node->splitPoints[j];
-               auto rangeIterator = splitPointsRanges.find(Point(pi, pj));
-               if(rangeIterator == splitPointsRanges.end())
+               auto rangeIterator = node->splitPointsRanges.find(Point(pi, pj));
+               if(rangeIterator == node->splitPointsRanges.end())
                {
                   if(!node->children[j])
                   {
