@@ -41,6 +41,44 @@
 
 namespace DataStructures
 {
+template<typename T> struct Matrix
+{
+   size_t nrow;
+   size_t ncol;
+   T* data;
+
+   Matrix() : nrow(0), ncol(0), data(NULL) {}
+
+   Matrix(size_t nrow, size_t ncol) :
+      nrow(nrow), ncol(ncol) {
+      data = new T[nrow*ncol];
+   }
+
+   ~Matrix() {
+      if (data) delete [] data;
+   }
+
+   Matrix(const Matrix& m) {
+      nrow = m.nrow;
+      ncol = m.ncol;
+      data = new T[nrow*ncol];
+      for (size_t i=0; i<nrow*ncol; ++i)
+         data[i] = m.data[i];
+   }
+
+   Matrix& operator=(const Matrix& m) {
+      if (data) delete [] data;
+      nrow = m.nrow;
+      ncol = m.ncol;
+      data = new T[nrow*ncol];
+      for (size_t i=0; i<nrow*ncol; ++i)
+         data[i] = m.data[i];
+      return *this;
+   }
+
+   inline T& operator()(size_t row, size_t col) { return data[col*nrow+row]; }
+};
+
 
 struct HeapNeighborItem
 {

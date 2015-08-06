@@ -74,15 +74,17 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
    size_t degree, size_t left, size_t right)
 {
    node->splitPoints.resize(degree); // @TODO: uzyc jednej wspoldzielonej tablicy, bedzie szybciej
+   node->splitPointsRanges = Matrix<HClustGnatRange>(degree, degree);
+
 #ifdef GNAT_DEBUG
    if (right-left <= degree) stop("error in chooseNewSplitPoints()");
 #endif
-   
-   
+
+
    if (opts.vpSelectScheme == 1) {
       //RCOUT("left= "<<left << " right= " << right,15)
       const size_t candidatesTimes = opts.candidatesTimes;
-      
+
       //wybierz losowo podzbior candidatesTimes * degree punktow
       size_t candidatesNumber = min(candidatesTimes*degree, right-left);
       RCOUT("candidatesNumber= "<<candidatesNumber,11)
@@ -100,7 +102,7 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
       vector< vector<double> > dynamicProgrammingTable(degree-1); // we search for farest point only degree-1 times
       for(size_t i = 0; i<degree-1; ++i)
          dynamicProgrammingTable[i].resize(candidatesNumber); // @TODO: nie szybciej stworzyc jedna dluga tablice (degree-1)*candidatesNum? najlepiej wspoldzielona?
-      
+
       unordered_map<Point, HClustGnatRange> splitPointsRanges_small;
       //znajdz jego najdalszego sasiada
       for(size_t i = 0; i<degree-1; ++i)
@@ -153,7 +155,7 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
          Rcout << node->splitPoints[i]  <<" ";
       }
       Rcout << endl;
-      
+
 
       Rcout << "indeksy punktow" << endl;
       for(size_t i = 0; i < node->splitPoints.size(); ++i)
@@ -213,10 +215,11 @@ void HClustGnatSingle::chooseNewSplitPoints(HClustGnatSingleNode* node,
             if(i != j)
             {
                double d = (*_distance)(_indices[left+i], _indices[left+j]);
+               node->splitPointsRanges(
                node->splitPointsRanges.emplace(Point(_indices[left+i], _indices[left+j]), HClustGnatRange(d,d));
                node->splitPointsRanges.emplace(Point(_indices[left+j], _indices[left+i]), HClustGnatRange(d,d));
             }
-            
+
          }
       for (size_t i=0; i<degree; ++i) {
          node->splitPoints[i] = _indices[left+i];

@@ -73,21 +73,21 @@ struct HClustGnatSingleNode
    size_t maxindex;
    bool sameCluster;
    vector<HClustGnatSingleNode *> children;
-   unordered_map<Point, HClustGnatRange> splitPointsRanges;
+   Matrix<HClustGnatRange> splitPointsRanges;
 
    HClustGnatSingleNode() :
       left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
-      sameCluster(false)  {
+      sameCluster(false), splitPointsRanges()  {
       }
 
    HClustGnatSingleNode(size_t left, size_t right) :
       left(left), right(right), degree(SIZE_MAX), maxindex(SIZE_MAX),
-      sameCluster(false)  {
+      sameCluster(false), splitPointsRanges()  {
       }
 
    HClustGnatSingleNode(size_t vpindex) :
       left(SIZE_MAX), right(SIZE_MAX), degree(SIZE_MAX), maxindex(SIZE_MAX),
-      sameCluster(false)  {
+      sameCluster(false), splitPointsRanges()  {
       }
 
    ~HClustGnatSingleNode() {
