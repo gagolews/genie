@@ -49,8 +49,7 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
 #ifdef GENERATE_STATS
    stats(HClustTreeStats()),
 #endif
-   ds(dist->getObjectCount()),
-   heap(std::priority_queue<HeapNeighborItem>())
+   ds(dist->getObjectCount())
 {
 #if VERBOSE > 5
    Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
@@ -149,11 +148,13 @@ bool comparer_gt(int i,int j) { return (i>j); }
 HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
 {
 #ifdef GENERATE_STATS
+// #pragma omp atomic
    ++stats.nodeCount;
 #endif
    if (right - left <= opts.maxLeavesElems)
    {
    #ifdef GENERATE_STATS
+// #pragma omp atomic
       ++stats.leafCount;
    #endif
       HClustBiVpTreeSingleNode* leaf = new HClustBiVpTreeSingleNode(left, right);
@@ -194,11 +195,12 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
 
 void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
    HClustBiVpTreeSingleNode* node, size_t index,
-   size_t clusterIndex, double minR, double& maxR)
+   size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
 {
    // search within (minR, maxR]
    // if (node == NULL) return; // this should not happen
 #ifdef GENERATE_STATS
+// #pragma omp atomic
    ++stats.nodeVisit;
 #endif
 
@@ -216,13 +218,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             double dist2 = (*_distance)(index, _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
-            if (heap.size() >= opts.maxNNPrefetch && dist2 < maxR) {
-               while (!heap.empty() && heap.top().dist == maxR) {
-                  heap.pop();
-               }
-            }
-            heap.push( HeapNeighborItem(_indices[i], dist2) );
-            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
+            nnheap.insert(_indices[i], dist2, maxR);
          }
          if (commonCluster != SIZE_MAX)
             node->sameCluster = true; // set to true (btw, may be true already)
@@ -233,13 +229,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             double dist2 = (*_distance)(index, _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
-            if (heap.size() >= opts.maxNNPrefetch && dist2 < maxR) {
-               while (!heap.empty() && heap.top().dist == maxR) {
-                  heap.pop();
-               }
-            }
-            heap.push( HeapNeighborItem(_indices[i], dist2) );
-            if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
+            nnheap.insert(_indices[i], dist2, maxR);
          }
       }
       return; // nothing more to do
@@ -248,41 +238,38 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 
    // first visit the vantage point
    double dist = (*_distance)(node->vpindex, index); // the slow part
-   if (ds.find_set(node->vpindex) != clusterIndex && index < node->vpindex) {
-      if (dist <= maxR && dist > minR) {
-         if (heap.size() >= opts.maxNNPrefetch && dist < maxR) {
-            while (!heap.empty() && heap.top().dist == maxR) {
-               heap.pop();
-            }
-         }
-         heap.push( HeapNeighborItem(node->vpindex, dist) );
-         if (heap.size() >= opts.maxNNPrefetch) maxR = heap.top().dist;
-      }
+   if (index < node->vpindex && dist <= maxR && dist > minR &&
+         ds.find_set(node->vpindex) != clusterIndex) {
+      nnheap.insert(node->vpindex, dist, maxR);
    }
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
          if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR);
+// #pragma omp task shared(maxR)
+            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist + maxR >= node->radius) {
          if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR);
+// #pragma omp task shared(maxR)
+            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
    }
    else /* ( dist >= node->radius ) */ {
       if (dist + maxR >= node->radius) {
          if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR);
+// #pragma omp task shared(maxR)
+            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
          if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR);
+// #pragma omp task shared(maxR)
+            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
    }
-
+// #pragma omp taskwait
    if (prefetch || node->sameCluster ||
       (node->childL && !node->childL->sameCluster) ||
       (node->childR && !node->childR->sameCluster)
@@ -310,13 +297,14 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
       double _tau = INFINITY;//maxRadiuses[index];
 
 #ifdef GENERATE_STATS
+// #pragma omp atomic
       ++stats.nnCals;
 #endif
-      getNearestNeighborsFromMinRadiusRecursive(_root, index, clusterIndex, minRadiuses[index], _tau);
-      while (!heap.empty()) {
-         nearestNeighbors[index].push_front(heap.top());
-         heap.pop();
-      }
+      // #pragma omp parallel
+      NNHeap nnheap(opts.maxNNPrefetch);
+      getNearestNeighborsFromMinRadiusRecursive(_root, index, clusterIndex, minRadiuses[index], _tau, nnheap);
+      nnheap.fill(nearestNeighbors[index]);
+
       // maxRadiuses[index] = INFINITY;
       size_t newNeighborsCount = nearestNeighbors[index].size();
 
@@ -331,6 +319,7 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
    if (!nearestNeighbors[index].empty())
    {
 #ifdef GENERATE_STATS
+// #pragma omp atomic
       ++stats.nnCount;
 #endif
       auto res = nearestNeighbors[index].front();
@@ -355,6 +344,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 #endif
 
    prefetch = true;
+// #pragma omp parallel for ordered schedule(dynamic) num_threads(4)
    for (size_t i=0; i<_n; i++)
    {
 #if VERBOSE > 7
@@ -365,6 +355,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 
       if (hi.index != SIZE_MAX)
       {
+// #pragma omp ordered
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
       }
    }
@@ -425,7 +416,7 @@ void HClustBiVpTreeSingle::print(HClustBiVpTreeSingleNode* n) {
          (unsigned long long)n, (unsigned long long)(n->childL));
       print(n->childL);
    }
-   if (n->childL) {
+   if (n->childR) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"R\"];\n",
          (unsigned long long)n, (unsigned long long)(n->childR));
       print(n->childR);

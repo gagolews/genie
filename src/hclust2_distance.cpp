@@ -54,10 +54,11 @@ double Distance::operator()(size_t v1, size_t v2)
    if (v1 > v2) std::swap(v1, v2);
 
 #ifdef GENERATE_STATS
+// #pragma omp atomic
       ++stats.distCallCount;
 #endif
 
-   // std::unordered_map<SortedPoint,double>::iterator got = hashmap.find(p);
+   // this is thread unsafe, but we use it only for testing:
    auto got = hashmap[v1].find(v2);
    if ( got == hashmap[v1].end() )
    {

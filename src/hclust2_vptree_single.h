@@ -29,7 +29,6 @@
 #include <Rcpp.h>
 #include <R.h>
 #include <Rmath.h>
-#include <queue>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 // #include <fstream>
@@ -98,14 +97,13 @@ protected:
    HClustTreeStats stats;
 
    DisjointSets ds;
-   std::priority_queue<HeapNeighborItem> heap;
    bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
    HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
-      size_t index, size_t clusterIndex, double minR, double& maxR);
+      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
    void print(HClustBiVpTreeSingleNode* n);
 

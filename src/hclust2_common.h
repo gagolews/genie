@@ -21,6 +21,10 @@
 #ifndef __HCLUST2_COMMON_H
 #define __HCLUST2_COMMON_H
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // ---------------------------------------------------------------------------
 
 #define DEFAULT_MAX_LEAVES_ELEMS 4
@@ -37,7 +41,8 @@
 // ---------------------------------------------------------------------------
 
 #include "hclust2_distance.h"
-
+#include <queue>
+#include <deque>
 
 namespace DataStructures
 {
@@ -108,6 +113,52 @@ struct HeapHierarchicalItem
 
    inline bool operator<( const HeapHierarchicalItem& o ) const {
       return dist >= o.dist;
+   }
+};
+
+
+struct NNHeap {
+   std::priority_queue<HeapNeighborItem> heap;
+   size_t maxNNPrefetch;
+// #ifdef _OPENMP
+//    omp_lock_t lock;
+// #endif
+
+   NNHeap(size_t maxNNPrefetch) :
+         heap(std::priority_queue<HeapNeighborItem>()),
+         maxNNPrefetch(maxNNPrefetch) {
+// #ifdef _OPENMP
+//      omp_init_lock(&lock);
+// #endif
+   }
+
+   ~NNHeap() {
+// #ifdef _OPENMP
+//      omp_destroy_lock(&lock);
+// #endif
+   }
+
+   inline void insert(double index, double dist, double& maxR) {
+// #ifdef _OPENMP
+//       omp_set_lock(&lock);
+// #endif
+      if (heap.size() >= maxNNPrefetch && dist < maxR) {
+         while (!heap.empty() && heap.top().dist == maxR) {
+            heap.pop();
+         }
+      }
+      heap.push( HeapNeighborItem(index, dist) );
+      if (heap.size() >= maxNNPrefetch) maxR = heap.top().dist;
+// #ifdef _OPENMP
+//       omp_unset_lock(&lock);
+// #endif
+   }
+
+   inline void fill(std::deque<HeapNeighborItem>& nearestNeighbors) {
+      while (!heap.empty()) {
+         nearestNeighbors.push_front(heap.top());
+         heap.pop();
+      }
    }
 };
 
