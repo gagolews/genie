@@ -152,7 +152,7 @@ private:
 
 protected:
    size_t n;
-   virtual double compute(size_t v1, size_t v2) const = 0;
+   virtual double compute(size_t v1, size_t v2) = 0;
 
 public:
    Distance(size_t n);
@@ -209,7 +209,7 @@ class EuclideanDistance : public GenericMatrixDistance
 //    std::vector<double> sqobs;
 
 protected:
-   virtual double compute(size_t v1, size_t v2) const;
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    EuclideanDistance(const Rcpp::NumericMatrix& points) :
@@ -230,7 +230,7 @@ public:
 class ManhattanDistance : public GenericMatrixDistance
 {
 protected:
-   double compute(size_t v1, size_t v2) const;
+   double compute(size_t v1, size_t v2);
 
 public:
    ManhattanDistance(const Rcpp::NumericMatrix& points) :
@@ -241,7 +241,7 @@ public:
 class MaximumDistance : public GenericMatrixDistance
 {
 protected:
-   double compute(size_t v1, size_t v2) const;
+   double compute(size_t v1, size_t v2);
 
 public:
    MaximumDistance(const Rcpp::NumericMatrix& points) :
@@ -284,11 +284,31 @@ public:
 class LevenshteinDistance : public StringDistance
 {
 protected:
-   double compute(size_t v1, size_t v2) const;
+   double compute(size_t v1, size_t v2);
+
+#ifndef _OPENMP
+   // to be thread-safe, we have to allocate these 2 arrays each time...
+   size_t* v_cur;
+   size_t* v_last;
+#endif
 
 public:
    LevenshteinDistance(const Rcpp::CharacterVector& strings) :
-         StringDistance(strings) {   }
+         StringDistance(strings) {
+   #ifndef _OPENMP
+      size_t n2 = 0;
+      for (size_t i=0; i<n; ++i) if (lengths[i] > n2) n2 = lengths[i];
+      v_cur = new size_t[n2+1];
+      v_last = new size_t[n2+1];
+   #endif
+   }
+
+   ~LevenshteinDistance() {
+   #ifndef _OPENMP
+      delete [] v_cur;
+      delete [] v_last;
+   #endif
+   }
 
 };
 
@@ -300,7 +320,7 @@ private:
    std::vector<Rcpp::RObject> items;
 
 protected:
-   virtual double compute(size_t v1, size_t v2) const;
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    GenericRDistance(const Rcpp::Function& distfun, const std::vector<Rcpp::RObject>& items) :
@@ -323,7 +343,7 @@ protected:
    const double* items;
 
 protected:
-   virtual double compute(size_t v1, size_t v2) const;
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    DistObjectDistance(const Rcpp::NumericVector& distobj) :

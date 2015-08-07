@@ -152,7 +152,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
 
 
 
-double EuclideanDistance::compute(size_t v1, size_t v2) const
+double EuclideanDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    double d = 0.0;
@@ -171,7 +171,7 @@ double EuclideanDistance::compute(size_t v1, size_t v2) const
 }
 
 
-double ManhattanDistance::compute(size_t v1, size_t v2) const
+double ManhattanDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    double d = 0.0;
@@ -181,7 +181,7 @@ double ManhattanDistance::compute(size_t v1, size_t v2) const
 }
 
 
-double MaximumDistance::compute(size_t v1, size_t v2) const
+double MaximumDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    double d = 0.0;
@@ -193,14 +193,14 @@ double MaximumDistance::compute(size_t v1, size_t v2) const
 }
 
 
-double GenericRDistance::compute(size_t v1, size_t v2) const
+double GenericRDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    return ((Rcpp::NumericVector)distfun(items[v1], items[v2]))[0];
 }
 
 
-double DistObjectDistance::compute(size_t v1, size_t v2) const
+double DistObjectDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
 
@@ -214,7 +214,7 @@ double DistObjectDistance::compute(size_t v1, size_t v2) const
 }
 
 
-double LevenshteinDistance::compute(size_t v1, size_t v2) const
+double LevenshteinDistance::compute(size_t v1, size_t v2)
 {
    const char* s1 = items[v1];
    const char* s2 = items[v2];
@@ -225,9 +225,11 @@ double LevenshteinDistance::compute(size_t v1, size_t v2) const
       std::swap(n1, n2);
    }
 
+#ifdef _OPENMP
    // to be thread-safe, we have to allocate these 2 arrays each time...
    size_t* v_cur = new size_t[n2+1];
    size_t* v_last = new size_t[n2+1];
+#endif
 
    // n2 <= n1
    for (size_t j=0; j<=n2; ++j) v_cur[j] = j;
@@ -235,15 +237,21 @@ double LevenshteinDistance::compute(size_t v1, size_t v2) const
    for (size_t i=1; i<=n1; ++i) {
       std::swap(v_last, v_cur); // pointer swap
       v_cur[0] = i;
-      for (size_t j=1; j<=n2; ++j)
-         v_cur[j] = std::min(std::min(
-               v_last[j-1]+(size_t)(s1[i-1]!=s2[j-1]),
+      for (size_t j=1; j<=n2; ++j) {
+         if (s1[i-1] == s2[j-1])
+            v_cur[j] = v_last[j-1];
+         else
+            v_cur[j] = std::min(std::min(
+               v_last[j-1]+1,
                v_cur[j-1]+1),
                v_last[j]+1);
+      }
    }
 
    double ret = (double) v_cur[n2];
+#ifdef _OPENMP
    delete [] v_cur;
    delete [] v_last;
+#endif
    return ret;
 }
