@@ -141,6 +141,8 @@ protected:
 
 public:
 
+   void print(HClustGnatSingleNode* n); 
+   void print();
    void FindNeighborTest(size_t index, double R);
 
    HClustGnatSingle(Distance* dist, RObject control);
