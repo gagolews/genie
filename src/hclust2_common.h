@@ -21,10 +21,6 @@
 #ifndef __HCLUST2_COMMON_H
 #define __HCLUST2_COMMON_H
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 // ---------------------------------------------------------------------------
 
 #define DEFAULT_MAX_LEAVES_ELEMS 4

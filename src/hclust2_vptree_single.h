@@ -102,7 +102,7 @@ protected:
    bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
-   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right, bool isLeftChild, double parentRadius, size_t parentVP);
+   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);

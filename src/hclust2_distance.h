@@ -24,6 +24,10 @@
 #ifndef __HCLUST2_DISTANCE_H
 #define __HCLUST2_DISTANCE_H
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS

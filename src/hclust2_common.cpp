@@ -103,7 +103,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
       Rf_warning("wrong maxLeavesElems value. using default");
    }
-   if (maxNNPrefetch < 1 || maxNNPrefetch > 16) {
+   if (maxNNPrefetch < 1 || maxNNPrefetch > 512) {
       maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
       Rf_warning("wrong maxNNPrefetch value. using default");
    }
