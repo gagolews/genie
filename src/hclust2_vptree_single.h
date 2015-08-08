@@ -87,12 +87,14 @@ protected:
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
+   std::vector<size_t> _indicesinv;
 
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
    // std::vector<double> maxRadiuses;
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
+   std::vector<double> distances;
 
    HClustTreeStats stats;
 
@@ -100,7 +102,7 @@ protected:
    bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
-   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
+   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right, bool isLeftChild, double parentRadius, size_t parentVP);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);

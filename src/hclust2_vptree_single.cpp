@@ -41,11 +41,13 @@ using namespace DataStructures;
 HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
    opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
    _indices(dist->getObjectCount()),
+   _indicesinv(dist->getObjectCount()),
    neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
    minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
    // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
    shouldFind(vector<bool>(dist->getObjectCount(), true)),
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
+   distances(vector<double>(_n)),
 #ifdef GENERATE_STATS
    stats(HClustTreeStats()),
 #endif
@@ -61,7 +63,7 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
    for (size_t i=_n-1; i>= 1; i--)
       swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
 
-   _root = buildFromPoints(0, _n);
+   _root = buildFromPoints(0, _n, true, INFINITY, SIZE_MAX);
 }
 
 
@@ -145,7 +147,8 @@ size_t HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 bool comparer_gt(int i,int j) { return (i>j); }
 
 
-HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, size_t right)
+HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
+   size_t right, bool isLeftChild, double parentRadius, size_t parentVP)
 {
 #ifdef GENERATE_STATS
 // #pragma omp atomic
@@ -158,33 +161,66 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left, siz
       ++stats.leafCount;
    #endif
       HClustBiVpTreeSingleNode* leaf = new HClustBiVpTreeSingleNode(left, right);
-      std::sort(_indices.begin()+left, _indices.begin()+right, comparer_gt);
-      leaf->maxindex = _indices[left];
+      // std::sort(_indices.begin()+left, _indices.begin()+right, comparer_gt);
+      // leaf->maxindex = _indices[left];
       // leaf->maxindex = _indices[left];
       // for (size_t i=left+1; i<right; ++i)
          // if (_indices[i] > leaf->maxindex)
             // leaf->maxindex = _indices[i];
+      for (size_t i=left; i<right; ++i)
+         _indicesinv[_indices[i]] = i;
+      leaf->maxindex = right-1;
       return leaf;
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
    std::swap(_indices[left], _indices[vpi_idx]);
    size_t vpi = _indices[left];
-
+   _indicesinv[vpi] = left;
    size_t median = (right + left) / 2;
-   std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
-                    DistanceComparator(vpi, _distance));
 
-   HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
+   for (size_t i=left+1; i<right; ++i)
+      distances[_indices[i]] = (*_distance)(vpi, _indices[i]);
+   std::sort(_indices.begin()+left+1, _indices.begin()+right, DistanceComparatorCached(&distances));
 
-   node->maxindex = vpi;
+// slower -- computes some distances > 1 time
+//    std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
+//                     DistanceComparator(vpi, _distance));
+//    HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
+
+
+// doesn't work: some of NNs can be determined here
+//    if (isLeftChild) {
+//       bool distanceToParentVP = ((parentVP == SIZE_MAX)?0.0:(*_distance)(parentVP, vpi));
+//       for (size_t i=left+1; i<right; ++i) {
+//          if (distanceToParentVP+distances[_indices[i]] >= parentRadius) break;
+//          nearestNeighbors[vpi].push_back(HeapNeighborItem(_indices[i], distances[_indices[i]]));
+//          ++neighborsCount[vpi];
+//       }
+//       if (neighborsCount[vpi] > _n - left) shouldFind[vpi] = false;
+//       if (neighborsCount[vpi] > 0) minRadiuses[vpi] = nearestNeighbors[vpi].back().dist;
+//    }
+//    else {
+//       bool distanceToParentVP = ((parentVP == SIZE_MAX)?0.0:(*_distance)(parentVP, vpi));
+//       for (size_t i=left+1; i<right; ++i) {
+//          if (distances[_indices[i]] >= distanceToParentVP-parentRadius) break;
+//          nearestNeighbors[vpi].push_back(HeapNeighborItem(_indices[i], distances[_indices[i]]));
+//          ++neighborsCount[vpi];
+//       }
+//       if (neighborsCount[vpi] > _n - left) shouldFind[vpi] = false;
+//       if (neighborsCount[vpi] > 0) minRadiuses[vpi] = nearestNeighbors[vpi].back().dist;
+//    }
+
+   HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, distances[_indices[median]]);
+
+   node->maxindex = left;
    if (median - left > 0) { // don't include vpi
-      node->childL = buildFromPoints(left+1, median+1);
+      node->childL = buildFromPoints(left+1, median+1, true, node->radius, vpi);
       if (node->childL->maxindex > node->maxindex)
          node->maxindex = node->childL->maxindex;
    }
    if (right - median - 1 > 0) {
-      node->childR = buildFromPoints(median+1, right);
+      node->childR = buildFromPoints(median+1, right, false, node->radius, vpi);
       if (node->childR->maxindex > node->maxindex)
          node->maxindex = node->childR->maxindex;
    }
@@ -214,7 +250,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             size_t currentCluster = ds.find_set(_indices[i]);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
-            if (index >= _indices[i]) continue;
+            if (_indicesinv[index] >= i) continue;
             double dist2 = (*_distance)(index, _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
@@ -225,7 +261,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
       }
       else /* node->sameCluster */ {
          for (size_t i=node->left; i<node->right; ++i) {
-            if (index >= _indices[i]) break; // indices are sorted
+            if (_indicesinv[index] >= i) continue;
             double dist2 = (*_distance)(index, _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
@@ -238,33 +274,33 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 
    // first visit the vantage point
    double dist = (*_distance)(node->vpindex, index); // the slow part
-   if (index < node->vpindex && dist <= maxR && dist > minR &&
+   if (_indicesinv[index] < node->left && dist <= maxR && dist > minR &&
          ds.find_set(node->vpindex) != clusterIndex) {
       nnheap.insert(node->vpindex, dist, maxR);
    }
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
+         if (node->childL && _indicesinv[index] < node->childL->maxindex)
 // #pragma omp task shared(maxR)
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
+         if (node->childR && _indicesinv[index] < node->childR->maxindex)
 // #pragma omp task shared(maxR)
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
    }
    else /* ( dist >= node->radius ) */ {
       if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
+         if (node->childR && _indicesinv[index] < node->childR->maxindex)
 // #pragma omp task shared(maxR)
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
+         if (node->childL && _indicesinv[index] < node->childL->maxindex)
 // #pragma omp task shared(maxR)
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
@@ -309,7 +345,7 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
       size_t newNeighborsCount = nearestNeighbors[index].size();
 
       neighborsCount[index] += newNeighborsCount;
-      if (neighborsCount[index] > _n - index || newNeighborsCount == 0)
+      if (neighborsCount[index] > _n - _indicesinv[index] || newNeighborsCount == 0)
          shouldFind[index] = false;
 
       if (newNeighborsCount > 0)

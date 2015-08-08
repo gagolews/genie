@@ -43,6 +43,8 @@
 #include "hclust2_distance.h"
 #include <queue>
 #include <deque>
+#include <vector>
+
 
 namespace DataStructures
 {
@@ -173,6 +175,19 @@ struct DistanceComparator
 
    inline bool operator()(size_t a, size_t b) {
       return (*distance)( index, a ) < (*distance)( index, b );
+   }
+};
+
+
+struct DistanceComparatorCached
+{
+   std::vector<double>* distances;
+
+   DistanceComparatorCached(std::vector<double>* distances)
+      : distances(distances) {}
+
+   inline bool operator()(size_t a, size_t b) {
+      return (*distances)[a] < (*distances)[b];
    }
 };
 
