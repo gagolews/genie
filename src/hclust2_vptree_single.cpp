@@ -233,7 +233,9 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
    // search within (minR, maxR]
    // if (node == NULL) return; // this should not happen
 #ifdef GENERATE_STATS
+#ifdef _OPENMP
 #pragma omp atomic
+#endif
    ++stats.nodeVisit;
 #endif
 
