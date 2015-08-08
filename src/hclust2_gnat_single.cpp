@@ -958,7 +958,7 @@ NumericMatrix HClustGnatSingle::compute()
 void HClustGnatSingle::print(HClustGnatSingleNode* n) {
    for(size_t i = 0; i < n->children.size(); ++i)
    {
-      int aaaz=45;
+      // int aaaz=45;
       if(n->children[i])
       {
          Rprintf("\"%llx\" -> \"%llx\" [label=\"child\"];\n",
@@ -1022,7 +1022,7 @@ RObject hclust_gnat_single(RObject distance, RObject objects, RObject control=R_
       DataStructures::HClustGnatSingle hclust(dist, control);
       //RCOUT("zbudowalem drzewo poprawnie",1)
       hclust.print();
-      dist->getStats().showStats();
+      dist->getStats().print();
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,

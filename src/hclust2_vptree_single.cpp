@@ -376,6 +376,8 @@ NumericMatrix HClustBiVpTreeSingle::compute()
    Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
+   _distance->getStats().print();
+
    prefetch = true;
 #ifdef _OPENMP
    omp_lock_t writelock;
@@ -412,6 +414,8 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 #if VERBOSE > 5
    Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
+
+   _distance->getStats().print();
 
    prefetch = false;
    size_t i = 0;
