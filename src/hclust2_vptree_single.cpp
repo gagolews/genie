@@ -186,6 +186,14 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
 //                     DistanceComparator(vpi, _distance));
 //    HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
 
+   if (left == 0) { // for the root node we get NNs for free
+      for (size_t i=left+1; i<right; ++i) {
+         nearestNeighbors[vpi].push_back(HeapNeighborItem(_indices[i], distances[_indices[i]]));
+         ++neighborsCount[vpi];
+      }
+      if (neighborsCount[vpi] > _n - left) shouldFind[vpi] = false;
+      if (neighborsCount[vpi] > 0) minRadiuses[vpi] = nearestNeighbors[vpi].back().dist;
+   }
 // doesn't work: some of NNs can be determined here
 //    if (isLeftChild) {
 //       bool distanceToParentVP = ((parentVP == SIZE_MAX)?0.0:(*_distance)(parentVP, vpi));
@@ -376,26 +384,27 @@ NumericMatrix HClustBiVpTreeSingle::compute()
    Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
-   _distance->getStats().print();
-
    prefetch = true;
 #ifdef _OPENMP
    omp_lock_t writelock;
    omp_init_lock(&writelock);
-   #pragma omp parallel for schedule(dynamic)
+   #pragma omp parallel for ordered schedule(dynamic)
 #endif
    for (size_t i=0; i<_n; i++)
    {
-#if VERBOSE > 7
-      if (i % 1024 == 0) Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
-#endif
 #ifndef _OPENMP
-      Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+   Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
 #endif
       HeapNeighborItem hi=getNearestNeighbor(i);
 
+#ifdef _OPENMP
+#pragma omp ordered
+#endif
       if (hi.index != SIZE_MAX)
       {
+#if VERBOSE > 7 && !defined(_OPENMP)
+         Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
+#endif
 #ifdef _OPENMP
          omp_set_lock(&writelock);
 #endif
@@ -414,8 +423,6 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 #if VERBOSE > 5
    Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-
-   _distance->getStats().print();
 
    prefetch = false;
    size_t i = 0;

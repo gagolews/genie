@@ -54,7 +54,9 @@ double Distance::operator()(size_t v1, size_t v2)
    if (v1 > v2) std::swap(v1, v2);
 
 #ifdef GENERATE_STATS
-// #pragma omp atomic
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
       ++stats.distCallCount;
 #endif
 
@@ -63,6 +65,9 @@ double Distance::operator()(size_t v1, size_t v2)
    if ( got == hashmap[v1].end() )
    {
 #ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
       ++stats.hashmapMiss;
 #endif
       double d = compute(v1, v2);
@@ -72,6 +77,9 @@ double Distance::operator()(size_t v1, size_t v2)
    else
    {
 #ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
       ++stats.hashmapHit;
 #endif
       return got->second;
@@ -141,6 +149,12 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
                objects2
             );
       }
+      else if (!strcmp(distance3, "hamming")) {
+         return (DataStructures::Distance*)
+            new DataStructures::HammingDistance(
+               objects2
+            );
+      }
       else {
          Rcpp::stop("`distance` should be one of: \"euclidean\" (default), \"manhattan\", \"maximum\"");
       }
@@ -189,6 +203,16 @@ double MaximumDistance::compute(size_t v1, size_t v2)
    for (size_t i=0; i<m; ++i) {
       double d2 = std::abs(items[v1*m+i]-items[v2*m+i]);
       if (d2 > d) d = d2;
+   }
+   return d;
+}
+
+double HammingDistance::compute(size_t v1, size_t v2)
+{
+   if (v1 == v2) return 0.0;
+   double d = 0.0;
+   for (size_t i=0; i<m; ++i) {
+      if (items[v1*m+i] != items[v2*m+i]) d += 1.0;
    }
    return d;
 }

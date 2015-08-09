@@ -51,10 +51,10 @@
 // #define RPRINTF_0(...) Rprintf(__VA_ARGS__)
 
 
-/* to do: dist for CharacterVector (objects=strings)
+/* to do: dist for CharacterVector (objects=strings) in UTF-8
    dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev
 
-  numeric -> metric: hamming, binary (see dist) minkowski (p), canberra
+  numeric -> metric: binary (see dist) minkowski (p), canberra
 
   allow external ptr distance:
 
@@ -156,6 +156,9 @@ public:
 #else
    inline double operator()(size_t v1, size_t v2) {
 #ifdef GENERATE_STATS
+   #ifdef _OPENMP
+      #pragma omp atomic
+   #endif
       ++stats.distCallCount;
 #endif
       return compute(v1, v2);
@@ -234,6 +237,17 @@ protected:
 
 public:
    MaximumDistance(const Rcpp::NumericMatrix& points) :
+      GenericMatrixDistance(points)  {   }
+};
+
+
+class HammingDistance : public GenericMatrixDistance
+{
+protected:
+   double compute(size_t v1, size_t v2);
+
+public:
+   HammingDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points)  {   }
 };
 
