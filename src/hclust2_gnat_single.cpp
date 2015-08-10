@@ -716,20 +716,20 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    //RCOUT("I have pruned P, i go into my children", 11)
 
    //5. z artykulu
-   RCOUT("moje maxR= " << maxR, 1);
-   RCOUT("Moge wejsc do: ",1)
+   RCOUT("moje maxR= " << maxR, 12);
+   RCOUT("Moge wejsc do: ",12)
    for(size_t jj=0;jj<node->degree; ++jj)
    {
-      RCOUT(node->splitPoints[jj]+1 << ", ",1)
+      RCOUT(node->splitPoints[jj]+1 << ", ",12)
    }
-   RCOUT(endl,1);
-   RCOUT("A wejde do: ",1)
+   RCOUT(endl,12);
+   RCOUT("A wejde do: ",12)
    for(size_t jj=0;jj<node->degree; ++jj)
    {
       if(shouldVisit[jj])
-         RCOUT(node->splitPoints[jj]+1 << ", ",1)
+         RCOUT(node->splitPoints[jj]+1 << ", ",12)
    }
-   RCOUT(endl,1);
+   RCOUT(endl,12);
    for(size_t i=0;i<node->degree; ++i) //4. z artykulu
    {
 

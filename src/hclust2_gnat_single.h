@@ -21,7 +21,7 @@
 #ifndef __HCLUST2_GNAT_SINGLE_H
 #define __HCLUST2_GNAT_SINGLE_H
 
-#define GNAT_DEBUG
+// #define GNAT_DEBUG
 
 
 // ************************************************************************
@@ -141,7 +141,7 @@ protected:
 
 public:
 
-   void print(HClustGnatSingleNode* n); 
+   void print(HClustGnatSingleNode* n);
    void print();
    void FindNeighborTest(size_t index, double R);
 
