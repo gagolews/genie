@@ -4,7 +4,8 @@
 \alias{hclust2}
 \title{Faster Hierarchical Clustering in Pseudometric Spaces}
 \usage{
-hclust2(d = NULL, method = c("single", "complete"), objects = NULL, ...)
+hclust2(d = NULL, method = c("single", "complete", "medoid"),
+  objects = NULL, ...)
 }
 \arguments{
 \item{d}{an object of class \code{\link{dist}},

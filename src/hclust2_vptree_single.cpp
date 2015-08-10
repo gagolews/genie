@@ -386,9 +386,10 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 
    prefetch = true;
 #ifdef _OPENMP
+   omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
    omp_lock_t writelock;
    omp_init_lock(&writelock);
-   #pragma omp parallel for ordered schedule(dynamic)
+   #pragma omp parallel for schedule(dynamic)
 #endif
    for (size_t i=0; i<_n; i++)
    {
@@ -397,9 +398,6 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 #endif
       HeapNeighborItem hi=getNearestNeighbor(i);
 
-#ifdef _OPENMP
-#pragma omp ordered
-#endif
       if (hi.index != SIZE_MAX)
       {
 #if VERBOSE > 7 && !defined(_OPENMP)
@@ -541,3 +539,50 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;
 }
+
+
+
+// // [[Rcpp::export]]
+// RObject nntest(RObject distance, RObject objects, RObject control=R_NilValue) {
+// #if VERBOSE > 5
+//    Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
+// #endif
+//    RObject result(R_NilValue);
+//    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
+//
+//    try {
+//       /* Rcpp::checkUserInterrupt(); may throw an exception */
+//       DataStructures::HClustBiVpTreeSingle hclust(dist, control);
+//       hclust.getNearestNeighbor(0);
+//       hclust.getNearestNeighbor(25);
+//       hclust.getNearestNeighbor(4653);
+//       hclust.getNearestNeighbor(352);
+//       result = Rcpp::as<RObject>(List::create(
+//          _["merge"]  = R_NilValue,
+//          _["height"] = R_NilValue,
+//          _["order"]  = R_NilValue,
+//          _["labels"] = R_NilValue,
+//          _["call"]   = R_NilValue,
+//          _["method"] = "single",
+//          _["dist.method"] = R_NilValue,
+//          _["stats"] = List::create(
+//             _["vptree"] = hclust.getStats().toR(),
+//             _["distance"] = dist->getStats().toR()
+//          ),
+//          _["control"] = List::create(
+//             _["vptree"] = hclust.getOptions().toR()
+//          )
+//       ));
+//    }
+//    catch(...) {
+//
+//    }
+//
+//    if (dist) delete dist;
+// #if VERBOSE > 5
+//    Rprintf("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
+// #endif
+//    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
+//    return result;
+// }
+
