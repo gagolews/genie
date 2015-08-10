@@ -87,7 +87,7 @@ protected:
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
-   std::vector<size_t> _indicesinv;
+   // std::vector<size_t> _indicesinv;
 
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
