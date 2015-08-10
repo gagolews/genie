@@ -29,12 +29,13 @@
 #' }
 #'
 #' @export
-hclust2 <- function(d=NULL, method=c("single", "complete"), objects=NULL, ...) {
+hclust2 <- function(d=NULL, method=c("single", "complete", "medoid"), objects=NULL, ...) {
    # TO DO: `single` has list control arg........
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
-      complete=.hclust2_complete(d, objects, ...)
+      complete=.hclust2_complete(d, objects, ...),
+      medoid=.hclust2_medoid(d, objects, ...)
    )
    result[["call"]] <- match.call()
    result

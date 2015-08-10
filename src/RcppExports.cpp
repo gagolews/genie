@@ -71,6 +71,19 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// hclust2_medoid
+RObject hclust2_medoid(RObject distance, RObject objects, RObject control);
+RcppExport SEXP DataStructures_hclust2_medoid(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(hclust2_medoid(distance, objects, control));
+    return __result;
+END_RCPP
+}
 // hclust2_single
 RObject hclust2_single(RObject distance, RObject objects, RObject control);
 RcppExport SEXP DataStructures_hclust2_single(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {

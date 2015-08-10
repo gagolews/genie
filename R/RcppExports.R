@@ -21,6 +21,10 @@ generateMergeMatrix <- function(x) {
     .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
 
+.hclust2_medoid <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_hclust2_medoid', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
 .hclust2_single <- function(distance, objects, control = NULL) {
     .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, control)
 }
