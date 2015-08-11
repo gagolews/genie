@@ -77,6 +77,29 @@ struct HClustBiVpTreeMedoidNode
 class HClustBiVpTreeMedoid
 {
 protected:
+   struct HeapHierarchicalItemMedoid {
+         size_t index1;
+         size_t index2;
+         double dist;
+         size_t iter;
+
+         HeapHierarchicalItemMedoid(size_t index1, size_t index2, double dist, size_t iter) :
+            index1(index1), index2(index2), dist(dist), iter(iter) {}
+
+         bool operator<( const HeapHierarchicalItemMedoid& o ) const {
+            return dist >= o.dist;
+         }
+      };
+
+   struct KKItem {
+            double dist;
+            size_t iter;
+
+            KKItem(double dist, size_t iter) :
+               dist(dist), iter(iter) {}
+            KKItem() :
+               dist(INFINITY), iter(0) {}
+         };
 
    HClustTreeOptions opts;
 
@@ -84,7 +107,7 @@ protected:
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
-   std::vector<size_t> _indicesinv;
+   //std::vector<size_t> _indicesinv;
 
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
@@ -93,9 +116,12 @@ protected:
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
    std::vector<double> distances;
 
+   vector<size_t> medoids;
+   vector<bool> medoidFound;
+
    HClustTreeStats stats;
 
-   DisjointSets ds;
+   PhatDisjointSets ds;
    bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
@@ -105,6 +131,8 @@ protected:
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
    void print(HClustBiVpTreeMedoidNode* n);
+   //HeapHierarchicalItemMedoid calculateCluster2ClusterMedoidDistance(size_t item1, size_t item2, size_t iter);
+   size_t medoidForCluster(size_t s); 
 
 public:
 
