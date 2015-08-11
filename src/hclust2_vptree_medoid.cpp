@@ -433,7 +433,7 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
    indexMedoid = *(ds.getClusterMembers(s).begin());
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
    {
-      if(_indices[indexMedoid] > *element)
+      if(_indices[indexMedoid] > _indices[*element])
          indexMedoid = *element;
    }
    return indexMedoid;
