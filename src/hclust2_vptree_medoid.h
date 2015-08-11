@@ -132,6 +132,7 @@ protected:
 
    void print(HClustBiVpTreeMedoidNode* n);
    //HeapHierarchicalItemMedoid calculateCluster2ClusterMedoidDistance(size_t item1, size_t item2, size_t iter);
+   size_t mergeTwoClusters(size_t s1, size_t s2);
    size_t medoidForCluster(size_t s); 
 
 public:

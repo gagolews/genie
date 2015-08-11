@@ -254,17 +254,17 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
       if (!prefetch && !node->sameCluster) {
          size_t commonCluster = ds.find_set(node->left);
          for (size_t i=node->left; i<node->right; ++i) {
-            RCOUT("Rozwazam punkt " << _indices[i], 3);
+            //RCOUT("Rozwazam punkt " << _indices[i], 3);
             size_t currentCluster = ds.find_set(i);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
             if (index >= i) continue;
             if(medoids[currentCluster] != i) continue;
             if(medoidFound[currentCluster]) continue;
-            RCOUT("Punkt ten przeszedl przez warunki",3);
+            //RCOUT("Punkt ten przeszedl przez warunki",3);
             double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
-            RCOUT("Punkt wrzucam do kolejki", 3);
+            //RCOUT("Punkt wrzucam do kolejki", 3);
             nnheap.insert(i, dist2, maxR);
             medoidFound[currentCluster] = true;
          }
@@ -302,10 +302,10 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
    // first visit the vantage point
    size_t currentCluster = ds.find_set(node->left);  
    double dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
-   RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
+   //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
    if (index < node->left && dist <= maxR && dist > minR &&
          currentCluster != clusterIndex && medoids[currentCluster]==node->left && !medoidFound[currentCluster]) {
-      RCOUT("Wrzucam go", 3);
+      //RCOUT("Wrzucam go", 3);
       nnheap.insert(node->left, dist, maxR);
       medoidFound[currentCluster] = true;
       if(node->sameCluster) return;
@@ -412,10 +412,106 @@ HeapNeighborItem HClustBiVpTreeMedoid::getNearestNeighbor(size_t index)
 //   return ret;
 }*/
 
+size_t HClustBiVpTreeMedoid::mergeTwoClusters(size_t s1, size_t s2)
+{
+   size_t medoid1 = medoids[s1];
+   size_t medoid2 = medoids[s2];
+
+   double sumMedoid1Cluster2 = 0;
+   double sumMedoid2Cluster1 = 0;
+
+   double R = (*_distance)(_indices[medoid1], _indices[medoid2]);
+
+   for (auto element=ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
+   {
+      sumMedoid1Cluster2 += (*_distance)(_indices[*element], _indices[medoid1]);    
+   }
+
+   for (auto element=ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+   {
+      sumMedoid2Cluster1 += (*_distance)(_indices[*element], _indices[medoid2]);    
+   }
+   RCOUT("sumMedoid1Cluster2 = " << sumMedoid1Cluster2,3);
+   RCOUT("sumMedoid2Cluster1 = " << sumMedoid2Cluster1,3);
+   //szukam kandydata na medoid z klasta 1
+   size_t candidate1 = SIZE_MAX;
+   double distCandidate1 = INFINITY;
+   for (auto element=ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+   {
+      if((*_distance)(_indices[*element], _indices[medoid1]) > R || (*_distance)(_indices[*element], _indices[medoid2]) > R) continue;
+      double sumDist = 0.0;
+      bool badOne = false;
+      for (auto element2=ds.getClusterMembers(s2).begin(); element2 != ds.getClusterMembers(s2).end(); ++element2)
+      {
+         sumDist += (*_distance)(_indices[*element], _indices[*element2]);
+         if(sumDist > sumMedoid1Cluster2) 
+         {
+            badOne = true;
+            break;
+         }
+      }
+      if(badOne) continue;
+      for (auto element2=ds.getClusterMembers(s1).begin(); element2 != ds.getClusterMembers(s1).end(); ++element2)
+      {
+         sumDist += (*_distance)(_indices[*element], _indices[*element2]);
+      }
+      RCOUT("sumDist = " << sumDist, 3);
+      if(sumDist < distCandidate1)
+      {
+         candidate1 = *element;
+         distCandidate1 = sumDist;
+      }
+   }
+   //szukam kandydata na medoid z klasta 2
+   size_t candidate2 = SIZE_MAX;
+   double distCandidate2 = INFINITY;
+   for (auto element=ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
+   {
+      if((*_distance)(_indices[*element], _indices[medoid1]) > R || (*_distance)(_indices[*element], _indices[medoid2]) > R) continue;
+      double sumDist = 0.0;
+      bool badOne = false;
+      for (auto element2=ds.getClusterMembers(s1).begin(); element2 != ds.getClusterMembers(s1).end(); ++element2)
+      {
+         sumDist += (*_distance)(_indices[*element], _indices[*element2]);
+         if(sumDist > sumMedoid2Cluster1) 
+         {
+            badOne = true;
+            break;
+         }
+      }
+      if(badOne) continue;
+      for (auto element2=ds.getClusterMembers(s2).begin(); element2 != ds.getClusterMembers(s2).end(); ++element2)
+      {
+         sumDist += (*_distance)(_indices[*element], _indices[*element2]);
+      }
+      RCOUT("sumDist = " << sumDist, 3);
+      if(sumDist < distCandidate2)
+      {
+         candidate2 = *element;
+         distCandidate2 = sumDist;
+      }
+   }
+   if(distCandidate1 < distCandidate2)
+   {
+      return candidate1;
+   }
+   else if(distCandidate1 == distCandidate2)
+   {
+      if(_indices[candidate1] < _indices[candidate2])
+         return candidate1;
+      else
+         return candidate2;
+   }
+   else
+   {
+      return candidate2;
+   }
+}
+
 size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
 {
    size_t indexMedoid = -1;
-   /*double medoidSumDists = INFINITY;
+   double medoidSumDists = INFINITY;
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
    {
       double sumdists = 0.0;
@@ -428,7 +524,13 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
          indexMedoid = (*element);
          medoidSumDists = sumdists;
       }
-   }*/
+      if(sumdists == medoidSumDists)
+      {
+         if(_indices[*element] < _indices[indexMedoid])
+            indexMedoid = *element;
+      }
+   }
+   return indexMedoid;
 
    indexMedoid = *(ds.getClusterMembers(s).begin());
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
@@ -509,8 +611,32 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 
          ret(i,0)=(double)_indices[hhi.index1];
          ret(i,1)=(double)_indices[hhi.index2];
+         medoids[s1] = mergeTwoClusters(s1, s2);
+         RCOUT("metoda sprytna zwrocila " << _indices[medoids[s1]]+1, 3);
+         for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+         {
+            RCOUT(_indices[*element]+1, 3);
+         }
+         RCOUT("gdzie medoidem jest " << _indices[medoids[s1]],3);
+         RCOUT("---",3);
+         for(auto element = ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
+         {
+            RCOUT(_indices[*element]+1, 3);
+         }
+         RCOUT("gdzie medoidem jest " << _indices[medoids[s2]],3);
          ds.link(s1, s2);
-         medoids[s1] = medoidForCluster(s1);
+         size_t medoidNaive = medoidForCluster(s1);
+         RCOUT("metoda naiwna zwrocila " << _indices[medoidNaive]+1, 3);
+         if(medoidNaive != medoids[s1]) 
+         {
+            for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+            {
+               RCOUT(_indices[*element]+1, 3);
+            }
+            
+            stop("metoda mergeTwoCluster nie dziala");
+         }
+         //medoidt[s1] = medoidForCluster(s1);
          ++i;
          RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 3);
          if (i == _n-1) break; /* avoid computing unnecessary nn */
@@ -524,7 +650,7 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
       HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
       if (hi.index != SIZE_MAX)
       {
-         RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
+         //RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
          pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
       }
    }
