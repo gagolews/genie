@@ -258,7 +258,7 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
             size_t currentCluster = ds.find_set(i);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
-            if (index >= i) continue;
+            if (index == i) continue;
             if(medoids[currentCluster] != i) continue;
             if(medoidFound[currentCluster]) continue;
             //RCOUT("Punkt ten przeszedl przez warunki",3);
@@ -275,11 +275,11 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
       {
          for (size_t i=node->left; i<node->right; ++i) 
          {
-            size_t currentCluster = ds.find_set(i);
-            size_t medoid = medoids[currentCluster];
-            if (index >= i) continue;
-            if(medoid != i) continue;
-            if(medoidFound[currentCluster]) continue;
+            //size_t currentCluster = ds.find_set(i);
+            //size_t medoid = medoids[currentCluster];
+            if (index == i) continue;
+            //if(medoid != i) continue;
+            //if(medoidFound[currentCluster]) continue;
             double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
             nnheap.insert(i, dist2, maxR);
@@ -288,7 +288,7 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
       else /* node->sameCluster -- komentarze takie jak ten potrafia byc bardzo mylace! */ {
          size_t currentCluster = ds.find_set(node->left);
          size_t medoid = medoids[currentCluster];
-         if (index >= medoid) return;
+         if (index == medoid) return;
          if(medoidFound[currentCluster]) return;
          double dist2 = (*_distance)(_indices[index], _indices[medoid]); // the slow part
          if (dist2 > maxR || dist2 <= minR) return;
@@ -303,7 +303,7 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
    size_t currentCluster = ds.find_set(node->left);  
    double dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
    //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
-   if (index < node->left && dist <= maxR && dist > minR &&
+   if (index != node->left && dist <= maxR && dist > minR &&
          currentCluster != clusterIndex && medoids[currentCluster]==node->left && !medoidFound[currentCluster]) {
       //RCOUT("Wrzucam go", 3);
       nnheap.insert(node->left, dist, maxR);
@@ -313,23 +313,23 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
+         if (node->childL)
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
+         if (node->childR)
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
    }
    else /* ( dist >= node->radius ) */ {
       if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
+         if (node->childR)
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
+         if (node->childL)
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
    }
@@ -602,13 +602,12 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
    {
       Rcout << "iteracja " << i << endl;
       Rcout << "pq size = " << pq.size()<< endl;
-      if(pq.size() > 2*_n) {awaria = true; break;}
+      if(pq.size() > 200*_n) {awaria = true; break;}
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
 
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
-      bool findNext = false;
       if (s1 != s2 && medoids[s1] == hhi.index1 && medoids[s2] == hhi.index2)
       {
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op
@@ -653,32 +652,21 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
          ++i;
          RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 3);
          if (i == _n-1) break; /* avoid computing unnecessary nn */
-         if (medoids[s1] != hhi.index2)
+         //if (medoids[s1] != hhi.index2)
+         HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
+         while(hi.index != SIZE_MAX && ds.find_set(hi.index) == s1)
+            hi=getNearestNeighbor(medoids[s1]);
+
+         if (hi.index != SIZE_MAX)
          {
-            findNext = true;
+            RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
+            pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
+            RCOUT("Znalazlem najblizszego sasiada",3);
          }
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
 #endif
-
-      if (hhi.index1 >= hhi.index2) stop(":-(");
-      // ASSERT: hhi.index1 < hhi.index2
-      RCOUT("Rozpoczynam szukanie najblizszego sasiada",3);
-
-      //size_t smallerMedoid = min(medoids[s1], medoids[s2]);
-      //smallerMedoid = medoids[s1];
-      if(findNext || hhi.index1 == medoids[s1])
-      {
-         HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
-         if (hi.index != SIZE_MAX)
-         {
-            //RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
-            pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
-            RCOUT("Znalazlem najblizszego sasiada",3);
-         }
-      }
-      RCOUT("Po szukaniu sasiada", 3);
    }
 #if VERBOSE > 7
    Rprintf("\r             %d / %d\n", _n, _n);
