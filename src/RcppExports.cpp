@@ -316,3 +316,29 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// medoid_test2
+RObject medoid_test2(RObject distance, RObject objects, RObject control);
+RcppExport SEXP DataStructures_medoid_test2(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(medoid_test2(distance, objects, control));
+    return __result;
+END_RCPP
+}
+// medoid_test1
+RObject medoid_test1(RObject distance, RObject objects, RObject control);
+RcppExport SEXP DataStructures_medoid_test1(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(medoid_test1(distance, objects, control));
+    return __result;
+END_RCPP
+}
