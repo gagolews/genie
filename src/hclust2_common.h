@@ -33,6 +33,7 @@
 #define DEFAULT_GNAT_MIN_DEGREE 2
 #define DEFAULT_GNAT_MAX_DEGREE 200
 #define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
+#define DEFAULT_MEDOID_UPDATE_METHOD 0
 
 // ---------------------------------------------------------------------------
 
@@ -214,6 +215,7 @@ struct HClustTreeOptions
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
+   size_t medoidUpdateMethod; // medoid - naive(0) or not naive(1)?
 
    HClustTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;

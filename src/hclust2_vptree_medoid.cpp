@@ -515,6 +515,7 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
    {
       double sumdists = 0.0;
+      Rcout << ".";
       for (auto element2 = ds.getClusterMembers(s).begin(); element2 != ds.getClusterMembers(s).end(); ++element2)
       {
          sumdists += (*_distance)(_indices[(*element)], _indices[(*element2)]);
@@ -530,6 +531,7 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
             indexMedoid = *element;
       }
    }
+   Rcout << endl;
    return indexMedoid;
 
    indexMedoid = *(ds.getClusterMembers(s).begin());
@@ -593,40 +595,51 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 #if VERBOSE > 5
    Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-
+   bool awaria = false;
    prefetch = false;
    size_t i = 0;
    while(true)
    {
-      //Rcout << "iteracja " << i << endl;
-      //Rcout << "pq size = " << pq.size()<< endl;
+      Rcout << "iteracja " << i << endl;
+      Rcout << "pq size = " << pq.size()<< endl;
+      if(pq.size() > 2*_n) {awaria = true; break;}
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
 
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
+      bool findNext = false;
       if (s1 != s2 && medoids[s1] == hhi.index1 && medoids[s2] == hhi.index2)
       {
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op
 
          ret(i,0)=(double)_indices[hhi.index1];
          ret(i,1)=(double)_indices[hhi.index2];
-         medoids[s1] = mergeTwoClusters(s1, s2);
-         RCOUT("metoda sprytna zwrocila " << _indices[medoids[s1]]+1, 3);
-         for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+         if(opts.medoidUpdateMethod == 1)
+         {
+            medoids[s2] = medoids[s1] = mergeTwoClusters(s1, s2);
+            //RCOUT("metoda sprytna zwrocila " << _indices[medoids[s1]]+1, 3);
+         }
+         /*for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
+         {
+            RCOUT(_indices[*element]+1, 3);
+         }*/
+         //RCOUT("gdzie medoidem jest " << _indices[medoids[s1]],3);
+         //RCOUT("---",3);
+         /*for(auto element = ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
          {
             RCOUT(_indices[*element]+1, 3);
          }
-         RCOUT("gdzie medoidem jest " << _indices[medoids[s1]],3);
-         RCOUT("---",3);
-         for(auto element = ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
-         {
-            RCOUT(_indices[*element]+1, 3);
-         }
-         RCOUT("gdzie medoidem jest " << _indices[medoids[s2]],3);
+         RCOUT("gdzie medoidem jest " << _indices[medoids[s2]],3);*/
          ds.link(s1, s2);
-         size_t medoidNaive = medoidForCluster(s1);
-         RCOUT("metoda naiwna zwrocila " << _indices[medoidNaive]+1, 3);
+         if(opts.medoidUpdateMethod == 0)
+         {
+            RCOUT("Rozpoczynam metode naiwna", 3);
+            size_t medoidNaive = medoidForCluster(s1);
+            medoids[s2] = medoids[s1] = medoidNaive;
+            RCOUT("Koncze metode naiwna", 3);
+         }
+         /*RCOUT("metoda naiwna zwrocila " << _indices[medoidNaive]+1, 3);
          if(medoidNaive != medoids[s1]) 
          {
             for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
@@ -635,11 +648,15 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
             }
             
             stop("metoda mergeTwoCluster nie dziala");
-         }
+         }*/
          //medoidt[s1] = medoidForCluster(s1);
          ++i;
          RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 3);
          if (i == _n-1) break; /* avoid computing unnecessary nn */
+         if (medoids[s1] != hhi.index2)
+         {
+            findNext = true;
+         }
       }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
@@ -647,12 +664,21 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 
       if (hhi.index1 >= hhi.index2) stop(":-(");
       // ASSERT: hhi.index1 < hhi.index2
-      HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
-      if (hi.index != SIZE_MAX)
+      RCOUT("Rozpoczynam szukanie najblizszego sasiada",3);
+
+      //size_t smallerMedoid = min(medoids[s1], medoids[s2]);
+      //smallerMedoid = medoids[s1];
+      if(findNext || hhi.index1 == medoids[s1])
       {
-         //RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
-         pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
+         HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
+         if (hi.index != SIZE_MAX)
+         {
+            //RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
+            pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
+            RCOUT("Znalazlem najblizszego sasiada",3);
+         }
       }
+      RCOUT("Po szukaniu sasiada", 3);
    }
 #if VERBOSE > 7
    Rprintf("\r             %d / %d\n", _n, _n);
@@ -662,8 +688,13 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 #if VERBOSE > 5
    Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
-   MergeMatrixGenerator mmg(ret.nrow());
-   return mmg.generateMergeMatrix(ret);
+   if(!awaria)
+   {
+      MergeMatrixGenerator mmg(ret.nrow());
+      return mmg.generateMergeMatrix(ret);
+   }
+   else
+      return ret;
 }
 
 
