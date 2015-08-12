@@ -19,7 +19,7 @@
  * ************************************************************************* */
 
 #include "hclust2_vptree_medoid.h"
-#define VERBOSE 17
+//#define VERBOSE 17
 /* Improvement ideas:
  *
  * 1. add custom sort of input objects
@@ -46,7 +46,7 @@ HClustBiVpTreeMedoid::HClustBiVpTreeMedoid(Distance* dist, RObject control) :
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
    distances(vector<double>(_n)),
    medoids(dist->getObjectCount()),
-   medoidFound(dist->getObjectCount()),
+   medoidFound(dist->getObjectCount(), 0),
 #ifdef GENERATE_STATS
    stats(HClustTreeStats()),
 #endif
@@ -258,15 +258,15 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
             size_t currentCluster = ds.find_set(i);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
-            if (index == i) continue;
-            if(medoids[currentCluster] != i) continue;
-            if(medoidFound[currentCluster]) continue;
+            if (index == medoids[currentCluster]) continue;
+            //if(medoids[currentCluster] != i) continue;
+            if(medoidFound[currentCluster]==timestamp) continue;
             //RCOUT("Punkt ten przeszedl przez warunki",3);
-            double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
+            double dist2 = (*_distance)(_indices[index], _indices[medoids[currentCluster]]); // the slow part
+            medoidFound[currentCluster] = timestamp;
             if (dist2 > maxR || dist2 <= minR) continue;
             //RCOUT("Punkt wrzucam do kolejki", 3);
-            nnheap.insert(i, dist2, maxR);
-            medoidFound[currentCluster] = true;
+            nnheap.insert(medoids[currentCluster], dist2, maxR);
          }
          if (commonCluster != SIZE_MAX)
             node->sameCluster = true; // set to true (btw, may be true already)
@@ -277,7 +277,7 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
          {
             //size_t currentCluster = ds.find_set(i);
             //size_t medoid = medoids[currentCluster];
-            if (index == i) continue;
+            if (index >= i) continue;
             //if(medoid != i) continue;
             //if(medoidFound[currentCluster]) continue;
             double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
@@ -289,47 +289,68 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
          size_t currentCluster = ds.find_set(node->left);
          size_t medoid = medoids[currentCluster];
          if (index == medoid) return;
-         if(medoidFound[currentCluster]) return;
+         if(medoidFound[currentCluster]==timestamp) return;
          double dist2 = (*_distance)(_indices[index], _indices[medoid]); // the slow part
+         medoidFound[currentCluster] = timestamp;
          if (dist2 > maxR || dist2 <= minR) return;
          nnheap.insert(medoid, dist2, maxR);
-         medoidFound[currentCluster] = true;
       }
       return; // nothing more to do
    }
    // else // not a leaf
 
    // first visit the vantage point
-   size_t currentCluster = ds.find_set(node->left);  
-   double dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
-   //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
-   if (index != node->left && dist <= maxR && dist > minR &&
-         currentCluster != clusterIndex && medoids[currentCluster]==node->left && !medoidFound[currentCluster]) {
+   double dist;
+   if(prefetch)
+   {
+      size_t currentCluster = ds.find_set(node->left);  
+      //size_t medoid = medoids[currentCluster];
+      dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
+      //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
+      if (index < node->left && dist <= maxR && dist > minR && currentCluster != clusterIndex) {
       //RCOUT("Wrzucam go", 3);
-      nnheap.insert(node->left, dist, maxR);
-      medoidFound[currentCluster] = true;
+         nnheap.insert(node->left, dist, maxR);
+      }
+      //if(node->sameCluster) return;
+   }
+   else
+   {
+      size_t currentCluster = ds.find_set(node->left);  
+      size_t medoid = medoids[currentCluster];
+      if(medoidFound[currentCluster] < timestamp)
+      {
+         double dist = (*_distance)(_indices[index], _indices[medoid]); // the slow part
+         //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
+         if (index != node->left && dist <= maxR && dist > minR &&
+               currentCluster != clusterIndex) 
+         {
+            nnheap.insert(medoid, dist, maxR);
+            medoidFound[currentCluster] = timestamp;
+         }
+      }
       if(node->sameCluster) return;
+      dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
    }
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL)
+         if (node->childL && (!prefetch ||  index < node->childL->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist + maxR >= node->radius) {
-         if (node->childR)
+         if (node->childR && (!prefetch ||  index < node->childR->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
    }
    else /* ( dist >= node->radius ) */ {
       if (dist + maxR >= node->radius) {
-         if (node->childR)
+         if (node->childR  && (!prefetch ||  index < node->childR->maxindex) )
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL)
+         if (node->childL && (!prefetch ||  index < node->childL->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
    }
@@ -365,8 +386,9 @@ HeapNeighborItem HClustBiVpTreeMedoid::getNearestNeighbor(size_t index)
 #endif
       ++stats.nnCals;
 #endif
+      /*if(!prefetch)
       for (size_t i=0; i<_n; ++i)
-         medoidFound[i]=false;
+         medoidFound[i]=false;*/
       NNHeap nnheap(opts.maxNNPrefetch);
       getNearestNeighborsFromMinRadiusRecursive(_root, index, clusterIndex, minRadiuses[index], _tau, nnheap);
       nnheap.fill(nearestNeighbors[index]);
@@ -511,7 +533,7 @@ size_t HClustBiVpTreeMedoid::mergeTwoClusters(size_t s1, size_t s2)
 size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
 {
    size_t indexMedoid = -1;
-   double medoidSumDists = INFINITY;
+   /*double medoidSumDists = INFINITY;
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
    {
       double sumdists = 0.0;
@@ -532,7 +554,7 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
       }
    }
    Rcout << endl;
-   return indexMedoid;
+   return indexMedoid;*/
 
    indexMedoid = *(ds.getClusterMembers(s).begin());
    for (auto element = ds.getClusterMembers(s).begin(); element != ds.getClusterMembers(s).end(); ++element)
@@ -545,7 +567,7 @@ size_t HClustBiVpTreeMedoid::medoidForCluster(size_t s)
 
 NumericMatrix HClustBiVpTreeMedoid::compute()
 {
-   Rcout << "wchodze do medoid!" << endl;
+   //Rcout << "wchodze do medoid!" << endl;
    NumericMatrix ret(_n-1, 2);
    priority_queue<HeapHierarchicalItem> pq;
 
@@ -553,7 +575,7 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
       medoids[i] = i;
 
    // INIT: Pre-fetch a few nearest neighbors for each point
-#if VERBOSE > 5
+#if VERBOSE > 1
    Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
 
@@ -579,7 +601,7 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 #ifdef _OPENMP
          omp_set_lock(&writelock);
 #endif
-         RCOUT("dla " << _indices[i]+1 << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
+         RCOUT("dla " << _indices[i]+1 << " najblizszym sasiadem jest " << _indices[hi.index]+1, 8);
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
 #ifdef _OPENMP
          omp_unset_lock(&writelock);
@@ -592,16 +614,17 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 #if VERBOSE > 7
    Rprintf("\r             prefetch NN: %d/%d\n", _n-1, _n-1);
 #endif
-#if VERBOSE > 5
+#if VERBOSE > 1
    Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
    bool awaria = false;
    prefetch = false;
    size_t i = 0;
+   timestamp = 1;
    while(true)
    {
-      Rcout << "iteracja " << i << endl;
-      Rcout << "pq size = " << pq.size()<< endl;
+      //Rcout << "iteracja " << i << endl;
+      //Rcout << "pq size = " << pq.size()<< endl;
       if(pq.size() > 200*_n) {awaria = true; break;}
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
@@ -633,10 +656,10 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
          ds.link(s1, s2);
          if(opts.medoidUpdateMethod == 0)
          {
-            RCOUT("Rozpoczynam metode naiwna", 3);
+            RCOUT("Rozpoczynam metode naiwna", 8);
             size_t medoidNaive = medoidForCluster(s1);
             medoids[s2] = medoids[s1] = medoidNaive;
-            RCOUT("Koncze metode naiwna", 3);
+            RCOUT("Koncze metode naiwna", 8);
          }
          /*RCOUT("metoda naiwna zwrocila " << _indices[medoidNaive]+1, 3);
          if(medoidNaive != medoids[s1]) 
@@ -650,7 +673,8 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
          }*/
          //medoidt[s1] = medoidForCluster(s1);
          ++i;
-         RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 3);
+         timestamp++;
+         RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 8);
          if (i == _n-1) break; /* avoid computing unnecessary nn */
          //if (medoids[s1] != hhi.index2)
          HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
@@ -659,9 +683,9 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 
          if (hi.index != SIZE_MAX)
          {
-            RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 3);
+            RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 8);
             pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
-            RCOUT("Znalazlem najblizszego sasiada",3);
+            RCOUT("Znalazlem najblizszego sasiada",8);
          }
       }
 #if VERBOSE > 7

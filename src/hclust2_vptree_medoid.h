@@ -102,6 +102,7 @@ protected:
          };
 
    HClustTreeOptions opts;
+   size_t timestamp;
 
    HClustBiVpTreeMedoidNode* _root;
    size_t _n;
@@ -117,7 +118,7 @@ protected:
    std::vector<double> distances;
 
    vector<size_t> medoids;
-   vector<bool> medoidFound;
+   vector<size_t> medoidFound;
 
    HClustTreeStats stats;
 

@@ -727,7 +727,7 @@ void HClustGnatSingle::getNearestNeighborsFromMinRadiusRecursive( HClustGnatSing
    for(size_t jj=0;jj<node->degree; ++jj)
    {
       if(shouldVisit[jj])
-         RCOUT(node->splitPoints[jj]+1 << ", ",12)
+         RCOUT(node->splitPoints[jj]+1 << ", ",12);
    }
    RCOUT(endl,12);
    for(size_t i=0;i<node->degree; ++i) //4. z artykulu
