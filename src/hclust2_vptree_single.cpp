@@ -144,8 +144,6 @@ size_t HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
    }
 }
 
-bool comparer_gt(int i,int j) { return (i>j); }
-
 
 HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
    size_t right)

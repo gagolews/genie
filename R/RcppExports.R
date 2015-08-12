@@ -249,3 +249,11 @@ vector_set_at <- function(vec, i, obj) {
     invisible(.Call('DataStructures_vector_set_at', PACKAGE = 'DataStructures', vec, i, obj))
 }
 
+medoid_test2 <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_medoid_test2', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
+medoid_test1 <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_medoid_test1', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
