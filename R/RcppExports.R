@@ -257,3 +257,11 @@ medoid_test1 <- function(distance, objects, control = NULL) {
     .Call('DataStructures_medoid_test1', PACKAGE = 'DataStructures', distance, objects, control)
 }
 
+seboid_test2 <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_seboid_test2', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
+seboid_test1 <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_seboid_test1', PACKAGE = 'DataStructures', distance, objects, control)
+}
+

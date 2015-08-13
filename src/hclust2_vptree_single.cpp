@@ -363,7 +363,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
    for (size_t i=0; i<_n; i++)
    {
 #ifndef _OPENMP
-   Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+      Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
 #endif
       HeapNeighborItem hi=getNearestNeighbor(i);
 

@@ -241,12 +241,25 @@ void VpTree::getNearestNeighborsFromMinRadiusRecursive(
 
 vector<HeapNeighborItem> VpTree::getNearestNeighbors(size_t index, int maxNN, double minR, double maxR)
 {
+#ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+      ++stats.nnCals;
+#endif
+
    std::priority_queue<HeapNeighborItem> nnheap;
    getNearestNeighborsFromMinRadiusRecursive(_root, _indicesinv[index], minR, maxR, nnheap, maxNN);
 
    size_t n = nnheap.size();
    vector<HeapNeighborItem> out(n);
    for (size_t i = 0; i<n; ++i) {
+#ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+      ++stats.nnCount;
+#endif
       out[n-i-1] = nnheap.top();
       out[n-i-1].index = _indices[out[n-i-1].index];
       nnheap.pop();
@@ -255,10 +268,22 @@ vector<HeapNeighborItem> VpTree::getNearestNeighbors(size_t index, int maxNN, do
 }
 
 
-double sumd(DataStructures::Distance* dist, int i) {
+inline double maxd(DataStructures::Distance* dist, int i, double limit=INFINITY) {
    double d = 0.0;
-   for (size_t j=0; j<dist->getObjectCount(); ++j)
+   for (size_t j=0; j<dist->getObjectCount(); ++j) {
+      d = std::max(d, (*dist)(i, j));
+      if (d >= limit) return INFINITY;
+   }
+   return d;
+}
+
+
+inline double sumd(DataStructures::Distance* dist, int i, double limit=INFINITY) {
+   double d = 0.0;
+   for (size_t j=0; j<dist->getObjectCount(); ++j) {
       d += (*dist)(i, j);
+      if (d >= limit) return INFINITY;
+   }
    return d;
 }
 
@@ -274,20 +299,20 @@ RObject medoid_test2(RObject distance, RObject objects, RObject control=R_NilVal
 
       size_t besti = -1;
       double bestd = INFINITY;
+      // TODO: pragma omp parallel
       for (size_t i=0; i<n; ++i) {
-         double curd = 0.0;
-         for (size_t j=0; j<n; ++j) {
-            curd += (*dist)(i, j);
-            if (curd > bestd) break;
-            else if (j == n-1) {
-               bestd = curd;
-               besti = i;
-            }
+#ifndef _OPENMP
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+#endif
+         double curd = sumd(dist, i, bestd);
+         if (curd < bestd) {
+            bestd = curd;
+            besti = i;
          }
       }
 
       result = besti+1;
-      Rcout << bestd << endl;
+      Rprintf("%f\n", bestd);
    }
    catch(...) {
 
@@ -300,38 +325,70 @@ RObject medoid_test2(RObject distance, RObject objects, RObject control=R_NilVal
 
 
 
+
+// #undef VERBOSE
+// #define VERBOSE 6
+
 // [[Rcpp::export]]
 RObject medoid_test1(RObject distance, RObject objects, RObject control=R_NilValue) {
+   /* idea by AC, refinements by MG */
+#if VERBOSE > 5
+   Rprintf("[%010.3f] starting timer, vp-tree build\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
    RObject result(R_NilValue);
    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
       DataStructures::VpTree tree(dist, control);
+#if VERBOSE > 5
+   Rprintf("[%010.3f] actual computations\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
       size_t n = dist->getObjectCount();
       vector<bool> active(n, true);
-      size_t besti = (size_t)(unif_rand()*n);
-      double bestd = sumd(dist, besti);
-      active[besti] = false;
 
-      bool change = true;
-      while (change) {
-         change = false;
-         vector<HeapNeighborItem> x = tree.getNearestNeighbors(besti, 25);
-         for (size_t i=0; i<x.size(); ++i) {
-            if (!active[x[i].index]) continue;
-            double curd = sumd(dist, x[i].index);
-            active[x[i].index] = false;
-            if (curd < bestd) {
-               change = true;
-               bestd = curd;
-               besti = x[i].index;
+      const size_t iters = 25;
+      const size_t nntry = 10;
+
+      size_t besti_overall = -1;
+      double bestd_overall = INFINITY;
+
+      // TODO: pragma omp parallel...
+      for (size_t r=0; r<iters; ++r) {
+#ifndef _OPENMP
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+#endif
+         size_t besti = (size_t)(unif_rand()*n);
+         double bestd = sumd(dist, besti);
+         if (!active[besti]) continue;
+         active[besti] = false;
+
+         bool change = true;
+         while (change) {
+            change = false;
+            vector<HeapNeighborItem> x = tree.getNearestNeighbors(besti, nntry);
+            for (size_t i=0; i<x.size(); ++i) {
+               if (!active[x[i].index]) continue;
+               double curd = sumd(dist, x[i].index, bestd);
+               active[x[i].index] = false;
+               if (curd < bestd) {
+                  change = true;
+                  bestd = curd;
+                  besti = x[i].index;
+               }
             }
          }
-      }
 
-      result = besti+1;
-      Rcout << bestd << endl;
+         if (bestd < bestd_overall) {
+            bestd_overall = bestd;
+            besti_overall = besti;
+         }
+      }
+#if VERBOSE > 5
+   Rprintf("[%010.3f] thats all folks\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
+      result = besti_overall+1;
+      Rprintf("%f\n", bestd_overall);
    }
    catch(...) {
 
@@ -341,3 +398,116 @@ RObject medoid_test1(RObject distance, RObject objects, RObject control=R_NilVal
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
    return result;
 }
+
+
+// [[Rcpp::export]]
+RObject seboid_test2(RObject distance, RObject objects, RObject control=R_NilValue) {
+   RObject result(R_NilValue);
+   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
+
+   try {
+      /* Rcpp::checkUserInterrupt(); may throw an exception */
+      size_t n = dist->getObjectCount();
+
+      size_t besti = -1;
+      double bestd = INFINITY;
+      // TODO: pragma omp parallel
+      for (size_t i=0; i<n; ++i) {
+#ifndef _OPENMP
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+#endif
+         double curd = maxd(dist, i, bestd);
+         if (curd < bestd) {
+            bestd = curd;
+            besti = i;
+         }
+      }
+
+      result = besti+1;
+      Rprintf("%f\n", bestd);
+   }
+   catch(...) {
+
+   }
+
+   if (dist) delete dist;
+   if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
+   return result;
+}
+
+
+
+
+// #undef VERBOSE
+// #define VERBOSE 6
+
+// [[Rcpp::export]]
+RObject seboid_test1(RObject distance, RObject objects, RObject control=R_NilValue) {
+   /* idea by AC, refinements by MG */
+#if VERBOSE > 5
+   Rprintf("[%010.3f] starting timer, vp-tree build\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
+   RObject result(R_NilValue);
+   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
+
+   try {
+      /* Rcpp::checkUserInterrupt(); may throw an exception */
+      DataStructures::VpTree tree(dist, control);
+#if VERBOSE > 5
+   Rprintf("[%010.3f] actual computations\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
+      size_t n = dist->getObjectCount();
+      vector<bool> active(n, true);
+
+      const size_t iters = 25;
+      const size_t nntry = 10;
+
+      size_t besti_overall = -1;
+      double bestd_overall = INFINITY;
+
+      // TODO: pragma omp parallel...
+      for (size_t r=0; r<iters; ++r) {
+#ifndef _OPENMP
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+#endif
+         size_t besti = (size_t)(unif_rand()*n);
+         double bestd = maxd(dist, besti);
+         if (!active[besti]) continue;
+         active[besti] = false;
+
+         bool change = true;
+         while (change) {
+            change = false;
+            vector<HeapNeighborItem> x = tree.getNearestNeighbors(besti, nntry);
+            for (size_t i=0; i<x.size(); ++i) {
+               if (!active[x[i].index]) continue;
+               double curd = maxd(dist, x[i].index, bestd);
+               active[x[i].index] = false;
+               if (curd < bestd) {
+                  change = true;
+                  bestd = curd;
+                  besti = x[i].index;
+               }
+            }
+         }
+
+         if (bestd < bestd_overall) {
+            bestd_overall = bestd;
+            besti_overall = besti;
+         }
+      }
+#if VERBOSE > 5
+   Rprintf("[%010.3f] thats all folks\n", clock()/(double)CLOCKS_PER_SEC);
+#endif
+      result = besti_overall+1;
+      Rprintf("%f\n", bestd_overall);
+   }
+   catch(...) {
+
+   }
+
+   if (dist) delete dist;
+   if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
+   return result;
+}
+
