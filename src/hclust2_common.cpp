@@ -34,7 +34,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    minDegree = DEFAULT_GNAT_MIN_DEGREE;
    maxDegree = DEFAULT_GNAT_MAX_DEGREE;
    maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
-   medoidUpdateMethod = DEFAULT_MEDOID_UPDATE_METHOD;
+   exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -79,14 +79,14 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
          candidatesTimes = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["candidatesTimes"])[0];
       }
 
-      if (control2.containsElementNamed("medoidUpdateMethod")) {
-         medoidUpdateMethod = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["medoidUpdateMethod"])[0];
+      if (control2.containsElementNamed("exemplarUpdateMethod")) {
+         exemplarUpdateMethod = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["exemplarUpdateMethod"])[0];
       }
    }
 
-   if (medoidUpdateMethod != 0 && medoidUpdateMethod != 1) {
-      medoidUpdateMethod = DEFAULT_MEDOID_UPDATE_METHOD;
-      Rf_warning("wrong medoidUpdateMethod value. using default");
+   if (exemplarUpdateMethod != 0 && exemplarUpdateMethod != 1) {
+      exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
+      Rf_warning("wrong exemplarUpdateMethod value. using default");
    }
    if (degree < 2 || degree > 2000) {
       degree = DEFAULT_GNAT_DEGREE;

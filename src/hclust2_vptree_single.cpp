@@ -38,7 +38,7 @@ using namespace DataStructures;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
+HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
    opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
    _indices(dist->getObjectCount()),
    // _indicesinv(dist->getObjectCount()),
@@ -67,7 +67,7 @@ HClustBiVpTreeSingle::HClustBiVpTreeSingle(Distance* dist, RObject control) :
 }
 
 
-HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
+HClustVpTreeSingle::~HClustVpTreeSingle() {
 // #if VERBOSE > 5
 //       Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 // #endif
@@ -75,7 +75,7 @@ HClustBiVpTreeSingle::~HClustBiVpTreeSingle() {
 }
 
 
-size_t HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
+size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 {
    if (opts.vpSelectScheme == 1) {
       // idea by Yianilos (original vp-tree paper)
@@ -145,7 +145,7 @@ size_t HClustBiVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
+HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
    size_t right)
 {
 #ifdef GENERATE_STATS
@@ -156,7 +156,7 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
    #ifdef GENERATE_STATS
       ++stats.leafCount;
    #endif
-      HClustBiVpTreeSingleNode* leaf = new HClustBiVpTreeSingleNode(left, right);
+      HClustVpTreeSingleNode* leaf = new HClustVpTreeSingleNode(left, right);
       // std::sort(_indices.begin()+left, _indices.begin()+right, comparer_gt);
       // leaf->maxindex = _indices[left];
       // leaf->maxindex = _indices[left];
@@ -184,9 +184,9 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
 // slower -- computes some distances > 1 time
 //    std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
 //                     DistanceComparator(vpi, _distance));
-//    HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
+//    HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
 
-   HClustBiVpTreeSingleNode* node = new HClustBiVpTreeSingleNode(vpi, left, left+1, distances[_indices[median]]);
+   HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, distances[_indices[median]]);
 
    node->maxindex = left;
    if (median - left > 0) { // don't include vpi
@@ -204,8 +204,8 @@ HClustBiVpTreeSingleNode* HClustBiVpTreeSingle::buildFromPoints(size_t left,
 }
 
 
-void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
-   HClustBiVpTreeSingleNode* node, size_t index,
+void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
+   HClustVpTreeSingleNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
 {
    // search within (minR, maxR]
@@ -296,7 +296,7 @@ void HClustBiVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 }
 
 
-HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
+HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
 {
    if (shouldFind[index] && nearestNeighbors[index].empty())
    {
@@ -343,7 +343,7 @@ HeapNeighborItem HClustBiVpTreeSingle::getNearestNeighbor(size_t index)
 }
 
 
-NumericMatrix HClustBiVpTreeSingle::compute()
+NumericMatrix HClustVpTreeSingle::compute()
 {
    NumericMatrix ret(_n-1, 2);
    priority_queue<HeapHierarchicalItem> pq;
@@ -436,7 +436,7 @@ NumericMatrix HClustBiVpTreeSingle::compute()
 }
 
 
-void HClustBiVpTreeSingle::print(HClustBiVpTreeSingleNode* n) {
+void HClustVpTreeSingle::print(HClustVpTreeSingleNode* n) {
    if (n->childL) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"L\"];\n",
          (unsigned long long)n, (unsigned long long)(n->childL));
@@ -458,7 +458,7 @@ void HClustBiVpTreeSingle::print(HClustBiVpTreeSingleNode* n) {
 }
 
 
-void HClustBiVpTreeSingle::print() {
+void HClustVpTreeSingle::print() {
    Rprintf("digraph vptree {\n");
    Rprintf("size=\"6,6\";\n");
    Rprintf("node [color=lightblue2, style=filled];");
@@ -477,7 +477,7 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustBiVpTreeSingle hclust(dist, control);
+      DataStructures::HClustVpTreeSingle hclust(dist, control);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,
@@ -522,7 +522,7 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
 //
 //    try {
 //       /* Rcpp::checkUserInterrupt(); may throw an exception */
-//       DataStructures::HClustBiVpTreeSingle hclust(dist, control);
+//       DataStructures::HClustVpTreeSingle hclust(dist, control);
 //       hclust.getNearestNeighbor(0);
 //       hclust.getNearestNeighbor(25);
 //       hclust.getNearestNeighbor(4653);

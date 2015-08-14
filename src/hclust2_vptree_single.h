@@ -47,7 +47,7 @@
 namespace DataStructures
 {
 
-struct HClustBiVpTreeSingleNode
+struct HClustVpTreeSingleNode
 {
    size_t vpindex;
    size_t left;
@@ -55,35 +55,35 @@ struct HClustBiVpTreeSingleNode
    double radius;
    bool sameCluster;
    size_t maxindex;
-   HClustBiVpTreeSingleNode* childL;
-   HClustBiVpTreeSingleNode* childR;
+   HClustVpTreeSingleNode* childL;
+   HClustVpTreeSingleNode* childR;
 
-   HClustBiVpTreeSingleNode() :
+   HClustVpTreeSingleNode() :
          vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
          sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
-   HClustBiVpTreeSingleNode(size_t left, size_t right) :
+   HClustVpTreeSingleNode(size_t left, size_t right) :
          vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
          sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
-   HClustBiVpTreeSingleNode(size_t vpindex, size_t left, size_t right, double radius) :
+   HClustVpTreeSingleNode(size_t vpindex, size_t left, size_t right, double radius) :
          vpindex(vpindex), left(left), right(right), radius(radius),
          sameCluster(false), maxindex(SIZE_MAX), childL(NULL), childR(NULL)  { }
 
-   ~HClustBiVpTreeSingleNode() {
+   ~HClustVpTreeSingleNode() {
       if (childL) delete childL;
       if (childR) delete childR;
    }
 };
 
 
-class HClustBiVpTreeSingle
+class HClustVpTreeSingle
 {
 protected:
 
    HClustTreeOptions opts;
 
-   HClustBiVpTreeSingleNode* _root;
+   HClustVpTreeSingleNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -102,17 +102,17 @@ protected:
    bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
-   HClustBiVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
+   HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
 
-   void getNearestNeighborsFromMinRadiusRecursive(HClustBiVpTreeSingleNode* node,
+   void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
-   void print(HClustBiVpTreeSingleNode* n);
+   void print(HClustVpTreeSingleNode* n);
 
 public:
 
-   HClustBiVpTreeSingle(Distance* dist, RObject control);
-   ~HClustBiVpTreeSingle();
+   HClustVpTreeSingle(Distance* dist, RObject control);
+   ~HClustVpTreeSingle();
 
    void print();
    NumericMatrix compute();

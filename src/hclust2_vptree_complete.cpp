@@ -35,7 +35,7 @@ using namespace DataStructures;
 #define UPDATEKK
 #define CALCULATETIMEFORCLUSTERDISTANCE
 
-int HClustBiVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
+int HClustVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
 {
 #if VANTAGE_POINT_SELECT_SCHEME == 1
    // idea by A. Fu et al., "Dynamic VP-tree indexing for n-nearest neighbor
@@ -98,7 +98,7 @@ int HClustBiVpTreeComplete::chooseNewVantagePoint(size_t left, size_t right)
 }
 
 
-HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left, size_t right)
+HClustVpTreeCompleteNode* HClustVpTreeComplete::buildFromPoints(size_t left, size_t right)
 {
    if(right - left <= maxNumberOfElementsInLeaves)
    {
@@ -108,7 +108,7 @@ HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left,
             maxRadiuses[ _indices[i] ] = (*_distance)(_indices[i], j);
       }
 
-      return new HClustBiVpTreeCompleteNode(left, right);
+      return new HClustVpTreeCompleteNode(left, right);
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
@@ -127,7 +127,7 @@ HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left,
    // printf("(%d,%d,%d)\n", left, median, right);
    // for (int i=left; i<right; ++i) printf("%d, ", _indices[i]+1);
    // printf("\n");
-   HClustBiVpTreeCompleteNode* node = new HClustBiVpTreeCompleteNode(vpi, (*_distance)(vpi, _indices[median]));
+   HClustVpTreeCompleteNode* node = new HClustVpTreeCompleteNode(vpi, (*_distance)(vpi, _indices[median]));
 
 
    size_t middle1 = std::partition(_indices.begin() + left,  _indices.begin() + median + 1,  IndexComparator(vpi)) - _indices.begin();
@@ -149,17 +149,17 @@ HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left,
 
    /*
 
-   size_t calculateHClustBiVpTreeCompleteNodeSize(HClustBiVpTreeCompleteNode* node)
+   size_t calculateHClustVpTreeCompleteNodeSize(HClustVpTreeCompleteNode* node)
    {
       return node->radiuses.size()*sizeof(double)
          + node->points.size()*sizeof(int)
-         + node->children.size()*sizeof(HClustBiVpTreeCompleteNode*)
-         + sizeof(HClustBiVpTreeCompleteNode);
+         + node->children.size()*sizeof(HClustVpTreeCompleteNode*)
+         + sizeof(HClustVpTreeCompleteNode);
    }
 
-   size_t treeSize_rec(HClustBiVpTreeCompleteNode* node)
+   size_t treeSize_rec(HClustVpTreeCompleteNode* node)
    {
-      size_t size = calculateHClustBiVpTreeCompleteNodeSize(node);
+      size_t size = calculateHClustVpTreeCompleteNodeSize(node);
       for(int i=0;i<node->childCount;i++)
       {
          size += treeSize_rec(node->children[i]);
@@ -167,7 +167,7 @@ HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left,
       return size;
    }
 
-   int treeHeight_rec(HClustBiVpTreeCompleteNode* node)
+   int treeHeight_rec(HClustVpTreeCompleteNode* node)
    {
       int maxH = 0;
       for(int i=0;i<node->childCount;i++)
@@ -178,7 +178,7 @@ HClustBiVpTreeCompleteNode* HClustBiVpTreeComplete::buildFromPoints(size_t left,
    }
 */
 
-void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeCompleteNode* node, size_t index,
+void HClustVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustVpTreeCompleteNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR,
    std::priority_queue<HeapNeighborItem>& heap )
 {
@@ -406,7 +406,7 @@ void HClustBiVpTreeComplete::getNearestNeighborsFromMinRadiusRecursive( HClustBi
   }
 }
 
-void HClustBiVpTreeComplete::print(HClustBiVpTreeCompleteNode* n) {
+void HClustVpTreeComplete::print(HClustVpTreeCompleteNode* n) {
    if (n->ll) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"LL\"];\n", (unsigned long long)n, (unsigned long long)(n->ll));
       print(n->ll);
@@ -432,7 +432,7 @@ void HClustBiVpTreeComplete::print(HClustBiVpTreeCompleteNode* n) {
    }
 }
 
-HeapNeighborItem HClustBiVpTreeComplete::getNearestNeighbor(size_t index)
+HeapNeighborItem HClustVpTreeComplete::getNearestNeighbor(size_t index)
 {
 #if VERBOSE > 5
    // Rprintf(".");
@@ -485,7 +485,7 @@ void printCounters()
 #endif
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustBiVpTreeComplete::HClustBiVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves) :
+HClustVpTreeComplete::HClustVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves) :
    maxNumberOfElementsInLeaves(maxNumberOfElementsInLeaves),
    _root(NULL), _n(dist->getObjectCount()), _distance(dist),
    _indices(dist->getObjectCount()),
@@ -521,7 +521,7 @@ HClustBiVpTreeComplete::HClustBiVpTreeComplete(Distance* dist, size_t maxNumberO
    _root = buildFromPoints(0, _n);
 }
 
-HClustBiVpTreeComplete::~HClustBiVpTreeComplete() {
+HClustVpTreeComplete::~HClustVpTreeComplete() {
 #if VERBOSE > 5
    Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 #endif
@@ -541,7 +541,7 @@ HClustBiVpTreeComplete::~HClustBiVpTreeComplete() {
       return treeHeight_rec(_root);
    }*/
 
-void HClustBiVpTreeComplete::print() {
+void HClustVpTreeComplete::print() {
    Rprintf("digraph vptree {\n");
    Rprintf("size=\"6,6\";\n");
    Rprintf("node [color=lightblue2, style=filled];");
@@ -549,7 +549,7 @@ void HClustBiVpTreeComplete::print() {
    Rprintf("}\n");
 }
 
-HClustBiVpTreeComplete::HeapHierarchicalItemMax HClustBiVpTreeComplete::calculateCluster2ClusterMaxDistance(size_t item1, size_t item2, size_t iter)
+HClustVpTreeComplete::HeapHierarchicalItemMax HClustVpTreeComplete::calculateCluster2ClusterMaxDistance(size_t item1, size_t item2, size_t iter)
 {
    size_t s1 = ds.find_set(item1);
    size_t s2 = ds.find_set(item2);
@@ -573,7 +573,7 @@ HClustBiVpTreeComplete::HeapHierarchicalItemMax HClustBiVpTreeComplete::calculat
    return ret;
 }
 
-NumericMatrix HClustBiVpTreeComplete::compute()
+NumericMatrix HClustVpTreeComplete::compute()
 {
    Rcout << "wchodze do complete!" << endl;
    static double timeForClusterDistance = 0;
@@ -906,7 +906,7 @@ RObject hclust2_complete(RObject distance, RObject objects, int maxNumberOfEleme
 
    try {
       /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustBiVpTreeComplete hclust(dist, (int)maxNumberOfElementsInLeaves);
+      DataStructures::HClustVpTreeComplete hclust(dist, (int)maxNumberOfElementsInLeaves);
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,

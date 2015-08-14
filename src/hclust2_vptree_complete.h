@@ -60,28 +60,28 @@
 namespace DataStructures
 {
 
-struct HClustBiVpTreeCompleteNode
+struct HClustVpTreeCompleteNode
 {
    size_t vpindex;
    size_t left;
    size_t right;
    double radius;
    bool sameCluster;
-   HClustBiVpTreeCompleteNode *ll, *lr, *rl, *rr;
+   HClustVpTreeCompleteNode *ll, *lr, *rl, *rr;
 
-   HClustBiVpTreeCompleteNode() :
+   HClustVpTreeCompleteNode() :
       vpindex(SIZE_MAX), left(SIZE_MAX), right(SIZE_MAX), radius(-INFINITY),
       sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
-   HClustBiVpTreeCompleteNode(size_t left, size_t right) :
+   HClustVpTreeCompleteNode(size_t left, size_t right) :
       vpindex(SIZE_MAX), left(left), right(right), radius(-INFINITY),
       sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
-   HClustBiVpTreeCompleteNode(size_t vpindex, double radius) :
+   HClustVpTreeCompleteNode(size_t vpindex, double radius) :
       vpindex(vpindex), left(SIZE_MAX), right(SIZE_MAX), radius(radius),
       sameCluster(false), ll(NULL), lr(NULL), rl(NULL), rr(NULL) {}
 
-   ~HClustBiVpTreeCompleteNode() {
+   ~HClustVpTreeCompleteNode() {
       if(ll) delete ll;
       if(lr) delete lr;
       if(rl) delete rl;
@@ -89,7 +89,7 @@ struct HClustBiVpTreeCompleteNode
    }
 };
 
-class HClustBiVpTreeComplete
+class HClustVpTreeComplete
 {
 protected:
 
@@ -120,7 +120,7 @@ protected:
    size_t maxNumberOfElementsInLeaves; // set in the constructor
    const size_t maxNearestNeighborPrefetch = 1;
 
-   HClustBiVpTreeCompleteNode* _root;
+   HClustVpTreeCompleteNode* _root;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -154,13 +154,13 @@ protected:
    int chooseNewVantagePoint(size_t left, size_t right);
 
 
-   HClustBiVpTreeCompleteNode* buildFromPoints(size_t left, size_t right);
+   HClustVpTreeCompleteNode* buildFromPoints(size_t left, size_t right);
 
-   void getNearestNeighborsFromMinRadiusRecursive( HClustBiVpTreeCompleteNode* node, size_t index,
+   void getNearestNeighborsFromMinRadiusRecursive( HClustVpTreeCompleteNode* node, size_t index,
       size_t clusterIndex, double minR, double& maxR,
       std::priority_queue<HeapNeighborItem>& heap );
 
-   void print(HClustBiVpTreeCompleteNode* n);
+   void print(HClustVpTreeCompleteNode* n);
 
 public:
    HeapNeighborItem getNearestNeighbor(size_t index);
@@ -172,8 +172,8 @@ public:
 public:
 
    // constructor (OK, we all know what this is, but I label it for faster in-code search)
-   HClustBiVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves);
-   virtual ~HClustBiVpTreeComplete();
+   HClustVpTreeComplete(Distance* dist, size_t maxNumberOfElementsInLeaves);
+   virtual ~HClustVpTreeComplete();
    void print();
    HeapHierarchicalItemMax calculateCluster2ClusterMaxDistance(size_t item1, size_t item2, size_t iter);
    NumericMatrix compute();
