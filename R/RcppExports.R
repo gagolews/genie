@@ -33,6 +33,10 @@ generateMergeMatrix <- function(x) {
     .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
 }
 
+.hclust2_exemplar_naive <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_hclust2_exemplar_naive', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
 .hclust2_complete <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
     .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
