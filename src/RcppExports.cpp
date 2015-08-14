@@ -5,6 +5,64 @@
 
 using namespace Rcpp;
 
+// medoid_exact
+RObject medoid_exact(RObject distance, RObject objects, RObject control, bool limit);
+RcppExport SEXP DataStructures_medoid_exact(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP, SEXP limitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< bool >::type limit(limitSEXP);
+    __result = Rcpp::wrap(medoid_exact(distance, objects, control, limit));
+    return __result;
+END_RCPP
+}
+// medoid_approx
+RObject medoid_approx(RObject distance, RObject objects, RObject control, int iters, int nntry);
+RcppExport SEXP DataStructures_medoid_approx(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP, SEXP itersSEXP, SEXP nntrySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< int >::type iters(itersSEXP);
+    Rcpp::traits::input_parameter< int >::type nntry(nntrySEXP);
+    __result = Rcpp::wrap(medoid_approx(distance, objects, control, iters, nntry));
+    return __result;
+END_RCPP
+}
+// seboid_exact
+RObject seboid_exact(RObject distance, RObject objects, RObject control, bool limit);
+RcppExport SEXP DataStructures_seboid_exact(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP, SEXP limitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< bool >::type limit(limitSEXP);
+    __result = Rcpp::wrap(seboid_exact(distance, objects, control, limit));
+    return __result;
+END_RCPP
+}
+// seboid_approx
+RObject seboid_approx(RObject distance, RObject objects, RObject control, int iters, int nntry);
+RcppExport SEXP DataStructures_seboid_approx(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP, SEXP itersSEXP, SEXP nntrySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    Rcpp::traits::input_parameter< int >::type iters(itersSEXP);
+    Rcpp::traits::input_parameter< int >::type nntry(nntrySEXP);
+    __result = Rcpp::wrap(seboid_approx(distance, objects, control, iters, nntry));
+    return __result;
+END_RCPP
+}
 // hclust3
 SEXP hclust3(SEXP const method_, SEXP const metric_, SEXP X_, SEXP members_, SEXP p_);
 RcppExport SEXP DataStructures_hclust3(SEXP method_SEXP, SEXP metric_SEXP, SEXP X_SEXP, SEXP members_SEXP, SEXP p_SEXP) {
@@ -314,57 +372,5 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< RObject >::type obj(objSEXP);
     vector_set_at(vec, i, obj);
     return R_NilValue;
-END_RCPP
-}
-// medoid_test2
-RObject medoid_test2(RObject distance, RObject objects, RObject control);
-RcppExport SEXP DataStructures_medoid_test2(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(medoid_test2(distance, objects, control));
-    return __result;
-END_RCPP
-}
-// medoid_test1
-RObject medoid_test1(RObject distance, RObject objects, RObject control);
-RcppExport SEXP DataStructures_medoid_test1(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(medoid_test1(distance, objects, control));
-    return __result;
-END_RCPP
-}
-// seboid_test2
-RObject seboid_test2(RObject distance, RObject objects, RObject control);
-RcppExport SEXP DataStructures_seboid_test2(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(seboid_test2(distance, objects, control));
-    return __result;
-END_RCPP
-}
-// seboid_test1
-RObject seboid_test1(RObject distance, RObject objects, RObject control);
-RcppExport SEXP DataStructures_seboid_test1(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(seboid_test1(distance, objects, control));
-    return __result;
 END_RCPP
 }

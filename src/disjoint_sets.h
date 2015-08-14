@@ -48,6 +48,7 @@ public:
    DisjointSets(std::size_t n);
    virtual ~DisjointSets();
 
+   virtual std::size_t link(std::size_t x, std::size_t y, std::size_t z);
    virtual std::size_t link(std::size_t x, std::size_t y);
    std::size_t union_set(std::size_t x, std::size_t y);
 
@@ -65,7 +66,7 @@ class PhatDisjointSets : public DisjointSets {
 private:
    std::vector< std::size_t > clusterSize;
    std::size_t clusterCount;
-   std::vector< std::list<std::size_t> > clusterMembers;
+   std::vector< std::list<std::size_t>* > clusterMembers;
    std::vector< std::size_t > clusterNext;
    std::vector< std::size_t > clusterPrev;
 
@@ -74,6 +75,7 @@ public:
    virtual ~PhatDisjointSets();
 
    virtual std::size_t link(std::size_t x, std::size_t y);
+   virtual std::size_t link(std::size_t x, std::size_t y, std::size_t z);
 
    inline std::size_t getClusterCount() const { return clusterCount; }
 
@@ -82,7 +84,7 @@ public:
          if (find_set(x) != x)
             Rcpp::stop("DisjointSets::getClusterSize assert failed");
       #endif
-      return clusterMembers[x];
+      return *(clusterMembers[x]);
    }
 
    inline std::size_t getClusterSize(std::size_t x) DISJOINT_SETS_DEBUG_CONST {

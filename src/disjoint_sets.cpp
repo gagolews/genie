@@ -46,6 +46,20 @@ DisjointSets::~DisjointSets() {
 }
 
 
+std::size_t DisjointSets::link(std::size_t x, std::size_t y, std::size_t z) {
+#ifdef DISJOINT_SETS_DEBUG
+   if (find(z) != x && find(z) != y)
+      Rcpp::stop("DisjointSets::link assert failed");
+   if (clusterParent[y] != y || clusterParent[x] != x)
+      Rcpp::stop("DisjointSets::link assert failed");
+#endif
+
+   clusterParent[z] = z;
+   clusterParent[y] = z;
+   clusterParent[x] = z;
+   return z;
+}
+
 std::size_t DisjointSets::link(std::size_t x, std::size_t y) {
 #ifdef DISJOINT_SETS_DEBUG
    if (clusterParent[y] != y || clusterParent[x] != x)
@@ -65,12 +79,13 @@ PhatDisjointSets::PhatDisjointSets(std::size_t n) :
    DisjointSets(n),
    clusterSize(std::vector< std::size_t >(n, 1)),
    clusterCount(n),
-   clusterMembers(std::vector< std::list<std::size_t> >(n)),
+   clusterMembers(std::vector< std::list<std::size_t>* >(n)),
    clusterNext(std::vector< std::size_t >(n)),
    clusterPrev(std::vector< std::size_t >(n))
 {
    for (std::size_t i=0; i<n; ++i) {
-      clusterMembers[i].push_front(i);
+      clusterMembers[i] = new std::list<std::size_t>;
+      clusterMembers[i]->push_front(i);
       clusterNext[i] = (i<n-1)?(i+1):0;
       clusterPrev[i] = (i>0)?(i-1):(n-1);
    }
@@ -86,6 +101,8 @@ PhatDisjointSets::~PhatDisjointSets()
          getClusterPrev(find_set(0)) != find_set(0)
       )
       Rcpp::stop("~PhatDisjointSets: assert failed");
+   for (std::size_t i=0; i<n; ++i)
+      if (clusterMembers[i]) delete clusterMembers[i];
 #endif
 }
 
@@ -105,8 +122,43 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
 
    clusterSize[z] += clusterSize[y];
 
-   clusterMembers[z].splice(clusterMembers[z].end(), clusterMembers[y]); // O(1)
+   clusterMembers[z]->splice(clusterMembers[z]->end(), *(clusterMembers[y])); // O(1)
 
    --clusterCount;
    return z;
 }
+
+
+std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y, std::size_t z)
+{
+   std::size_t z2 = DisjointSets::link(x, y, z);
+#ifdef DISJOINT_SETS_DEBUG
+   if (z != z2)
+      Rcpp::stop("PhatDisjointSets::link assert failed");
+#endif
+
+   std::size_t oldprev = clusterPrev[y];
+   std::size_t oldnext = clusterNext[y];
+   clusterPrev[ oldnext ] = oldprev;
+   clusterNext[ oldprev ] = oldnext;
+
+   clusterPrev[z2] = clusterPrev[x];
+   clusterNext[z2] = clusterNext[x];
+   clusterPrev[ clusterNext[x] ] = z2;
+   clusterNext[ clusterPrev[x] ] = z2;
+
+   clusterSize[z2] = clusterSize[x] + clusterSize[y];
+
+   clusterMembers[x]->splice(clusterMembers[x]->end(), (*clusterMembers[y])); // O(1)
+   delete clusterMembers[y];
+   clusterMembers[y] = NULL;
+#ifdef DISJOINT_SETS_DEBUG
+   if (x != z2 && clusterMembers[z2])
+      Rcpp::stop("PhatDisjointSets::link assert failed");
+#endif
+   std::swap(clusterMembers[z2], clusterMembers[x]);
+
+   --clusterCount;
+   return z2;
+}
+
