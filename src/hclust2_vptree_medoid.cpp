@@ -45,8 +45,9 @@ HClustBiVpTreeMedoid::HClustBiVpTreeMedoid(Distance* dist, RObject control) :
    shouldFind(vector<bool>(dist->getObjectCount(), true)),
    nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
    distances(vector<double>(_n)),
-   medoids(dist->getObjectCount()),
+   //medoids(dist->getObjectCount()),
    medoidFound(dist->getObjectCount(), 0),
+   nnback(dist->getObjectCount()),
 #ifdef GENERATE_STATS
    stats(HClustTreeStats()),
 #endif
@@ -258,15 +259,15 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
             size_t currentCluster = ds.find_set(i);
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
-            if (index == medoids[currentCluster]) continue;
-            //if(medoids[currentCluster] != i) continue;
+            if (index == currentCluster) continue;
+            if(currentCluster != i) continue;
             if(medoidFound[currentCluster]==timestamp) continue;
             //RCOUT("Punkt ten przeszedl przez warunki",3);
-            double dist2 = (*_distance)(_indices[index], _indices[medoids[currentCluster]]); // the slow part
+            double dist2 = (*_distance)(_indices[index], _indices[currentCluster]); // the slow part
             medoidFound[currentCluster] = timestamp;
             if (dist2 > maxR || dist2 <= minR) continue;
             //RCOUT("Punkt wrzucam do kolejki", 3);
-            nnheap.insert(medoids[currentCluster], dist2, maxR);
+            nnheap.insert(currentCluster, dist2, maxR);
          }
          if (commonCluster != SIZE_MAX)
             node->sameCluster = true; // set to true (btw, may be true already)
@@ -277,7 +278,7 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
          {
             //size_t currentCluster = ds.find_set(i);
             //size_t medoid = medoids[currentCluster];
-            if (index >= i) continue;
+            if (index == i) continue;
             //if(medoid != i) continue;
             //if(medoidFound[currentCluster]) continue;
             double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
@@ -286,14 +287,14 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
          }
       }
       else /* node->sameCluster -- komentarze takie jak ten potrafia byc bardzo mylace! */ {
+         //tutaj pojawia sie pytanie, czy moze tez sprawdzac, czy w tym node jest w ogole medoid. jak nie ma, to moze w ogole nie liczyc?
          size_t currentCluster = ds.find_set(node->left);
-         size_t medoid = medoids[currentCluster];
-         if (index == medoid) return;
+         if (index == currentCluster) return;
          if(medoidFound[currentCluster]==timestamp) return;
-         double dist2 = (*_distance)(_indices[index], _indices[medoid]); // the slow part
+         double dist2 = (*_distance)(_indices[index], _indices[currentCluster]); // the slow part
          medoidFound[currentCluster] = timestamp;
          if (dist2 > maxR || dist2 <= minR) return;
-         nnheap.insert(medoid, dist2, maxR);
+         nnheap.insert(currentCluster, dist2, maxR);
       }
       return; // nothing more to do
    }
@@ -303,11 +304,11 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
    double dist;
    if(prefetch)
    {
-      size_t currentCluster = ds.find_set(node->left);  
+      //size_t currentCluster = ds.find_set(node->left);  
       //size_t medoid = medoids[currentCluster];
       dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
       //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
-      if (index < node->left && dist <= maxR && dist > minR && currentCluster != clusterIndex) {
+      if (index < node->left && dist <= maxR && dist > minR) {
       //RCOUT("Wrzucam go", 3);
          nnheap.insert(node->left, dist, maxR);
       }
@@ -316,15 +317,15 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
    else
    {
       size_t currentCluster = ds.find_set(node->left);  
-      size_t medoid = medoids[currentCluster];
-      if(medoidFound[currentCluster] < timestamp)
+      //size_t medoid = medoids[currentCluster];
+      if(medoidFound[currentCluster] < timestamp && node->left == currentCluster)
       {
-         double dist = (*_distance)(_indices[index], _indices[medoid]); // the slow part
+         double dist = (*_distance)(_indices[index], _indices[currentCluster]); // the slow part
          //RCOUT("Rozwazam punkt " << _indices[node->left] << ", jest on vp", 3);
          if (index != node->left && dist <= maxR && dist > minR &&
                currentCluster != clusterIndex) 
          {
-            nnheap.insert(medoid, dist, maxR);
+            nnheap.insert(currentCluster, dist, maxR);
             medoidFound[currentCluster] = timestamp;
          }
       }
@@ -334,23 +335,23 @@ void HClustBiVpTreeMedoid::getNearestNeighborsFromMinRadiusRecursive(
 
    if (dist < node->radius) {
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && (!prefetch ||  index < node->childL->maxindex))
+         if (node->childL )//&& (!prefetch ||  index < node->childL->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist + maxR >= node->radius) {
-         if (node->childR && (!prefetch ||  index < node->childR->maxindex))
+         if (node->childR)// && (!prefetch ||  index < node->childR->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
    }
    else /* ( dist >= node->radius ) */ {
       if (dist + maxR >= node->radius) {
-         if (node->childR  && (!prefetch ||  index < node->childR->maxindex) )
+         if (node->childR)//  && (!prefetch ||  index < node->childR->maxindex) )
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
       }
 
       if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && (!prefetch ||  index < node->childL->maxindex))
+         if (node->childL)// && (!prefetch ||  index < node->childL->maxindex))
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
       }
    }
@@ -436,8 +437,8 @@ HeapNeighborItem HClustBiVpTreeMedoid::getNearestNeighbor(size_t index)
 
 size_t HClustBiVpTreeMedoid::mergeTwoClusters(size_t s1, size_t s2)
 {
-   size_t medoid1 = medoids[s1];
-   size_t medoid2 = medoids[s2];
+   size_t medoid1 = s1;
+   size_t medoid2 = s2;
 
    double sumMedoid1Cluster2 = 0;
    double sumMedoid2Cluster1 = 0;
@@ -571,8 +572,8 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
    NumericMatrix ret(_n-1, 2);
    priority_queue<HeapHierarchicalItem> pq;
 
-   for (size_t i=0; i<_n; ++i)
-      medoids[i] = i;
+   //for (size_t i=0; i<_n; ++i)
+   //   medoids[i] = i;
 
    // INIT: Pre-fetch a few nearest neighbors for each point
 #if VERBOSE > 1
@@ -601,8 +602,9 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
 #ifdef _OPENMP
          omp_set_lock(&writelock);
 #endif
-         RCOUT("dla " << _indices[i]+1 << " najblizszym sasiadem jest " << _indices[hi.index]+1, 8);
+         RCOUT("dla " << _indices[i]+1 << " najblizszym sasiadem jest " << _indices[hi.index]+1, 5);
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
+         nnback[hi.index].push_front(i);
 #ifdef _OPENMP
          omp_unset_lock(&writelock);
 #endif
@@ -623,75 +625,117 @@ NumericMatrix HClustBiVpTreeMedoid::compute()
    timestamp = 1;
    while(true)
    {
-      //Rcout << "iteracja " << i << endl;
-      //Rcout << "pq size = " << pq.size()<< endl;
+      Rcout << "iteracja " << i << endl;
+      Rcout << "pq size = " << pq.size()<< endl;
       if(pq.size() > 200*_n) {awaria = true; break;}
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
 
+      RCOUT("robie ds find dla " << _indices[hhi.index1]+1 << " " << _indices[hhi.index2]+1, 5);
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
-      if (s1 != s2 && medoids[s1] == hhi.index1 && medoids[s2] == hhi.index2)
+      RCOUT("ds find udany", 5);
+      if (s1 != hhi.index1 || s2 != hhi.index2) continue;
+      
+      Rcpp::checkUserInterrupt(); // may throw an exception, fast op
+
+      ret(i,0)=(double)_indices[hhi.index1];
+      ret(i,1)=(double)_indices[hhi.index2];
+      //if(opts.medoidUpdateMethod == 1)
+      //{
+      //   medoids[s2] = medoids[s1] = mergeTwoClusters(s1, s2);
+      //   //RCOUT("metoda sprytna zwrocila " << _indices[medoids[s1]]+1, 3);
+      //}
+      size_t s3;
+      if(true || opts.medoidUpdateMethod == 0)
       {
-         Rcpp::checkUserInterrupt(); // may throw an exception, fast op
-
-         ret(i,0)=(double)_indices[hhi.index1];
-         ret(i,1)=(double)_indices[hhi.index2];
-         if(opts.medoidUpdateMethod == 1)
-         {
-            medoids[s2] = medoids[s1] = mergeTwoClusters(s1, s2);
-            //RCOUT("metoda sprytna zwrocila " << _indices[medoids[s1]]+1, 3);
-         }
-         /*for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
-         {
-            RCOUT(_indices[*element]+1, 3);
-         }*/
-         //RCOUT("gdzie medoidem jest " << _indices[medoids[s1]],3);
-         //RCOUT("---",3);
-         /*for(auto element = ds.getClusterMembers(s2).begin(); element != ds.getClusterMembers(s2).end(); ++element)
-         {
-            RCOUT(_indices[*element]+1, 3);
-         }
-         RCOUT("gdzie medoidem jest " << _indices[medoids[s2]],3);*/
-         ds.link(s1, s2);
-         if(opts.medoidUpdateMethod == 0)
-         {
-            RCOUT("Rozpoczynam metode naiwna", 8);
-            size_t medoidNaive = medoidForCluster(s1);
-            medoids[s2] = medoids[s1] = medoidNaive;
-            RCOUT("Koncze metode naiwna", 8);
-         }
-         /*RCOUT("metoda naiwna zwrocila " << _indices[medoidNaive]+1, 3);
-         if(medoidNaive != medoids[s1]) 
-         {
-            for(auto element = ds.getClusterMembers(s1).begin(); element != ds.getClusterMembers(s1).end(); ++element)
-            {
-               RCOUT(_indices[*element]+1, 3);
-            }
-            
-            stop("metoda mergeTwoCluster nie dziala");
-         }*/
-         //medoidt[s1] = medoidForCluster(s1);
-         ++i;
-         timestamp++;
-         RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[medoids[s1]]+1, 8);
-         if (i == _n-1) break; /* avoid computing unnecessary nn */
-         //if (medoids[s1] != hhi.index2)
-         HeapNeighborItem hi=getNearestNeighbor(medoids[s1]);
-         while(hi.index != SIZE_MAX && ds.find_set(hi.index) == s1)
-            hi=getNearestNeighbor(medoids[s1]);
-
-         if (hi.index != SIZE_MAX)
-         {
-            RCOUT("dla " << _indices[medoids[s1]]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 8);
-            pq.push(HeapHierarchicalItem(medoids[s1], hi.index, hi.dist));
-            RCOUT("Znalazlem najblizszego sasiada",8);
-         }
+         RCOUT("Rozpoczynam metode naiwna", 8);
+         s3 = medoidForCluster(s1);
+         //medoids[s2] = medoids[s1] = medoidNaive;
+         RCOUT("Koncze metode naiwna", 8);
       }
+      RCOUT("robie ds link dla " << _indices[s1]+1 << " " << _indices[s2]+1 << " " << _indices[s3]+1 ,5);
+      ds.link(s1, s2, s3);
+      RCOUT("ds link udany",5);
+
+      ++i;
+      timestamp++;
+      RCOUT("po polaczeniu " << _indices[s1]+1<< " i " << _indices[s2]+1  << " nowym medoidem jest " << _indices[s3]+1, 5);
+      if (i == _n-1) break; /* avoid computing unnecessary nn */
+      
+      HeapNeighborItem hi=getNearestNeighbor(s3);
+      if (hi.index != SIZE_MAX)
+      {
+         nnback[hi.index].push_front(s3);
+         RCOUT("1: dla " << _indices[s3]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 5);
+         pq.push(HeapHierarchicalItem(s3, hi.index, hi.dist));
+         //RCOUT("Znalazlem najblizszego sasiada",8);
+      }
+      if (s1 != s3)
+      {
+         for (auto it = nnback[s1].begin(); it != nnback[s1].end(); ++it)
+         {
+            if(ds.find_set(*it) != *it) continue;
+            if(*it == s3) continue;
+            double d_old = (*_distance)(*it, s1); // czy to nie bedzie liczone zbyt wiele razy to samo?
+            double d_new = (*_distance)(*it, s3);
+            size_t p;
+            double d_p;
+            if (d_new <= d_old)
+            {
+               p = s3;      
+               d_p = d_new;
+            }
+            else
+            {
+               HeapNeighborItem hi2=getNearestNeighbor(*it);
+               p = hi2.index;
+               d_p = hi2.dist;
+            }
+            if(p != SIZE_MAX)
+            {
+               RCOUT("2: dla " << _indices[*it]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 5);
+               nnback[p].push_front(*it);
+               pq.push(HeapHierarchicalItem(*it, p, d_p));
+            }
+         }
+         nnback[s1].clear();
+      }
+      if (s2 != s3)
+      {
+         for (auto it = nnback[s2].begin(); it != nnback[s2].end(); ++it)
+         {
+            if(ds.find_set(*it) != *it) continue;
+            if(*it == s3) continue;
+            double d_old = (*_distance)(*it, s2); // czy to nie bedzie liczone zbyt wiele razy to samo?
+            double d_new = (*_distance)(*it, s3);
+            size_t p;
+            double d_p;
+            if (d_new <= d_old)
+            {
+               p = s3;      
+               d_p = d_new;
+            }
+            else
+            {
+               HeapNeighborItem hi2=getNearestNeighbor(*it);
+               p = hi2.index;
+               d_p = hi2.dist;
+            }
+            if(p != SIZE_MAX)
+            {
+               RCOUT("3: dla " << _indices[*it]+1  << " najblizszym sasiadem jest " << _indices[hi.index]+1, 5);
+               nnback[p].push_front(*it);
+               pq.push(HeapHierarchicalItem(*it, p, d_p));
+            }
+         }
+         nnback[s2].clear();
+      }
+   }
 #if VERBOSE > 7
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
 #endif
-   }
+   
 #if VERBOSE > 7
    Rprintf("\r             %d / %d\n", _n, _n);
 #endif

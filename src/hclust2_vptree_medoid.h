@@ -117,8 +117,9 @@ protected:
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
    std::vector<double> distances;
 
-   vector<size_t> medoids;
+   //vector<size_t> medoids;
    vector<size_t> medoidFound;
+   vector<list<size_t> > nnback;
 
    HClustTreeStats stats;
 
