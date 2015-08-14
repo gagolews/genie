@@ -4,7 +4,7 @@
 \alias{hclust2}
 \title{Faster Hierarchical Clustering in Pseudometric Spaces}
 \usage{
-hclust2(d = NULL, method = c("single", "complete", "medoid"),
+hclust2(d = NULL, method = c("single", "complete", "exemplar"),
   objects = NULL, ...)
 }
 \arguments{
@@ -12,7 +12,7 @@ hclust2(d = NULL, method = c("single", "complete", "medoid"),
 \code{NULL}, an R function or a single string}
 
 \item{method}{a single string,
-one of \code{single}, \code{complete}}
+one of \code{single}, \code{complete}, or \code{exemplar}}
 
 \item{objects}{\code{NULL}, numeric matrix or a list}
 

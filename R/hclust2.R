@@ -2,7 +2,7 @@
 #' Faster Hierarchical Clustering in Pseudometric Spaces
 #'
 #' @param method a single string,
-#'        one of \code{single}, \code{complete}
+#'        one of \code{single}, \code{complete}, or \code{exemplar}
 #' @param d an object of class \code{\link{dist}},
 #' \code{NULL}, an R function or a single string
 #' @param objects \code{NULL}, numeric matrix or a list
@@ -29,13 +29,13 @@
 #' }
 #'
 #' @export
-hclust2 <- function(d=NULL, method=c("single", "complete", "medoid"), objects=NULL, ...) {
+hclust2 <- function(d=NULL, method=c("single", "complete", "exemplar"), objects=NULL, ...) {
    # TO DO: `single` has list control arg........
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
       complete=.hclust2_complete(d, objects, ...),
-      medoid=.hclust2_medoid(d, objects, ...)
+      medoid=.hclust2_exemplar(d, objects, ...)
    )
    result[["call"]] <- match.call()
    result
