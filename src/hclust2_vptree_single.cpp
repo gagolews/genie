@@ -511,7 +511,6 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
 }
 
 
-
 // // [[Rcpp::export]]
 // RObject nntest(RObject distance, RObject objects, RObject control=R_NilValue) {
 // #if VERBOSE > 5
