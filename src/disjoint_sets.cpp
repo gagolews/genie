@@ -112,10 +112,16 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
    STOPIFNOT(clusterMembers[y]);
 #endif
 
-   std::size_t oldprev = clusterPrev[y];
-   std::size_t oldnext = clusterNext[y];
-   clusterPrev[ oldnext ] = oldprev;
-   clusterNext[ oldprev ] = oldnext;
+   if (clusterCount > 2) {
+      std::size_t oldprev = clusterPrev[y];
+      std::size_t oldnext = clusterNext[y];
+      clusterPrev[ oldnext ] = oldprev;
+      clusterNext[ oldprev ] = oldnext;
+   }
+   else {
+      clusterPrev[ z ] = z;
+      clusterNext[ z ] = z;
+   }
 
    clusterMembers[z] = (std::size_t*)realloc(clusterMembers[z], (clusterSize[x]+clusterSize[y])*sizeof(std::size_t));
    memcpy(clusterMembers[z]+clusterSize[x], clusterMembers[y], clusterSize[y]*sizeof(std::size_t));
@@ -137,15 +143,27 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y, std::size_t z)
    STOPIFNOT(z == z2);
 #endif
 
-   std::size_t oldprev = clusterPrev[y];
-   std::size_t oldnext = clusterNext[y];
-   clusterPrev[ oldnext ] = oldprev;
-   clusterNext[ oldprev ] = oldnext;
+   if (clusterCount > 2) {
+      std::size_t oldprev = clusterPrev[y];
+      std::size_t oldnext = clusterNext[y];
+      clusterPrev[ oldnext ] = oldprev;
+      clusterNext[ oldprev ] = oldnext;
 
-   clusterPrev[z2] = clusterPrev[x];
-   clusterNext[z2] = clusterNext[x];
-   clusterPrev[ clusterNext[x] ] = z2;
-   clusterNext[ clusterPrev[x] ] = z2;
+      oldprev = clusterPrev[x];
+      oldnext = clusterNext[x];
+      clusterPrev[z2] = oldprev;
+      clusterNext[z2] = oldnext;
+   #ifdef DISJOINT_SETS_DEBUG
+      STOPIFNOT(clusterPrev[ oldnext ] == x);
+      STOPIFNOT(clusterNext[ oldprev ] == x);
+   #endif
+      clusterPrev[ oldnext ] = z2;
+      clusterNext[ oldprev ] = z2;
+   }
+   else {
+      clusterPrev[ z2 ] = z2;
+      clusterNext[ z2 ] = z2;
+   }
 
 
 //    clusterMembers[x]->splice(clusterMembers[x]->end(), (*clusterMembers[y])); // O(1)

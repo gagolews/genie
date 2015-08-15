@@ -102,6 +102,7 @@ public:
       #ifdef DISJOINT_SETS_DEBUG
       STOPIFNOT(find_set(x) == x);
       STOPIFNOT(find_set(clusterPrev[x]) == clusterPrev[x]);
+      STOPIFNOT(find_set(clusterNext[x]) == clusterNext[x]);
       #endif
       return clusterPrev[x];
    }
@@ -117,6 +118,7 @@ public:
       */
       #ifdef DISJOINT_SETS_DEBUG
       STOPIFNOT(find_set(x) == x);
+      STOPIFNOT(find_set(clusterPrev[x]) == clusterPrev[x]);
       STOPIFNOT(find_set(clusterNext[x]) == clusterNext[x]);
       #endif
       return clusterNext[x];
