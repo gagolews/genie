@@ -27,6 +27,10 @@
 #include <cstdint>
 #include <Rcpp.h>
 
+#define STOPIFNOT(EXPR) { if (!(EXPR)) Rprintf("\a*** Assert failed: " #EXPR " at %s, line %d ***\n", __FILE__, __LINE__); }
+
+
+
 // #define DISJOINT_SETS_DEBUG
 
 #ifndef DISJOINT_SETS_DEBUG
@@ -66,7 +70,7 @@ class PhatDisjointSets : public DisjointSets {
 private:
    std::vector< std::size_t > clusterSize;
    std::size_t clusterCount;
-   std::vector< std::list<std::size_t>* > clusterMembers;
+   std::vector< double* > clusterMembers;
    std::vector< std::size_t > clusterNext;
    std::vector< std::size_t > clusterPrev;
 
@@ -79,26 +83,25 @@ public:
 
    inline std::size_t getClusterCount() const { return clusterCount; }
 
-   inline const std::list<std::size_t>& getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+   inline const double* getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
-         if (find_set(x) != x)
-            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      STOPIFNOT(find_set(x) == x);
+      STOPIFNOT(clusterMembers[x]);
       #endif
-      return *(clusterMembers[x]);
+      return clusterMembers[x];
    }
 
    inline std::size_t getClusterSize(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
-         if (find_set(x) != x)
-            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      STOPIFNOT(find_set(x) == x);
       #endif
       return clusterSize[x];
    }
 
    inline std::size_t getClusterPrev(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
-         if (find_set(x) != x)
-            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      STOPIFNOT(find_set(x) == x);
+      STOPIFNOT(find_set(clusterPrev[x]) == clusterPrev[x]);
       #endif
       return clusterPrev[x];
    }
@@ -113,8 +116,8 @@ public:
       }
       */
       #ifdef DISJOINT_SETS_DEBUG
-         if (find_set(x) != x)
-            Rcpp::stop("DisjointSets::getClusterSize assert failed");
+      STOPIFNOT(find_set(x) == x);
+      STOPIFNOT(find_set(clusterNext[x]) == clusterNext[x]);
       #endif
       return clusterNext[x];
    }
