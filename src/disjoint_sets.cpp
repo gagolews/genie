@@ -81,7 +81,7 @@ PhatDisjointSets::PhatDisjointSets(std::size_t n) :
    clusterPrev(std::vector< std::size_t >(n))
 {
    for (std::size_t i=0; i<n; ++i) {
-      clusterMembers[i] = (double*)malloc(sizeof(double)*1);
+      clusterMembers[i] = (std::size_t*)malloc(sizeof(std::size_t)*1);
       clusterMembers[i][0] = i;
       // clusterSize[i] = 1; // already initialized
       clusterNext[i] = (i<n-1)?(i+1):0;
@@ -117,8 +117,8 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
    clusterPrev[ oldnext ] = oldprev;
    clusterNext[ oldprev ] = oldnext;
 
-   clusterMembers[z] = (double*)realloc(clusterMembers[z], (clusterSize[x]+clusterSize[y])*sizeof(double));
-   memcpy(clusterMembers[z]+clusterSize[x], clusterMembers[y], clusterSize[y]*sizeof(double));
+   clusterMembers[z] = (std::size_t*)realloc(clusterMembers[z], (clusterSize[x]+clusterSize[y])*sizeof(std::size_t));
+   memcpy(clusterMembers[z]+clusterSize[x], clusterMembers[y], clusterSize[y]*sizeof(std::size_t));
    free(clusterMembers[y]);
    clusterMembers[y] = NULL;
 
@@ -158,8 +158,8 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y, std::size_t z)
 //    std::swap(clusterMembers[z2], clusterMembers[x]);
 //    clusterSize[z2] = clusterSize[x] + clusterSize[y];
 
-   clusterMembers[x] = (double*)realloc(clusterMembers[x], (clusterSize[x]+clusterSize[y])*sizeof(double));
-   memcpy(clusterMembers[x]+clusterSize[x], clusterMembers[y], clusterSize[y]*sizeof(double));
+   clusterMembers[x] = (std::size_t*)realloc(clusterMembers[x], (clusterSize[x]+clusterSize[y])*sizeof(std::size_t));
+   memcpy(clusterMembers[x]+clusterSize[x], clusterMembers[y], clusterSize[y]*sizeof(std::size_t));
    free(clusterMembers[y]);
    clusterMembers[y] = NULL;
 #ifdef DISJOINT_SETS_DEBUG

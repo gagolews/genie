@@ -31,7 +31,7 @@
 
 
 
-// #define DISJOINT_SETS_DEBUG
+#define DISJOINT_SETS_DEBUG
 
 #ifndef DISJOINT_SETS_DEBUG
 #define DISJOINT_SETS_DEBUG_CONST const
@@ -70,7 +70,7 @@ class PhatDisjointSets : public DisjointSets {
 private:
    std::vector< std::size_t > clusterSize;
    std::size_t clusterCount;
-   std::vector< double* > clusterMembers;
+   std::vector< std::size_t* > clusterMembers;
    std::vector< std::size_t > clusterNext;
    std::vector< std::size_t > clusterPrev;
 
@@ -83,7 +83,7 @@ public:
 
    inline std::size_t getClusterCount() const { return clusterCount; }
 
-   inline const double* getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
+   inline const std::size_t* getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
       STOPIFNOT(find_set(x) == x);
       STOPIFNOT(clusterMembers[x]);
