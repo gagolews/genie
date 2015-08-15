@@ -84,7 +84,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
       }
    }
 
-   if (exemplarUpdateMethod != 0 && exemplarUpdateMethod != 1) {
+   if (exemplarUpdateMethod < 0 && exemplarUpdateMethod > 2) {
       exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
       Rf_warning("wrong exemplarUpdateMethod value. using default");
    }

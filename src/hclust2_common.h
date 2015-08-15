@@ -33,7 +33,7 @@
 #define DEFAULT_GNAT_MIN_DEGREE 2
 #define DEFAULT_GNAT_MAX_DEGREE 200
 #define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
-#define DEFAULT_EXEMPLAR_UPDATE_METHOD 0
+#define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
 
 // ---------------------------------------------------------------------------
 
