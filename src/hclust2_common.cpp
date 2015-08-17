@@ -22,7 +22,6 @@
 
 using namespace DataStructures;
 
-
 HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
    maxNNPrefetch  = DEFAULT_MAX_NN_PREFETCH;
@@ -35,6 +34,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    maxDegree = DEFAULT_GNAT_MAX_DEGREE;
    maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
    exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
+   maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -82,6 +82,10 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
       if (control2.containsElementNamed("exemplarUpdateMethod")) {
          exemplarUpdateMethod = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["exemplarUpdateMethod"])[0];
       }
+
+      if (control2.containsElementNamed("maxExemplarLeavesElems")) {
+         maxExemplarLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxExemplarLeavesElems"])[0];
+      }
    }
 
    if (exemplarUpdateMethod < 0 && exemplarUpdateMethod > 2) {
@@ -111,6 +115,10 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    if (maxLeavesElems < 2 || maxLeavesElems > 64) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
       Rf_warning("wrong maxLeavesElems value. using default");
+   }
+   if (maxExemplarLeavesElems < 2 || maxExemplarLeavesElems > 1024) {
+      maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
+      Rf_warning("wrong maxExemplarLeavesElems value. using default");
    }
    if (maxNNPrefetch < 1 || maxNNPrefetch > 512) {
       maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
@@ -145,12 +153,12 @@ Rcpp::NumericVector HClustTreeOptions::toR() const
 
 
 HClustTreeStats::HClustTreeStats() :
-   nodeCount(0), leafCount(0), nodeVisit(0), nnCals(0), nnCount(0) {}
+   nodeCount(0), leafCount(0), nodeVisit(0), nnCals(0), nnCount(0), medoidOldNew(0), medoidUpdateCount(0) {}
 
 HClustTreeStats::~HClustTreeStats() {
    #if VERBOSE > 0
-   Rprintf("             vp-tree: nodeCount=%.0f, leafCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f\n",
-      (double)nodeCount, (double)leafCount, (double)nodeVisit, (double)nnCals, (double)nnCount);
+   Rprintf("             vp-tree: nodeCount=%.0f, leafCount=%.0f, nodeVisit=%.0f, nnCals=%.0f, nnCount=%.0f, medoidUpdateCount=%.0f, medoidOldNew=%.0f\n",
+      (double)nodeCount, (double)leafCount, (double)nodeVisit, (double)nnCals, (double)nnCount,(double)medoidUpdateCount, (double)medoidOldNew);
    #endif
 }
 
@@ -166,6 +174,10 @@ Rcpp::NumericVector HClustTreeStats::toR() const {
       Rcpp::_["nnCals"]
          = (nnCals>0)?(double)nnCals:NA_REAL,
       Rcpp::_["nnCount"]
-         = (nnCount>0)?(double)nnCount:NA_REAL
+         = (nnCount>0)?(double)nnCount:NA_REAL,
+      Rcpp::_["medoidUpdateCount"] 
+         = (medoidUpdateCount>0)?medoidUpdateCount:NA_REAL,
+      Rcpp::_["medoidOldNew"] 
+         = (medoidOldNew>0)?medoidOldNew:NA_REAL
    );
 }

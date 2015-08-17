@@ -34,6 +34,7 @@
 #define DEFAULT_GNAT_MAX_DEGREE 200
 #define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
 #define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
+#define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
 
 // ---------------------------------------------------------------------------
 
@@ -216,6 +217,7 @@ struct HClustTreeOptions
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
    size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
+   size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
 
    HClustTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
@@ -229,6 +231,8 @@ struct HClustTreeStats
    size_t nodeVisit; // how many nodes were visited during NN search
    size_t nnCals;    // how many times NN search job was launched
    size_t nnCount;   // how many NNs were obtained in overall
+   size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
+   size_t medoidOldNew; //..how many times it was successful
 
    HClustTreeStats();
    ~HClustTreeStats();
