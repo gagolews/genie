@@ -35,6 +35,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
    exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
    maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
+   isCurseOfDimensionality = DEFAULT_IS_CURSE_OF_DIMENSIONALITY;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -85,6 +86,10 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
 
       if (control2.containsElementNamed("maxExemplarLeavesElems")) {
          maxExemplarLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxExemplarLeavesElems"])[0];
+      }
+
+      if (control2.containsElementNamed("isCurseOfDimensionality")) {
+         isCurseOfDimensionality = (bool)Rcpp::as<Rcpp::NumericVector>(control2["isCurseOfDimensionality"])[0];
       }
    }
 

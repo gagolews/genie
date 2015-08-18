@@ -35,6 +35,7 @@
 #define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
 #define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
 #define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
+#define DEFAULT_IS_CURSE_OF_DIMENSIONALITY false
 
 // ---------------------------------------------------------------------------
 
@@ -123,6 +124,13 @@ struct NNHeap {
 // #ifdef _OPENMP
 //    omp_lock_t lock;
 // #endif
+   NNHeap() :
+         heap(std::priority_queue<HeapNeighborItem>()),
+         maxNNPrefetch(1) {
+// #ifdef _OPENMP
+//      omp_init_lock(&lock);
+// #endif
+   }
 
    NNHeap(size_t maxNNPrefetch) :
          heap(std::priority_queue<HeapNeighborItem>()),
@@ -218,6 +226,7 @@ struct HClustTreeOptions
    size_t vpSelectTest;     // for vpSelectScheme == 1
    size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
    size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
+   bool isCurseOfDimensionality;
 
    HClustTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
