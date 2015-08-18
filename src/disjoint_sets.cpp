@@ -97,9 +97,9 @@ PhatDisjointSets::~PhatDisjointSets()
    STOPIFNOT(getClusterSize(find_set(0)) == n);
    STOPIFNOT(getClusterNext(find_set(0)) == find_set(0));
    STOPIFNOT(getClusterPrev(find_set(0)) == find_set(0));
+#endif
    for (std::size_t i=0; i<n; ++i)
       if (clusterMembers[i]) free(clusterMembers[i]);
-#endif
 }
 
 
