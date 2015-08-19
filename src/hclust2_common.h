@@ -153,7 +153,7 @@ struct NNHeap {
 // #ifdef _OPENMP
 //      omp_destroy_lock(&lock);
 // #endif
-   
+
    }
 
    inline bool empty()
@@ -164,6 +164,11 @@ struct NNHeap {
    inline const HeapNeighborItem& top()
    {
       return heap.top();
+   }
+
+   inline const size_t size()
+   {
+      return heap.size();
    }
 
    inline void pop()
