@@ -156,11 +156,6 @@ struct NNHeap {
 
    }
 
-   inline size_t size()
-   {
-      return heap.size();
-   }
-
    inline bool empty()
    {
       return heap.empty();
@@ -203,6 +198,12 @@ struct NNHeap {
    }
 
    inline void fill(std::deque<HeapNeighborItem>& nearestNeighbors) {
+      while (!heap.empty()) {
+         nearestNeighbors.push_front(heap.top());
+         heap.pop();
+      }
+   }
+   inline void fill(std::list<HeapNeighborItem>& nearestNeighbors) {
       while (!heap.empty()) {
          nearestNeighbors.push_front(heap.top());
          heap.pop();
