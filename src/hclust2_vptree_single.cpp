@@ -298,9 +298,9 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 
 HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
 {
+   size_t clusterIndex = ds.find_set(index);
    if (shouldFind[index] && nearestNeighbors[index].empty())
    {
-      size_t clusterIndex = ds.find_set(index);
       double _tau = INFINITY;//maxRadiuses[index];
 
 #ifdef GENERATE_STATS
@@ -326,15 +326,19 @@ HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
 
    if (!nearestNeighbors[index].empty())
    {
+      // while (!nearestNeighbors[index].empty()) {
 #ifdef GENERATE_STATS
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-      ++stats.nnCount;
+         ++stats.nnCount;
 #endif
-      auto res = nearestNeighbors[index].front();
-      nearestNeighbors[index].pop_front();
-      return res;
+         auto res = nearestNeighbors[index].front();
+         nearestNeighbors[index].pop_front();
+         // if (clusterIndex != ds.find_set(res.index))
+            return res;
+      // }
+      // return getNearestNeighbor(index);
    }
    else
    {
@@ -366,7 +370,6 @@ NumericMatrix HClustVpTreeSingle::compute()
       Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
 #endif
       HeapNeighborItem hi=getNearestNeighbor(i);
-
       if (hi.index != SIZE_MAX)
       {
 #if VERBOSE > 7 && !defined(_OPENMP)
