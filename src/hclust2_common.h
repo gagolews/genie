@@ -103,6 +103,15 @@ struct HeapNeighborItem
 };
 
 
+struct HeapNeighborItemFromSmallestComparator
+{
+   inline bool operator()(const HeapNeighborItem& o1, const HeapNeighborItem& o2) const {
+      return o1.dist >= o2.dist;
+   }
+
+};
+
+
 struct HeapHierarchicalItem
 {
    size_t index1;
@@ -144,6 +153,22 @@ struct NNHeap {
 // #ifdef _OPENMP
 //      omp_destroy_lock(&lock);
 // #endif
+   
+   }
+
+   inline bool empty()
+   {
+      return heap.empty();
+   }
+
+   inline const HeapNeighborItem& top()
+   {
+      return heap.top();
+   }
+
+   inline void pop()
+   {
+      heap.pop();
    }
 
    inline void insert(double index, double dist, double& maxR) {
@@ -165,6 +190,13 @@ struct NNHeap {
    inline void fill(std::deque<HeapNeighborItem>& nearestNeighbors) {
       while (!heap.empty()) {
          nearestNeighbors.push_front(heap.top());
+         heap.pop();
+      }
+   }
+   inline void fill(std::priority_queue<HeapNeighborItem, std::vector<HeapNeighborItem>, HeapNeighborItemFromSmallestComparator>& nearestNeighbors)
+   {
+      while (!heap.empty()) {
+         nearestNeighbors.push(heap.top());
          heap.pop();
       }
    }
