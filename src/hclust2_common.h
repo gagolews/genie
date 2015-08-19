@@ -128,13 +128,13 @@ struct HeapHierarchicalItem
 
 
 struct NNHeap {
-   std::priority_queue<HeapNeighborItem> heap;
+   std::priority_queue< HeapNeighborItem > heap;
    size_t maxNNPrefetch;
 // #ifdef _OPENMP
 //    omp_lock_t lock;
 // #endif
    NNHeap() :
-         heap(std::priority_queue<HeapNeighborItem>()),
+         heap(),
          maxNNPrefetch(1) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
@@ -142,7 +142,7 @@ struct NNHeap {
    }
 
    NNHeap(size_t maxNNPrefetch) :
-         heap(std::priority_queue<HeapNeighborItem>()),
+         heap(),
          maxNNPrefetch(maxNNPrefetch) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
@@ -153,7 +153,7 @@ struct NNHeap {
 // #ifdef _OPENMP
 //      omp_destroy_lock(&lock);
 // #endif
-   
+
    }
 
    inline size_t size()
@@ -169,6 +169,11 @@ struct NNHeap {
    inline const HeapNeighborItem& top()
    {
       return heap.top();
+   }
+
+   inline const size_t size()
+   {
+      return heap.size();
    }
 
    inline void pop()
@@ -282,8 +287,8 @@ struct HClustTreeStats
    size_t nodeVisit; // how many nodes were visited during NN search
    size_t nnCals;    // how many times NN search job was launched
    size_t nnCount;   // how many NNs were obtained in overall
-   size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
    size_t medoidOldNew; //..how many times it was successful
+   size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
 
    HClustTreeStats();
    ~HClustTreeStats();
