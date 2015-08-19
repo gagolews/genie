@@ -156,6 +156,11 @@ struct NNHeap {
    
    }
 
+   inline size_t size()
+   {
+      return heap.size();
+   }
+
    inline bool empty()
    {
       return heap.empty();
@@ -169,6 +174,11 @@ struct NNHeap {
    inline void pop()
    {
       heap.pop();
+   }
+
+   inline void push(const HeapNeighborItem& elem)
+   {
+      heap.push(elem);
    }
 
    inline void insert(double index, double dist, double& maxR) {
