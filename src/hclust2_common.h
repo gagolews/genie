@@ -44,10 +44,12 @@
 #include <queue>
 #include <deque>
 #include <vector>
+#include <queue>
 
 
 namespace DataStructures
 {
+
 template<typename T> struct Matrix
 {
    size_t nrow;
@@ -111,7 +113,7 @@ struct HeapNeighborItemFromSmallestComparator
    }
 
 };
-
+typedef std::priority_queue<HeapNeighborItem, std::vector<HeapNeighborItem>, HeapNeighborItemFromSmallestComparator> priority_queue_HeapNeighborItem_FromSmallest;
 
 struct HeapHierarchicalItem
 {
