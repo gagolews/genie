@@ -36,6 +36,7 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
    exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
    maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
    isCurseOfDimensionality = DEFAULT_IS_CURSE_OF_DIMENSIONALITY;
+   maxNN = DEFAULT_MAX_NN;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -89,13 +90,21 @@ HClustTreeOptions::HClustTreeOptions(Rcpp::RObject control) {
       }
 
       if (control2.containsElementNamed("isCurseOfDimensionality")) {
-         isCurseOfDimensionality = (bool)Rcpp::as<Rcpp::NumericVector>(control2["isCurseOfDimensionality"])[0];
+         isCurseOfDimensionality = (bool)Rcpp::as<Rcpp::LogicalVector>(control2["isCurseOfDimensionality"])[0];
+      }
+
+      if (control2.containsElementNamed("maxNN")) {
+         maxNN = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxNN"])[0];
       }
    }
 
    if (exemplarUpdateMethod < 0 && exemplarUpdateMethod > 2) {
       exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
       Rf_warning("wrong exemplarUpdateMethod value. using default");
+   }
+   if (maxNN < 1 || maxNN > 10000) {
+      maxNN = DEFAULT_MAX_NN;
+      Rf_warning("wrong maxNN value. using default");
    }
    if (degree < 2 || degree > 2000) {
       degree = DEFAULT_GNAT_DEGREE;

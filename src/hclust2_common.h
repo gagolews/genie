@@ -36,6 +36,7 @@
 #define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
 #define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
 #define DEFAULT_IS_CURSE_OF_DIMENSIONALITY false
+#define DEFAULT_MAX_NN 500
 
 // ---------------------------------------------------------------------------
 
@@ -275,6 +276,7 @@ struct HClustTreeOptions
    size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
    size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
    bool isCurseOfDimensionality;
+   size_t maxNN;    // for exemplars
 
    HClustTreeOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
