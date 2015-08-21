@@ -117,7 +117,7 @@ public:
    void print();
    NumericMatrix compute();
 
-   HeapNeighborItem getNearestNeighbor(size_t index);
+   HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
 
    inline const HClustTreeStats& getStats() { return stats; }
    inline const HClustTreeOptions& getOptions() { return opts; }

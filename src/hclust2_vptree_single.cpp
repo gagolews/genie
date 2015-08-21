@@ -296,11 +296,15 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 }
 
 
-HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
+HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index, double distMax)
 {
    size_t clusterIndex = ds.find_set(index);
    if (shouldFind[index] && nearestNeighbors[index].empty())
    {
+      if (minRadiuses[index] > distMax) {
+         return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
+      }
+
       double _tau = INFINITY;//maxRadiuses[index];
 
 #ifdef GENERATE_STATS
@@ -326,7 +330,7 @@ HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
 
    if (!nearestNeighbors[index].empty())
    {
-      // while (!nearestNeighbors[index].empty()) {
+      while (!nearestNeighbors[index].empty()) {
 #ifdef GENERATE_STATS
 #ifdef _OPENMP
 #pragma omp atomic
@@ -335,14 +339,14 @@ HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index)
 #endif
          auto res = nearestNeighbors[index].front();
          nearestNeighbors[index].pop_front();
-         // if (clusterIndex != ds.find_set(res.index))
+         if (clusterIndex != ds.find_set(res.index))
             return res;
-      // }
-      // return getNearestNeighbor(index);
+      }
+      return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
    }
    else
    {
-      return HeapNeighborItem(SIZE_MAX,-INFINITY);
+      return HeapNeighborItem(SIZE_MAX, INFINITY);
    }
 }
 
@@ -403,6 +407,13 @@ NumericMatrix HClustVpTreeSingle::compute()
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
 
+      if (hhi.index2 == SIZE_MAX) {
+         HeapNeighborItem hi=getNearestNeighbor(hhi.index1, INFINITY);
+         if (isfinite(hi.dist))
+            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+         continue;
+      }
+
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
       if (s1 != s2)
@@ -420,10 +431,10 @@ NumericMatrix HClustVpTreeSingle::compute()
       if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
 #endif
 
-      if (hhi.index1 >= hhi.index2) stop(":-(");
-      // ASSERT: hhi.index1 < hhi.index2
-      HeapNeighborItem hi=getNearestNeighbor(hhi.index1);
-      if (hi.index != SIZE_MAX)
+      STOPIFNOT(hhi.index1 < hhi.index2);
+      HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
+      STOPIFNOT(hhi.index1 < hi.index);
+      if (isfinite(hi.dist))
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
    }
 #if VERBOSE > 7

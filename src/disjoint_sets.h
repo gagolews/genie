@@ -27,8 +27,11 @@
 #include <cstdint>
 #include <Rcpp.h>
 
+#if VERBOSE > 0
 #define STOPIFNOT(EXPR) { if (!(EXPR)) Rprintf("\a*** Assert failed: " #EXPR " at %s, line %d ***\n", __FILE__, __LINE__); }
-
+#else
+#define STOPIFNOT(EXPR) { }
+#endif
 
 
 // #define DISJOINT_SETS_DEBUG
