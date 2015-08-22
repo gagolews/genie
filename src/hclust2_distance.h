@@ -300,6 +300,7 @@ protected:
 public:
    DinuDistance(const Rcpp::CharacterVector& strings) :
          StringDistance(strings), ranks(n) {
+      // TODO: openmp
       for (size_t i=0; i<n; ++i) {
          size_t ni = lengths[i];
          ranks[i].resize(ni);

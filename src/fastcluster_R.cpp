@@ -194,7 +194,7 @@ private:
   void (cluster_result::*postprocessfn) (const t_float) const;
   t_float postprocessarg;
 
-  t_float (R_dissimilarity::*distfn) (const t_index, const t_index) const;
+  t_float (R_dissimilarity::*distfn) (const t_index, const t_index);
   auto_array_ptr<t_index> row_repr;
   int N;
 
@@ -278,9 +278,6 @@ public:
 #endif
 
   inline t_float operator () (const t_index i, const t_index j) {
-#ifdef GENERATE_STATS
-      ++distCallCount;
-#endif
     return (this->*distfn)(i,j);
   }
 
@@ -338,12 +335,12 @@ public:
     }
   }
 
-  double ward(t_index const i1, t_index const i2) const {
+  double ward(t_index const i1, t_index const i2)  {
     return sqeuclidean<true>(i1,i2)*members[i1]*members[i2]/    \
       (members[i1]+members[i2]);
   }
 
-  inline double ward_initial(t_index const i1, t_index const i2) const {
+  inline double ward_initial(t_index const i1, t_index const i2)  {
     /* In the R interface, ward_initial is the same as ward. Only the Python
        interface has two different functions here. */
     return ward(i1,i2);
@@ -355,7 +352,7 @@ public:
     return min;
   }
 
-  double ward_extended(t_index i1, t_index i2) const {
+  double ward_extended(t_index i1, t_index i2)  {
     return ward(row_repr[i1], row_repr[i2]);
   }
 
@@ -394,7 +391,10 @@ public:
   */
   // still public
   template <const bool check_NaN>
-  double sqeuclidean(t_index const i1, t_index const i2) const {
+  double sqeuclidean(t_index const i1, t_index const i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     double dev, dist;
     int count, j;
 
@@ -431,12 +431,15 @@ public:
     return dist;
   }
 
-  inline double sqeuclidean_extended(t_index const i1, t_index const i2) const {
+  inline double sqeuclidean_extended(t_index const i1, t_index const i2)  {
     return sqeuclidean<true>(row_repr[i1], row_repr[i2]);
   }
 
 private:
-  double maximum(t_index i1, t_index i2) const {
+  double maximum(t_index i1, t_index i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     double dev, dist;
     int count, j;
 
@@ -460,7 +463,10 @@ private:
     return dist;
   }
 
-  double manhattan(t_index i1, t_index i2) const {
+  double manhattan(t_index i1, t_index i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     double dev, dist;
     int count, j;
 
@@ -484,7 +490,10 @@ private:
     return dist;
   }
 
-  double canberra(t_index i1, t_index i2) const {
+  double canberra(t_index i1, t_index i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     double dev, dist, sum, diff;
     int count, j;
 
@@ -521,7 +530,10 @@ private:
     return dist;
   }
 
-  double dist_binary(t_index i1, t_index i2) const {
+  double dist_binary(t_index i1, t_index i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     int total, count, dist;
     int j;
 
@@ -561,7 +573,10 @@ private:
     return static_cast<double>(dist) / static_cast<double>(count);
   }
 
-  double minkowski(t_index i1, t_index i2) const {
+  double minkowski(t_index i1, t_index i2)  {
+#ifdef GENERATE_STATS
+      ++distCallCount;
+#endif
     double dev, dist;
     int count, j;
 
