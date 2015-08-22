@@ -54,6 +54,8 @@
 /* to do: dist for CharacterVector (objects=strings) in UTF-8
    dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev
 
+ levenshtein, dinu should work on integer vectors, char vect interface via stri_enc_toutf32
+
   numeric -> metric: binary (see dist) minkowski (p), canberra
 
   allow external ptr distance:
@@ -222,7 +224,7 @@ public:
 class ManhattanDistance : public GenericMatrixDistance
 {
 protected:
-   double compute(size_t v1, size_t v2);
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    ManhattanDistance(const Rcpp::NumericMatrix& points) :
@@ -233,7 +235,7 @@ public:
 class MaximumDistance : public GenericMatrixDistance
 {
 protected:
-   double compute(size_t v1, size_t v2);
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    MaximumDistance(const Rcpp::NumericMatrix& points) :
@@ -244,7 +246,7 @@ public:
 class HammingDistance : public GenericMatrixDistance
 {
 protected:
-   double compute(size_t v1, size_t v2);
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    HammingDistance(const Rcpp::NumericMatrix& points) :
@@ -275,7 +277,7 @@ public:
       }
    }
 
-   ~StringDistance() {
+  virtual ~StringDistance() {
       delete [] items;
       delete [] lengths;
       R_ReleaseObject(robj);
@@ -283,11 +285,39 @@ public:
 };
 
 
+class DinuDistance : public StringDistance
+{
+protected:
+   struct Comparer {
+      const char* v;
+      Comparer(const char* _v) { v = _v; }
+      bool operator()(const int& i, const int& j) const { return v[i] < v[j]; }
+   };
+
+   virtual double compute(size_t v1, size_t v2);
+   std::vector< std::vector<size_t> > ranks;
+
+public:
+   DinuDistance(const Rcpp::CharacterVector& strings) :
+         StringDistance(strings), ranks(n) {
+      for (size_t i=0; i<n; ++i) {
+         size_t ni = lengths[i];
+         ranks[i].resize(ni);
+         for (size_t j=0; j<ni; ++j) ranks[i][j] = j;
+         std::stable_sort(ranks[i].begin(), ranks[i].end(), DinuDistance::Comparer(items[i]));
+      }
+   }
+
+   virtual ~DinuDistance() {  }
+
+};
+
+
 
 class LevenshteinDistance : public StringDistance
 {
 protected:
-   double compute(size_t v1, size_t v2);
+   virtual double compute(size_t v1, size_t v2);
 
 #ifndef _OPENMP
    // to be thread-safe, we have to allocate these 2 arrays each time...
@@ -306,7 +336,7 @@ public:
    #endif
    }
 
-   ~LevenshteinDistance() {
+   virtual ~LevenshteinDistance() {
    #ifndef _OPENMP
       delete [] v_cur;
       delete [] v_last;

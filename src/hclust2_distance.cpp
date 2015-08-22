@@ -18,7 +18,7 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-
+#include <algorithm>
 #include "hclust2_distance.h"
 using namespace DataStructures;
 
@@ -117,6 +117,12 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
       if (!strcmp(distance3, "levenshtein")) {
          return (DataStructures::Distance*)
             new DataStructures::LevenshteinDistance(
+               objects2
+            );
+      }
+      else if (!strcmp(distance3, "dinu")) {
+         return (DataStructures::Distance*)
+            new DataStructures::DinuDistance(
                objects2
             );
       }
@@ -280,3 +286,30 @@ double LevenshteinDistance::compute(size_t v1, size_t v2)
 #endif
    return ret;
 }
+
+
+double DinuDistance::compute(size_t v1, size_t v2)
+{
+   const char* x = items[v1];
+   const char* y = items[v2];
+   const size_t* ox = ranks[v1].data();
+   const size_t* oy = ranks[v2].data();
+   size_t nx = lengths[v1];
+   size_t ny = lengths[v2];
+
+   double d = 0.0;
+   size_t ix = 0, iy = 0;
+   while (ix < nx && iy < ny) {
+      if (x[ox[ix]] == y[oy[iy]])
+         d += std::abs((ox[ix++]+1.0) - (oy[iy++]+1.0));
+      else if (x[ox[ix]] < y[oy[iy]])
+         d += std::abs((ox[ix++]+1.0) - 0.0);
+      else
+         d += std::abs(0.0 - (oy[iy++]+1.0));
+   }
+   while (ix < nx) d += std::abs((ox[ix++]+1.0) - 0.0);
+   while (iy < ny) d += std::abs(0.0 - (oy[iy++]+1.0));
+
+   return d;
+}
+
