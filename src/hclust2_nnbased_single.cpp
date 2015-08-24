@@ -56,6 +56,59 @@ HClustNNbasedSingle::~HClustNNbasedSingle() {
 
 
 
+HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double distMax)
+{
+   size_t clusterIndex = ds.find_set(index);
+   if (shouldFind[index] && nearestNeighbors[index].empty())
+   {
+      if (minRadiuses[index] > distMax) {
+         return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
+      }
+
+#ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+      ++stats.nnCals;
+#endif
+      NNHeap nnheap(opts.maxNNPrefetch);
+      getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
+      nnheap.fill(nearestNeighbors[index]);
+
+      size_t newNeighborsCount = nearestNeighbors[index].size();
+
+      neighborsCount[index] += newNeighborsCount;
+      if (neighborsCount[index] > _n - index || newNeighborsCount == 0)
+         shouldFind[index] = false;
+
+      if (newNeighborsCount > 0)
+         minRadiuses[index] = nearestNeighbors[index].back().dist;
+   }
+
+   if (!nearestNeighbors[index].empty())
+   {
+      while (!nearestNeighbors[index].empty()) {
+#ifdef GENERATE_STATS
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+         ++stats.nnCount;
+#endif
+         auto res = nearestNeighbors[index].front();
+         nearestNeighbors[index].pop_front();
+         if (clusterIndex != ds.find_set(res.index))
+            return res;
+      }
+      return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
+   }
+   else
+   {
+      return HeapNeighborItem(SIZE_MAX, INFINITY);
+   }
+}
+
+
+
 NumericMatrix HClustNNbasedSingle::compute()
 {
    NumericMatrix ret(_n-1, 2);

@@ -74,9 +74,12 @@ protected:
    void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
-   void print(HClustVpTreeSingleNode* n);
+   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
+      double maxR = INFINITY;
+      getNearestNeighborsFromMinRadiusRecursive(_root, index, clusterIndex, minR, maxR, nnheap);
+   }
 
-   virtual HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
+   void print(HClustVpTreeSingleNode* n);
 
 public:
 

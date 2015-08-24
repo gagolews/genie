@@ -18,72 +18,29 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-#ifndef __HCLUST2_NNBASED_SINGLE_H
-#define __HCLUST2_NNBASED_SINGLE_H
+#ifndef __HCLUST2_NAIVE_SINGLE_H
+#define __HCLUST2_NAIVE_SINGLE_H
 
 
 
 // ************************************************************************
 
-
-#include <Rcpp.h>
-#include <R.h>
-#include <Rmath.h>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
-// #include <fstream>
-// #include <deque>
-// #include <exception>
-// #include <string>
-// #include <boost/property_map/property_map.hpp>
-// #include <boost/tuple/tuple_comparison.hpp>
-// #include <algorithm>
-
-#include "hclust2_common.h"
-#include "hclust2_merge.h"
-#include "disjoint_sets.h"
+#include "hclust2_nnbased_single.h"
 
 
 namespace DataStructures
 {
 
-
-
-class HClustNNbasedSingle
+class HClustNaiveSingle : public HClustNNbasedSingle
 {
 protected:
 
-   HClustTreeOptions opts;
-   size_t _n;
-   Distance* _distance;
-   std::vector<size_t> _indices;
-   // std::vector<size_t> _indicesinv;
-
-   std::vector<size_t> neighborsCount;
-   std::vector<double> minRadiuses;
-   // std::vector<double> maxRadiuses;
-   std::vector<bool> shouldFind;
-   std::vector< deque<HeapNeighborItem> > nearestNeighbors;
-
-   HClustTreeStats stats;
-
-   DisjointSets ds;
-   bool prefetch;
-
-   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
-   HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
+   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap);
 
 public:
 
-   HClustNNbasedSingle(Distance* dist, RObject control);
-   virtual ~HClustNNbasedSingle();
-
-   virtual void print() { Rcout << "this print method is a stub" << std::endl; }
-
-   NumericMatrix compute();
-
-   inline const HClustTreeStats& getStats() { return stats; }
-   inline const HClustTreeOptions& getOptions() { return opts; }
+   HClustNaiveSingle(Distance* dist, RObject control);
+   ~HClustNaiveSingle();
 
 }; // class
 

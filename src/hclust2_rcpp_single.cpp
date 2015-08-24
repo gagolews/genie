@@ -20,7 +20,7 @@
 
 
 #include "hclust2_vptree_single.h"
-
+#include "hclust2_naive_single.h"
 
 
 // [[Rcpp::export(".hclust2_single")]]
@@ -29,9 +29,11 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
    RObject result(R_NilValue);
    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
 
-   try {
-      /* Rcpp::checkUserInterrupt(); may throw an exception */
+   try { /* Rcpp::checkUserInterrupt(); may throw an exception */
+
       DataStructures::HClustVpTreeSingle hclust(dist, control);
+      // DataStructures::HClustNaiveSingle hclust(dist, control);
+
       RObject merge = hclust.compute();
       result = Rcpp::as<RObject>(List::create(
          _["merge"]  = merge,
