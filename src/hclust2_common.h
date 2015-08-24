@@ -41,10 +41,12 @@
 // ---------------------------------------------------------------------------
 
 #include "hclust2_distance.h"
+#include "disjoint_sets.h"
 #include <queue>
 #include <deque>
 #include <vector>
 #include <queue>
+#include <list>
 
 
 namespace DataStructures
@@ -133,12 +135,14 @@ struct HeapHierarchicalItem
 struct NNHeap {
    std::priority_queue< HeapNeighborItem > heap;
    size_t maxNNPrefetch;
+   size_t exemplarsCount;
 // #ifdef _OPENMP
 //    omp_lock_t lock;
 // #endif
    NNHeap() :
          heap(),
-         maxNNPrefetch(1) {
+         maxNNPrefetch(1),
+         exemplarsCount(0) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
 // #endif
@@ -146,7 +150,8 @@ struct NNHeap {
 
    NNHeap(size_t maxNNPrefetch) :
          heap(),
-         maxNNPrefetch(maxNNPrefetch) {
+         maxNNPrefetch(maxNNPrefetch),
+         exemplarsCount(0) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
 // #endif
@@ -199,6 +204,45 @@ struct NNHeap {
 //       omp_unset_lock(&lock);
 // #endif
    }
+
+   inline void insertExemplars(double index, double dist, double& maxR, DisjointSets& ds, bool isExemplar) {
+   // #ifdef _OPENMP
+   //       omp_set_lock(&lock);
+   // #endif
+      heap.push( HeapNeighborItem(index, dist) );
+      if(isExemplar)
+      {
+         exemplarsCount++;
+      }
+      std::list<HeapNeighborItem> toRemove;
+      size_t toRemoveExemplarsCount=0;
+
+      if (heap.size() >= maxNNPrefetch+1 && dist < maxR) {
+         while (!heap.empty() && heap.top().dist == maxR) {
+            toRemove.push_back(heap.top());
+            if(heap.top().index == ds.find_set(heap.top().index))
+            {
+               toRemoveExemplarsCount++;
+            }
+            heap.pop();
+         }
+      }
+
+      if(toRemoveExemplarsCount == exemplarsCount && exemplarsCount > 0)
+      {
+         for(auto it = toRemove.begin(); it != toRemove.end(); ++it)
+            heap.push(*it);
+      }
+      else
+      {
+         exemplarsCount -= toRemoveExemplarsCount;
+      }
+
+      if (heap.size() >= maxNNPrefetch && exemplarsCount > 0) maxR = heap.top().dist;
+   // #ifdef _OPENMP
+   //       omp_unset_lock(&lock);
+   // #endif
+      }
 
    inline void fill(std::deque<HeapNeighborItem>& nearestNeighbors) {
       while (!heap.empty()) {

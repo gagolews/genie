@@ -31,7 +31,7 @@
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
-#define VERBOSE 1
+#define VERBOSE 8
 
 #if VERBOSE > 0
 #define RCOUT( msg, verlvl) if((verlvl) <= VERBOSE)  Rcout << msg << endl;

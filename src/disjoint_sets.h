@@ -34,7 +34,7 @@
 #endif
 
 
-// #define DISJOINT_SETS_DEBUG
+#define DISJOINT_SETS_DEBUG
 
 #ifndef DISJOINT_SETS_DEBUG
 #define DISJOINT_SETS_DEBUG_CONST const
