@@ -25,23 +25,7 @@
 
 // ************************************************************************
 
-
-#include <Rcpp.h>
-#include <R.h>
-#include <Rmath.h>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
-// #include <fstream>
-// #include <deque>
-// #include <exception>
-// #include <string>
-// #include <boost/property_map/property_map.hpp>
-// #include <boost/tuple/tuple_comparison.hpp>
-// #include <algorithm>
-
-#include "hclust2_common.h"
-#include "hclust2_merge.h"
-#include "disjoint_sets.h"
+#include "hclust2_nnbased_single.h"
 
 
 namespace DataStructures
@@ -77,29 +61,12 @@ struct HClustVpTreeSingleNode
 };
 
 
-class HClustVpTreeSingle
+class HClustVpTreeSingle : public HClustNNbasedSingle
 {
 protected:
 
-   HClustTreeOptions opts;
-
    HClustVpTreeSingleNode* _root;
-   size_t _n;
-   Distance* _distance;
-   std::vector<size_t> _indices;
-   // std::vector<size_t> _indicesinv;
-
-   std::vector<size_t> neighborsCount;
-   std::vector<double> minRadiuses;
-   // std::vector<double> maxRadiuses;
-   std::vector<bool> shouldFind;
-   std::vector< deque<HeapNeighborItem> > nearestNeighbors;
    std::vector<double> distances;
-
-   HClustTreeStats stats;
-
-   DisjointSets ds;
-   bool prefetch;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
    HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
@@ -109,18 +76,14 @@ protected:
 
    void print(HClustVpTreeSingleNode* n);
 
+   virtual HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
+
 public:
 
    HClustVpTreeSingle(Distance* dist, RObject control);
    ~HClustVpTreeSingle();
 
-   void print();
-   NumericMatrix compute();
-
-   HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
-
-   inline const HClustTreeStats& getStats() { return stats; }
-   inline const HClustTreeOptions& getOptions() { return opts; }
+   virtual void print();
 
 }; // class
 

@@ -24,32 +24,7 @@
 #ifndef __HCLUST2_DISTANCE_H
 #define __HCLUST2_DISTANCE_H
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-// ---------------------------------------------------------------------
-// #define HASHMAP_ENABLED
-#define GENERATE_STATS
-#define VERBOSE 8
-
-#if VERBOSE > 0
-#define RCOUT( msg, verlvl) if((verlvl) <= VERBOSE)  Rcout << msg << endl;
-#else
-#define RCOUT( msg, verlvl)
-#endif
-
-/*
- * example use:
- *  int a = 5;
- *  RCOUT("a=" << a, 0)
- *
- */
-// ---------------------------------------------------------------------
-
-
-// #define RPRINTF_0(...) Rprintf(__VA_ARGS__)
-
+#include "defs.h"
 
 /* to do: dist for CharacterVector (objects=strings) in UTF-8
    dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev

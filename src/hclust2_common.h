@@ -21,25 +21,7 @@
 #ifndef __HCLUST2_COMMON_H
 #define __HCLUST2_COMMON_H
 
-// ---------------------------------------------------------------------------
-
-#define DEFAULT_MAX_LEAVES_ELEMS 4
-#define DEFAULT_MAX_NN_PREFETCH 2
-#define DEFAULT_VP_SELECT_SCHEME 3
-#define DEFAULT_VP_SELECT_CAND 5
-#define DEFAULT_VP_SELECT_TEST 12
-#define DEFAULT_GNAT_DEGREE 50
-#define DEFAULT_GNAT_CANDIDATES_TIMES 3
-#define DEFAULT_GNAT_MIN_DEGREE 2
-#define DEFAULT_GNAT_MAX_DEGREE 200
-#define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
-#define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
-#define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
-#define DEFAULT_IS_CURSE_OF_DIMENSIONALITY false
-#define DEFAULT_MAX_NN 500
-
-// ---------------------------------------------------------------------------
-
+#include "defs.h"
 #include "hclust2_distance.h"
 #include "disjoint_sets.h"
 #include <queue>

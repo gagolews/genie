@@ -1,0 +1,132 @@
+/* ************************************************************************* *
+ *   This file is part of the `DataStructures` package.                      *
+ *                                                                           *
+ *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
+ *                                                                           *
+ *   'DataStructures' is free software: you can redistribute it and/or       *
+ *   modify it under the terms of the GNU Lesser General Public License      *
+ *   as published by the Free Software Foundation, either version 3          *
+ *   of the License, or (at your option) any later version.                  *
+ *                                                                           *
+ *   'DataStructures' is distributed in the hope that it will be useful,     *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   GNU Lesser General Public License for more details.                     *
+ *                                                                           *
+ *   You should have received a copy of the GNU Lesser General Public        *
+ *   License along with 'DataStructures'.                                    *
+ *   If not, see <http://www.gnu.org/licenses/>.                             *
+ * ************************************************************************* */
+
+#ifndef __DEFS_H
+#define __DEFS_H
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+// ---------------------------------------------------------------------
+// #define HASHMAP_ENABLED
+#define GENERATE_STATS
+#define VERBOSE 5
+
+#define DISJOINT_SETS_DEBUG
+
+#define DEFAULT_MAX_LEAVES_ELEMS 4
+#define DEFAULT_MAX_NN_PREFETCH 2
+#define DEFAULT_VP_SELECT_SCHEME 3
+#define DEFAULT_VP_SELECT_CAND 5
+#define DEFAULT_VP_SELECT_TEST 12
+#define DEFAULT_GNAT_DEGREE 50
+#define DEFAULT_GNAT_CANDIDATES_TIMES 3
+#define DEFAULT_GNAT_MIN_DEGREE 2
+#define DEFAULT_GNAT_MAX_DEGREE 200
+#define DEFAULT_GNAT_MAX_TIMES_DEGREE 5
+#define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
+#define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
+#define DEFAULT_IS_CURSE_OF_DIMENSIONALITY false
+#define DEFAULT_MAX_NN 500
+
+// ---------------------------------------------------------------------------
+
+#if VERBOSE > 0
+#define STOPIFNOT(EXPR) { if (!(EXPR)) Rprintf("\a*** Assert failed: " #EXPR " at %s, line %d ***\n", __FILE__, __LINE__); }
+#else
+#define STOPIFNOT(EXPR) { }
+#endif
+
+// ---------------------------------------------------------------------------
+
+
+#if VERBOSE > 0
+#define RCOUT(msg, verlvl) if ((verlvl) <= VERBOSE) Rcout << msg << endl;
+#else
+#define RCOUT(msg, verlvl) { }
+#endif
+
+/*
+ * example use:
+ *  int a = 5;
+ *  RCOUT("a=" << a, 0)
+ *
+ */
+// ---------------------------------------------------------------------
+
+
+/* TO DO: can we do it more intelligently? */
+
+#if VERBOSE < 1
+#define MESSAGE_1(...)  { }
+#else
+#define MESSAGE_1(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 2
+#define MESSAGE_2(...)  { }
+#else
+#define MESSAGE_2(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 3
+#define MESSAGE_3(...) { }
+#else
+#define MESSAGE_3(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 4
+#define MESSAGE_4(...) { }
+#else
+#define MESSAGE_4(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 5
+#define MESSAGE_5(...) { }
+#else
+#define MESSAGE_5(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 6
+#define MESSAGE_6(...) { }
+#else
+#define MESSAGE_6(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 7
+#define MESSAGE_7(...) { }
+#else
+#define MESSAGE_7(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 8
+#define MESSAGE_8(...) { }
+#else
+#define MESSAGE_8(...) Rprintf(__VA_ARGS__)
+#endif
+
+#if VERBOSE < 9
+#define MESSAGE_9(...) { }
+#else
+#define MESSAGE_9(...) Rprintf(__VA_ARGS__)
+#endif
+
+#endif

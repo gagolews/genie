@@ -39,38 +39,18 @@ using namespace DataStructures;
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
-   opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
-   _indices(dist->getObjectCount()),
-   // _indicesinv(dist->getObjectCount()),
-   neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
-   minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
-   // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
-   shouldFind(vector<bool>(dist->getObjectCount(), true)),
-   nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
-   distances(vector<double>(_n)),
-#ifdef GENERATE_STATS
-   stats(HClustTreeStats()),
-#endif
-   ds(dist->getObjectCount())
+   HClustNNbasedSingle(dist, control),
+   _root(NULL),
+   distances(vector<double>(_n))
 {
-#if VERBOSE > 5
-   Rprintf("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-
-   // starting _indices: random permutation of {0,1,...,_n-1}
-   for (size_t i=0;i<_n;i++)
-      _indices[i] = i;
-   for (size_t i=_n-1; i>= 1; i--)
-      swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+   MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
    _root = buildFromPoints(0, _n);
 }
 
 
 HClustVpTreeSingle::~HClustVpTreeSingle() {
-// #if VERBOSE > 5
-//       Rprintf("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
-// #endif
+//   MESSAGE_2("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
    if(_root) delete _root;
 }
 
@@ -351,105 +331,6 @@ HeapNeighborItem HClustVpTreeSingle::getNearestNeighbor(size_t index, double dis
 }
 
 
-NumericMatrix HClustVpTreeSingle::compute()
-{
-   NumericMatrix ret(_n-1, 2);
-   priority_queue<HeapHierarchicalItem> pq;
-
-   // INIT: Pre-fetch a few nearest neighbors for each point
-#if VERBOSE > 5
-   Rprintf("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-
-   prefetch = true;
-#ifdef _OPENMP
-   omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
-   omp_lock_t writelock;
-   omp_init_lock(&writelock);
-   #pragma omp parallel for schedule(dynamic)
-#endif
-   for (size_t i=0; i<_n; i++)
-   {
-#ifndef _OPENMP
-      Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
-#endif
-      HeapNeighborItem hi=getNearestNeighbor(i);
-      if (hi.index != SIZE_MAX)
-      {
-#if VERBOSE > 7 && !defined(_OPENMP)
-         Rprintf("\r             prefetch NN: %d/%d", i, _n-1);
-#endif
-#ifdef _OPENMP
-         omp_set_lock(&writelock);
-#endif
-         pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
-#ifdef _OPENMP
-         omp_unset_lock(&writelock);
-#endif
-      }
-   }
-#ifdef _OPENMP
-   omp_destroy_lock(&writelock);
-#endif
-#if VERBOSE > 7
-   Rprintf("\r             prefetch NN: %d/%d\n", _n-1, _n-1);
-#endif
-#if VERBOSE > 5
-   Rprintf("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-
-   prefetch = false;
-   size_t i = 0;
-   while(true)
-   {
-      //Rcout << "iteracja " << i << endl;
-      //Rcout << "pq size = " << pq.size()<< endl;
-      HeapHierarchicalItem hhi = pq.top();
-      pq.pop();
-
-      if (hhi.index2 == SIZE_MAX) {
-         HeapNeighborItem hi=getNearestNeighbor(hhi.index1, INFINITY);
-         if (isfinite(hi.dist))
-            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-         continue;
-      }
-
-      size_t s1 = ds.find_set(hhi.index1);
-      size_t s2 = ds.find_set(hhi.index2);
-      if (s1 != s2)
-      {
-         Rcpp::checkUserInterrupt(); // may throw an exception, fast op
-
-         ret(i,0)=(double)_indices[hhi.index1];
-         ret(i,1)=(double)_indices[hhi.index2];
-         ds.link(s1, s2);
-
-         ++i;
-         if (i == _n-1) break; /* avoid computing unnecessary nn */
-      }
-#if VERBOSE > 7
-      if (i % 1024 == 0) Rprintf("\r             %d / %d", i+1, _n);
-#endif
-
-      STOPIFNOT(hhi.index1 < hhi.index2);
-      HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
-      STOPIFNOT(hhi.index1 < hi.index);
-      if (isfinite(hi.dist))
-         pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-   }
-#if VERBOSE > 7
-   Rprintf("\r             %d / %d\n", _n, _n);
-#endif
-   Rcpp::checkUserInterrupt();
-
-#if VERBOSE > 5
-   Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
-#endif
-   MergeMatrixGenerator mmg(ret.nrow());
-   return mmg.generateMergeMatrix(ret);
-}
-
-
 void HClustVpTreeSingle::print(HClustVpTreeSingleNode* n) {
    if (n->childL) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"L\"];\n",
@@ -479,93 +360,3 @@ void HClustVpTreeSingle::print() {
    print(_root);
    Rprintf("}\n");
 }
-
-
-// [[Rcpp::export(".hclust2_single")]]
-RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilValue) {
-#if VERBOSE > 5
-   Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
-#endif
-   RObject result(R_NilValue);
-   DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
-
-   try {
-      /* Rcpp::checkUserInterrupt(); may throw an exception */
-      DataStructures::HClustVpTreeSingle hclust(dist, control);
-      RObject merge = hclust.compute();
-      result = Rcpp::as<RObject>(List::create(
-         _["merge"]  = merge,
-         _["height"] = R_NilValue,
-         _["order"]  = R_NilValue,
-         _["labels"] = R_NilValue,
-         _["call"]   = R_NilValue,
-         _["method"] = "single",
-         _["dist.method"] = R_NilValue,
-         _["stats"] = List::create(
-            _["vptree"] = hclust.getStats().toR(),
-            _["distance"] = dist->getStats().toR()
-         ),
-         _["control"] = List::create(
-            _["vptree"] = hclust.getOptions().toR()
-         )
-      ));
-      result.attr("class") = "hclust";
-      //hclust.print();
-   }
-   catch(...) {
-
-   }
-
-   if (dist) delete dist;
-#if VERBOSE > 5
-   Rprintf("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
-#endif
-   if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
-   return result;
-}
-
-
-// // [[Rcpp::export]]
-// RObject nntest(RObject distance, RObject objects, RObject control=R_NilValue) {
-// #if VERBOSE > 5
-//    Rprintf("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
-// #endif
-//    RObject result(R_NilValue);
-//    DataStructures::Distance* dist = DataStructures::Distance::createDistance(distance, objects);
-//
-//    try {
-//       /* Rcpp::checkUserInterrupt(); may throw an exception */
-//       DataStructures::HClustVpTreeSingle hclust(dist, control);
-//       hclust.getNearestNeighbor(0);
-//       hclust.getNearestNeighbor(25);
-//       hclust.getNearestNeighbor(4653);
-//       hclust.getNearestNeighbor(352);
-//       result = Rcpp::as<RObject>(List::create(
-//          _["merge"]  = R_NilValue,
-//          _["height"] = R_NilValue,
-//          _["order"]  = R_NilValue,
-//          _["labels"] = R_NilValue,
-//          _["call"]   = R_NilValue,
-//          _["method"] = "single",
-//          _["dist.method"] = R_NilValue,
-//          _["stats"] = List::create(
-//             _["vptree"] = hclust.getStats().toR(),
-//             _["distance"] = dist->getStats().toR()
-//          ),
-//          _["control"] = List::create(
-//             _["vptree"] = hclust.getOptions().toR()
-//          )
-//       ));
-//    }
-//    catch(...) {
-//
-//    }
-//
-//    if (dist) delete dist;
-// #if VERBOSE > 5
-//    Rprintf("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
-// #endif
-//    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
-//    return result;
-// }
-

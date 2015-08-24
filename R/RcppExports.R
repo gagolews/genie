@@ -37,16 +37,16 @@ generateMergeMatrix <- function(x) {
     .Call('DataStructures_hclust2_exemplar_naive', PACKAGE = 'DataStructures', distance, objects, control)
 }
 
+.hclust2_single <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
 .hclust2_complete <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
     .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
 
 .hclust2_exemplar <- function(distance, objects, control = NULL) {
     .Call('DataStructures_hclust2_exemplar', PACKAGE = 'DataStructures', distance, objects, control)
-}
-
-.hclust2_single <- function(distance, objects, control = NULL) {
-    .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, control)
 }
 
 #' @rdname queue

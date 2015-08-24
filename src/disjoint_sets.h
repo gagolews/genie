@@ -22,20 +22,13 @@
 #ifndef __DISJOINT_SETS_H
 #define __DISJOINT_SETS_H
 
+#include "defs.h"
 #include <vector>
 #include <list>
 #include <cstdint>
 #include <Rcpp.h>
 
-#if VERBOSE > 0
-#define STOPIFNOT(EXPR) { if (!(EXPR)) Rprintf("\a*** Assert failed: " #EXPR " at %s, line %d ***\n", __FILE__, __LINE__); }
-#else
-#define STOPIFNOT(EXPR) { }
-#endif
-
-
-#define DISJOINT_SETS_DEBUG
-
+/* see defs.h */
 #ifndef DISJOINT_SETS_DEBUG
 #define DISJOINT_SETS_DEBUG_CONST const
 #else
