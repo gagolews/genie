@@ -73,7 +73,7 @@ HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double di
 #endif
       ++stats.nnCals;
 #endif
-      NNHeap nnheap(opts.maxNNPrefetch);
+      NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
       getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);
 
