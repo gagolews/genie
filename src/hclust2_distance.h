@@ -45,6 +45,11 @@
 
  use cases: objects 1:n, distance(i,j) -> ith, jth row of a data frame
     (check namespaces... - call within an R function)
+
+
+ test for proper NA handling in Matrix and String distance
+
+ GenericRDistance, DistObjectDistance -- how to handle NAs??
 */
 
 
@@ -156,17 +161,7 @@ protected:
 public:
    // TO DO: virtual Rcpp::RObject getLabels() { /* stub */ return R_NilValue; } --- get row names
 
-   GenericMatrixDistance(const Rcpp::NumericMatrix& points) :
-         Distance(points.nrow()),
-         items(REAL((SEXP)points)), m(points.ncol())  {
-      // act on a transposed matrix to avoid many L1/L... cache misses
-      items = new double[m*n];
-      const double* items2 = REAL((SEXP)points);
-      double* items_ptr = items;
-      for (size_t i=0; i<n; ++i)
-         for (size_t j=0; j<m; ++j)
-            *(items_ptr++) = items2[j*n+i];
-   }
+   GenericMatrixDistance(const Rcpp::NumericMatrix& points);
 
    virtual ~GenericMatrixDistance() {
 // #if VERBOSE > 5
@@ -252,26 +247,8 @@ protected:
 public:
    virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
 
-   StringDistance(const Rcpp::CharacterVector& strings) :
-         Distance(strings.size()),
-         robj((SEXP)strings) {
-      R_PreserveObject(robj);
-      items = new const char*[n];
-      lengths = new size_t[n];
-
-      // TO DO: NA HANDLING
-      for (size_t i=0; i<n; ++i) {
-         SEXP cur = STRING_ELT(robj, i);
-         lengths[i] = LENGTH(cur);
-         items[i] = CHAR(cur);
-      }
-   }
-
-  virtual ~StringDistance() {
-      delete [] items;
-      delete [] lengths;
-      R_ReleaseObject(robj);
-   }
+   StringDistance(const Rcpp::CharacterVector& strings);
+   virtual ~StringDistance();
 };
 
 

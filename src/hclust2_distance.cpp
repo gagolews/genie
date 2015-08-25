@@ -173,6 +173,23 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
 
 
 
+GenericMatrixDistance::GenericMatrixDistance(const Rcpp::NumericMatrix& points) :
+      Distance(points.nrow()),
+      items(REAL((SEXP)points)), m(points.ncol())  {
+   // act on a transposed matrix to avoid many L1/L... cache misses
+   items = new double[m*n];
+   const double* items2 = REAL((SEXP)points);
+   double* items_ptr = items;
+   for (size_t i=0; i<n; ++i) {
+      for (size_t j=0; j<m; ++j) {
+         if (Rcpp::NumericVector::is_na(items2[j*n+i]))
+            Rcpp::stop("missing values in input objects are not allowed");
+         *(items_ptr++) = items2[j*n+i];
+      }
+   }
+}
+
+
 double EuclideanDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
@@ -228,6 +245,31 @@ double GenericRDistance::compute(size_t v1, size_t v2)
 {
    if (v1 == v2) return 0.0;
    return ((Rcpp::NumericVector)distfun(items[v1], items[v2]))[0];
+}
+
+
+StringDistance::StringDistance(const Rcpp::CharacterVector& strings) :
+      Distance(strings.size()),
+      robj((SEXP)strings) {
+   R_PreserveObject(robj);
+   items = new const char*[n];
+   lengths = new size_t[n];
+
+   // TO DO: NA HANDLING
+   for (size_t i=0; i<n; ++i) {
+      SEXP cur = STRING_ELT(robj, i);
+      if (cur == NA_STRING)
+         Rcpp::stop("missing values in input objects are not allowed");
+      lengths[i] = LENGTH(cur);
+      items[i] = CHAR(cur);
+   }
+}
+
+
+StringDistance::~StringDistance() {
+   delete [] items;
+   delete [] lengths;
+   R_ReleaseObject(robj);
 }
 
 

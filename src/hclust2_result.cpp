@@ -23,6 +23,13 @@ using namespace DataStructures;
 using namespace Rcpp;
 
 
+// TO DO:
+#warning HClustResult::order is not yet generated
+#warning HClustResult::merge should be generated in HClustResult::link()
+
+
+
+
 HClustResult::HClustResult(size_t n, Distance* dist) :
       i(0),
       n(n),
