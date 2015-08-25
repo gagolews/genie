@@ -29,18 +29,20 @@ using namespace DataStructures;
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, RObject control) :
-   opts(control), _n(dist->getObjectCount()), _distance(dist),
-   _indices(dist->getObjectCount()),
-   // _indicesinv(dist->getObjectCount()),
-   neighborsCount(vector<size_t>(dist->getObjectCount(), 0)),
-   minRadiuses(vector<double>(dist->getObjectCount(), -INFINITY)),
-   // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
-   shouldFind(vector<bool>(dist->getObjectCount(), true)),
-   nearestNeighbors(vector< deque<HeapNeighborItem> >(dist->getObjectCount())),
-#ifdef GENERATE_STATS
-   stats(HClustTreeStats()),
-#endif
-   ds(dist->getObjectCount())
+      opts(control),
+      _n(dist->getObjectCount()),
+      _distance(dist),
+      _indices(dist->getObjectCount()),
+      // _indicesinv(dist->getObjectCount()),
+      neighborsCount(dist->getObjectCount(), 0),
+      minRadiuses(dist->getObjectCount(), -INFINITY),
+      // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
+      shouldFind(dist->getObjectCount(), true),
+      nearestNeighbors(dist->getObjectCount()),
+   #ifdef GENERATE_STATS
+      stats(),
+   #endif
+      ds(dist->getObjectCount())
 {
    // starting _indices: random permutation of {0,1,...,_n-1}
    for (size_t i=0;i<_n;i++)

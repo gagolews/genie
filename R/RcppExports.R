@@ -21,14 +21,6 @@ seboid_approx <- function(distance, objects, control = NULL, iters = 25L, nntry 
     .Call('DataStructures_hclust3', PACKAGE = 'DataStructures', method_, metric_, X_, members_, p_)
 }
 
-hclust_gnat_single_test <- function(distance, objects, control = NULL, index = 0L, R = 0) {
-    invisible(.Call('DataStructures_hclust_gnat_single_test', PACKAGE = 'DataStructures', distance, objects, control, index, R))
-}
-
-hclust_gnat_single <- function(distance, objects, control = NULL) {
-    .Call('DataStructures_hclust_gnat_single', PACKAGE = 'DataStructures', distance, objects, control)
-}
-
 generateMergeMatrix <- function(x) {
     .Call('DataStructures_generateMergeMatrix', PACKAGE = 'DataStructures', x)
 }

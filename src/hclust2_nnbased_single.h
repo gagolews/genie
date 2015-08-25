@@ -53,7 +53,7 @@ class HClustNNbasedSingle
 {
 protected:
 
-   HClustTreeOptions opts;
+   HClustOptions opts;
    size_t _n;
    Distance* _distance;
    std::vector<size_t> _indices;
@@ -65,7 +65,7 @@ protected:
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
-   HClustTreeStats stats;
+   HClustStats stats;
 
    DisjointSets ds;
    bool prefetch;
@@ -82,8 +82,8 @@ public:
 
    NumericMatrix compute();
 
-   inline const HClustTreeStats& getStats() { return stats; }
-   inline const HClustTreeOptions& getOptions() { return opts; }
+   inline const HClustStats& getStats()     { return stats; }
+   inline const HClustOptions& getOptions() { return opts; }
 
 }; // class
 

@@ -27,13 +27,16 @@ using namespace DataStructures;
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 VpTree::VpTree(Distance* dist, RObject control) :
-   opts(control), _root(NULL), _n(dist->getObjectCount()), _distance(dist),
-   _indices(dist->getObjectCount()),
-   _indicesinv(dist->getObjectCount()),
-   distances(vector<double>(_n))
-#ifdef GENERATE_STATS
-   ,stats(HClustTreeStats())
-#endif
+      opts(control),
+      _root(NULL),
+      _n(dist->getObjectCount()),
+      _distance(dist),
+      _indices(dist->getObjectCount()),
+      _indicesinv(dist->getObjectCount()),
+      distances(_n)
+   #ifdef GENERATE_STATS
+      ,stats()
+   #endif
 {
    // starting _indices: random permutation of {0,1,...,_n-1}
    for (size_t i=0;i<_n;i++)

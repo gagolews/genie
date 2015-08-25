@@ -289,29 +289,29 @@ struct IndexComparator
 
 inline bool comparer_gt(size_t i, size_t j) { return (i>j); }
 
-struct HClustTreeOptions
+struct HClustOptions
 {
-   size_t degree;           // for GNAT
-   size_t candidatesTimes;  // for GNAT
-   size_t minDegree;        // for GNAT
-   size_t maxDegree;        // for GNAT
-   size_t maxTimesDegree;   // for GNAT
-   size_t maxLeavesElems;
-   size_t maxNNPrefetch;    // general
+//    size_t degree;           // for GNAT
+//    size_t candidatesTimes;  // for GNAT
+//    size_t minDegree;        // for GNAT
+//    size_t maxDegree;        // for GNAT
+//    size_t maxTimesDegree;   // for GNAT
+   size_t maxLeavesElems;   //
+   size_t maxNNPrefetch;    //
+   size_t maxNNMerge;       //
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
-   size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
-   size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
-   bool isCurseOfDimensionality;
-   size_t maxNN;    // for exemplars
+   // size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
+   // size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
+   // bool isCurseOfDimensionality;
 
-   HClustTreeOptions(Rcpp::RObject control);
+   HClustOptions(Rcpp::RObject control);
    Rcpp::NumericVector toR() const;
 };
 
 
-struct HClustTreeStats
+struct HClustStats
 {
    size_t nodeCount; // how many nodes are there in the tree
    size_t leafCount; // how many leaves
@@ -321,8 +321,8 @@ struct HClustTreeStats
    size_t medoidOldNew; //..how many times it was successful
    size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
 
-   HClustTreeStats();
-   ~HClustTreeStats();
+   HClustStats();
+   ~HClustStats();
    Rcpp::NumericVector toR() const;
 };
 

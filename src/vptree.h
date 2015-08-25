@@ -79,7 +79,7 @@ class VpTree
 {
 protected:
 
-   HClustTreeOptions opts;
+   HClustOptions opts;
 
    VpTreeNode* _root;
    size_t _n;
@@ -89,7 +89,7 @@ protected:
 
    std::vector<double> distances;
 
-   HClustTreeStats stats;
+   HClustStats stats;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
    VpTreeNode* buildFromPoints(size_t left, size_t right);
@@ -105,8 +105,8 @@ public:
 
    vector<HeapNeighborItem> getNearestNeighbors(size_t index, int k, double minR=-INFINITY, double maxR=INFINITY);
 
-   inline const HClustTreeStats& getStats() { return stats; }
-   inline const HClustTreeOptions& getOptions() { return opts; }
+   inline const HClustStats& getStats() { return stats; }
+   inline const HClustOptions& getOptions() { return opts; }
 
 }; // class
 

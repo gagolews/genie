@@ -78,33 +78,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// hclust_gnat_single_test
-void hclust_gnat_single_test(RObject distance, RObject objects, RObject control, int index, double R);
-RcppExport SEXP DataStructures_hclust_gnat_single_test(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP, SEXP indexSEXP, SEXP RSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    Rcpp::traits::input_parameter< int >::type index(indexSEXP);
-    Rcpp::traits::input_parameter< double >::type R(RSEXP);
-    hclust_gnat_single_test(distance, objects, control, index, R);
-    return R_NilValue;
-END_RCPP
-}
-// hclust_gnat_single
-RObject hclust_gnat_single(RObject distance, RObject objects, RObject control);
-RcppExport SEXP DataStructures_hclust_gnat_single(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(hclust_gnat_single(distance, objects, control));
-    return __result;
-END_RCPP
-}
 // generateMergeMatrix
 NumericMatrix generateMergeMatrix(NumericMatrix x);
 RcppExport SEXP DataStructures_generateMergeMatrix(SEXP xSEXP) {
