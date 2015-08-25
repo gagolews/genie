@@ -126,6 +126,9 @@ public:
    inline size_t getObjectCount() { return n; }
    static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
 
+   virtual Rcpp::RObject getLabels() { /* stub */ return R_NilValue; }
+   virtual Rcpp::RObject getDistMethod() { /* stub */ return R_NilValue; }
+
    inline const DistanceStats& getStats() { return stats; }
 
 #ifdef HASHMAP_ENABLED
@@ -151,6 +154,8 @@ protected:
    size_t m;
 
 public:
+   // TO DO: virtual Rcpp::RObject getLabels() { /* stub */ return R_NilValue; } --- get row names
+
    GenericMatrixDistance(const Rcpp::NumericMatrix& points) :
          Distance(points.nrow()),
          items(REAL((SEXP)points)), m(points.ncol())  {
@@ -181,6 +186,8 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); }
+
    EuclideanDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points) {
 //       const double* items_ptr = items;
@@ -202,6 +209,8 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("manhattan"); }
+
    ManhattanDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points)  {   }
 };
@@ -213,6 +222,8 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("maximum"); }
+
    MaximumDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points)  {   }
 };
@@ -224,6 +235,8 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("hamming"); }
+
    HammingDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points)  {   }
 };
@@ -237,6 +250,8 @@ protected:
    SEXP robj;
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
+
    StringDistance(const Rcpp::CharacterVector& strings) :
          Distance(strings.size()),
          robj((SEXP)strings) {
@@ -273,6 +288,8 @@ protected:
    std::vector< std::vector<size_t> > ranks;
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("dinu"); }
+
    DinuDistance(const Rcpp::CharacterVector& strings) :
          StringDistance(strings), ranks(n) {
       // TODO: openmp
@@ -302,6 +319,8 @@ protected:
 #endif
 
 public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+
    LevenshteinDistance(const Rcpp::CharacterVector& strings) :
          StringDistance(strings) {
    #ifndef _OPENMP
@@ -332,6 +351,9 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   //virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); } ....deparse???? in R
+   // virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj1).attr("names"); } .... get names attrib from items....
+
    GenericRDistance(const Rcpp::Function& distfun, const std::vector<Rcpp::RObject>& items) :
          Distance(items.size()),
          distfun(distfun),
@@ -355,6 +377,9 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
+   virtual Rcpp::RObject getLabels() {  return Rcpp::RObject(robj1).attr("Labels"); }
+   virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj1).attr("method"); }
+
    DistObjectDistance(const Rcpp::NumericVector& distobj) :
          Distance((size_t)((Rcpp::NumericVector)distobj.attr("Size"))[0]),
          robj1(distobj),

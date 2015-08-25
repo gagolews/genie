@@ -43,8 +43,8 @@ struct HClustResult
    Rcpp::NumericVector order;
    // call is set by R
    // method is set by R
-   Rcpp::CharacterVector labels;
-   Rcpp::String dist_method;
+   Rcpp::RObject labels;
+   Rcpp::RObject dist_method;
 
    HClustResult(size_t n, Distance* dist);
 

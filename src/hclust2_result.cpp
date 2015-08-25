@@ -30,8 +30,8 @@ HClustResult::HClustResult(size_t n, Distance* dist) :
       merge(n-1, 2),         // TO DO: merge determination during link()
       height(n-1),
       order(n, NA_REAL),     // TO DO: how to implement that?
-      labels(n, NA_STRING),  // TO DO: set by a Distance object
-      dist_method(NA_STRING) // TO DO: set by a Distance object
+      labels(dist->getLabels()),
+      dist_method(dist->getDistMethod())
 {
 
 }
