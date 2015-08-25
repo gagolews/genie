@@ -111,18 +111,11 @@ HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double di
 
 
 
-NumericMatrix HClustNNbasedSingle::compute()
+void HClustNNbasedSingle::computePrefetch(std::priority_queue<HeapHierarchicalItem>& pq)
 {
-   NumericMatrix ret(_n-1, 2);
-   priority_queue<HeapHierarchicalItem> pq;
-
    // INIT: Pre-fetch a few nearest neighbors for each point
-#if VERBOSE >= 5
-   _distance->getStats().print();
-#endif
    MESSAGE_2("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 
-   prefetch = true;
 #ifdef _OPENMP
    omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
    omp_lock_t writelock;
@@ -153,14 +146,17 @@ NumericMatrix HClustNNbasedSingle::compute()
    omp_destroy_lock(&writelock);
 #endif
    MESSAGE_7("\r             prefetch NN: %d/%d\n", _n-1, _n-1);
-#if VERBOSE >= 5
-   _distance->getStats().print();
-#endif
+}
+
+
+void HClustNNbasedSingle::computeMerge(
+      std::priority_queue<HeapHierarchicalItem>& pq,
+      HClustResult& res)
+{
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 
-   prefetch = false;
    size_t i = 0;
-   while(true)
+   while (true)
    {
       HeapHierarchicalItem hhi = pq.top();
       pq.pop();
@@ -178,8 +174,7 @@ NumericMatrix HClustNNbasedSingle::compute()
       {
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op
 
-         ret(i,0)=(double)_indices[hhi.index1];
-         ret(i,1)=(double)_indices[hhi.index2];
+         res.link(_indices[hhi.index1], _indices[hhi.index2], hhi.dist);
          ds.link(s1, s2);
 
          ++i;
@@ -195,8 +190,27 @@ NumericMatrix HClustNNbasedSingle::compute()
    }
    MESSAGE_7("\r             %d / %d\n", _n, _n);
    Rcpp::checkUserInterrupt();
+}
 
-   MESSAGE_2("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
-   MergeMatrixGenerator mmg(ret.nrow());
-   return mmg.generateMergeMatrix(ret);
+
+HClustResult HClustNNbasedSingle::compute()
+{
+   priority_queue<HeapHierarchicalItem> pq;
+   HClustResult res(_n, _distance);
+
+#if VERBOSE >= 5
+   _distance->getStats().print();
+#endif
+
+   prefetch = true;
+   computePrefetch(pq);
+   prefetch = false;
+
+#if VERBOSE >= 5
+   _distance->getStats().print();
+#endif
+
+   computeMerge(pq, res);
+
+   return res;
 }

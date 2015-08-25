@@ -42,5 +42,7 @@ hclust2 <- function(d=NULL, method=c("single", "complete", "exemplar", "exemplar
       exemplar_naive=.hclust2_exemplar_naive(d, objects, ...)
    )
    result[["call"]] <- match.call()
+   result[["method"]] <- method
+
    result
 }

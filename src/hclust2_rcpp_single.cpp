@@ -34,28 +34,15 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
       DataStructures::HClustVpTreeSingle hclust(dist, control);
       // DataStructures::HClustNaiveSingle hclust(dist, control);
 
-      RObject merge = hclust.compute();
-      result = Rcpp::as<RObject>(List::create(
-         _["merge"]  = merge,
-         _["height"] = R_NilValue,
-         _["order"]  = R_NilValue,
-         _["labels"] = R_NilValue,
-         _["call"]   = R_NilValue,
-         _["method"] = "single",
-         _["dist.method"] = R_NilValue,
-         _["stats"] = List::create(
-            _["vptree"] = hclust.getStats().toR(),
-            _["distance"] = dist->getStats().toR()
-         ),
-         _["control"] = List::create(
-            _["vptree"] = hclust.getOptions().toR()
-         )
-      ));
-      result.attr("class") = "hclust";
-      //hclust.print();
+      DataStructures::HClustResult result2 = hclust.compute();
+      result = Rcpp::as<RObject>(
+         result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
+      );
+
+      // hclust.print();
    }
    catch(...) {
-
+      // do nothing yet
    }
 
    if (dist) delete dist;

@@ -232,12 +232,14 @@ struct NNHeap {
          heap.pop();
       }
    }
+
    inline void fill(std::list<HeapNeighborItem>& nearestNeighbors) {
       while (!heap.empty()) {
          nearestNeighbors.push_front(heap.top());
          heap.pop();
       }
    }
+
    inline void fill(std::priority_queue<HeapNeighborItem, std::vector<HeapNeighborItem>, HeapNeighborItemFromSmallestComparator>& nearestNeighbors)
    {
       while (!heap.empty()) {

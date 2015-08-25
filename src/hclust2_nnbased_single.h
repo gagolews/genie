@@ -42,7 +42,7 @@
 #include "hclust2_common.h"
 #include "hclust2_merge.h"
 #include "disjoint_sets.h"
-
+#include "hclust2_result.h"
 
 namespace DataStructures
 {
@@ -73,6 +73,10 @@ protected:
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
    HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
 
+   void computePrefetch(std::priority_queue<HeapHierarchicalItem>& pq);
+   void computeMerge(std::priority_queue<HeapHierarchicalItem>& pq, HClustResult& res);
+
+
 public:
 
    HClustNNbasedSingle(Distance* dist, RObject control);
@@ -91,7 +95,7 @@ public:
     *
     * use maxNNmerge
     */
-   NumericMatrix compute();
+   HClustResult compute();
 
    inline const HClustStats& getStats()     { return stats; }
    inline const HClustOptions& getOptions() { return opts; }

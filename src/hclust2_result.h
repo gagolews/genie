@@ -18,40 +18,46 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-#ifndef __HCLUST2_MERGE_H
-#define __HCLUST2_MERGE_H
+#ifndef __HCLUST2_RESULT_H
+#define __HCLUST2_RESULT_H
 
-
-#include <vector>
-#include <cstdint>
+#include "defs.h"
+#include "disjoint_sets.h"
+#include "hclust2_merge.h"
+#include "hclust2_common.h"
+#include "hclust2_distance.h"
 #include <Rcpp.h>
 
-using namespace std;
-using namespace Rcpp;
 
 namespace DataStructures
 {
 
-class MergeMatrixGenerator
+struct HClustResult
 {
-private:
-   size_t n;
-   vector<size_t> elements;
-   vector<size_t> parents;
    size_t i;
-   size_t j;
-   size_t si;
-   size_t sj;
+   size_t n;
 
-   void initialize(const NumericMatrix& x, size_t k, size_t clusterNumber);
-   void writeRowIfSingleElements(NumericMatrix& y, size_t k);
-   void writeRowIfClusterElements(NumericMatrix& y, size_t k);
-   size_t findMyParent(size_t s, size_t clusterNumber);
+   Rcpp::NumericMatrix links;
+   Rcpp::NumericMatrix merge;
+   Rcpp::NumericVector height;
+   Rcpp::NumericVector order;
+   // call is set by R
+   // method is set by R
+   Rcpp::CharacterVector labels;
+   Rcpp::String dist_method;
 
-public:
-   MergeMatrixGenerator(size_t n);
-   NumericMatrix generateMergeMatrix(const NumericMatrix& x);
-}; // class
+   HClustResult(size_t n, Distance* dist);
+
+   void link(size_t i1, size_t i2, double d12);
+
+   Rcpp::List toR(
+         const DataStructures::HClustStats& hclustStats,
+         const DataStructures::HClustOptions& hclustOptions,
+         const DataStructures::DistanceStats& distStats
+   );
+
+}; // struct HClustResult
+
 
 
 } // namespace DataStructures
