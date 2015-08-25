@@ -16,9 +16,12 @@
 #' If \code{d} is an R function, then \code{objects} should be an R list.
 #' Here, \code{d(objects[[i]], objects[[j]])} gives the value of a pseudometric.
 #'
+#' If \code{objects} is a character vector, then \code{d} is a single string,
+#' one of: \code{levenshtein} (or \code{NULL}), \code{dinu}.
+#'
 #' Otherwise, if \code{objects} is a numeric matrix,
 #' then \code{d} is a single string, one of: \code{euclidean} (or \code{NULL}),
-#' \code{manhattan}, or \code{maximum}.
+#' \code{manhattan}, \code{maximum}, or \code{hamming}.
 #'
 #' @return
 #' A named list of class \code{hclust}, see \code{\link{hclust}},

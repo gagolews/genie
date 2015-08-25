@@ -80,6 +80,17 @@ public:
 
    virtual void print() { Rcout << "this print method is a stub" << std::endl; }
 
+   /* @TODO -- split to separate functions:
+    * prefetch()
+    * merge()
+    *
+    * add a new class:
+    * Hclust result
+    *
+    * with propagate() method during merge
+    *
+    * use maxNNmerge
+    */
    NumericMatrix compute();
 
    inline const HClustStats& getStats()     { return stats; }
