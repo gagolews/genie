@@ -127,7 +127,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
             );
       }
       else {
-         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), ");
+         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), \"dinu\"");
       }
    }
    else if (Rf_isMatrix(objects) && Rf_isNumeric(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
@@ -162,7 +162,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
             );
       }
       else {
-         Rcpp::stop("`distance` should be one of: \"euclidean\" (default), \"manhattan\", \"maximum\"");
+         Rcpp::stop("`distance` should be one of: \"euclidean\" (default), \"manhattan\", \"maximum\", \"hamming\"");
       }
    }
    else {
