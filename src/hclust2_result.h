@@ -23,7 +23,6 @@
 
 #include "defs.h"
 #include "disjoint_sets.h"
-#include "hclust2_merge.h"
 #include "hclust2_common.h"
 #include "hclust2_distance.h"
 #include <Rcpp.h>
@@ -33,9 +32,10 @@
 namespace DataStructures
 {
 
-struct HClustResult
+class HClustResult
 {
-   size_t i;
+private:
+   size_t curiter;
    size_t n;
 
    Rcpp::NumericMatrix links;
@@ -47,6 +47,9 @@ struct HClustResult
    Rcpp::RObject labels;
    Rcpp::RObject dist_method;
 
+   void generateMergeMatrix();
+
+public:
    HClustResult(size_t n, Distance* dist);
 
    void link(size_t i1, size_t i2, double d12);

@@ -24,7 +24,6 @@ using namespace Rcpp;
 
 
 #pragma message "@TODO: HClustResult::order is not yet generated"
-#pragma message "@TODO: HClustResult::merge should be generated in HClustResult::link()"
 
 
 /*
@@ -148,7 +147,7 @@ C
  */
 
 HClustResult::HClustResult(size_t n, Distance* dist) :
-      i(0),
+      curiter(0),
       n(n),
       links(n-1, 2),         // this may be meaningless for some methods, do not return
       merge(n-1, 2),         // TO DO: merge determination during link()
@@ -162,11 +161,55 @@ HClustResult::HClustResult(size_t n, Distance* dist) :
 
 
 void HClustResult::link(size_t i1, size_t i2, double d12) {
-   STOPIFNOT(i < n-1);
-   links(i,0) = (double)i1;
-   links(i,1) = (double)i2;
-   height(i) = d12;
-   ++i;
+   STOPIFNOT(curiter < n-1);
+   links(curiter, 0) = (double)i1;
+   links(curiter, 1) = (double)i2;
+   height(curiter) = d12;
+   ++curiter;
+
+   if (curiter == n-1) generateMergeMatrix();
+}
+
+
+void HClustResult::generateMergeMatrix() {
+   STOPIFNOT(curiter == n-1);
+
+   vector<size_t> elements(n+1, 0);
+   vector<size_t> parents(n+1, 0);
+
+   size_t clusterNumber = 1;
+   for (size_t k=0; k<n-1; ++k, ++clusterNumber) {
+      size_t i = (size_t)links(k, 0) + 1;
+      size_t j = (size_t)links(k, 1) + 1;
+      size_t si = elements[i];
+      size_t sj = elements[j];
+      elements[i] = clusterNumber;
+      elements[j] = clusterNumber;
+
+      if (si == 0)
+         merge(k, 0) = -(double)i;
+      else {
+         while (parents[si] != 0) {
+            size_t sinew = parents[si];
+            parents[si] = clusterNumber;
+            si = sinew;
+         }
+         if (si != 0) parents[si] = clusterNumber;
+         merge(k,0) = (double)si;
+      }
+
+      if (sj == 0)
+         merge(k, 1) = -(double)j;
+      else {
+         while (parents[sj] != 0) {
+            size_t sjnew = parents[sj];
+            parents[sj] = clusterNumber;
+            sj = sjnew;
+         }
+         if (sj != 0) parents[sj] = clusterNumber;
+         merge(k,1) = (double)sj;
+      }
+   }
 }
 
 
@@ -176,8 +219,6 @@ List HClustResult::toR(
       const DistanceStats& distStats)
 {
    MESSAGE_2("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
-   MergeMatrixGenerator mmg(n-1);
-   merge = mmg.generateMergeMatrix(links);
 
    List result = List::create(
       _["merge"]  = merge,
