@@ -54,14 +54,12 @@ class HClustNNbasedSingle
 protected:
 
    HClustOptions opts;
-   size_t _n;
-   Distance* _distance;
-   std::vector<size_t> _indices;
-   // std::vector<size_t> _indicesinv;
+   size_t n;
+   Distance* distance;
+   std::vector<size_t> indices;
 
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
-   // std::vector<double> maxRadiuses;
    std::vector<bool> shouldFind;
    std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
@@ -84,17 +82,6 @@ public:
 
    virtual void print() { Rcout << "this print method is a stub" << std::endl; }
 
-   /* @TODO -- split to separate functions:
-    * prefetch()
-    * merge()
-    *
-    * add a new class:
-    * Hclust result
-    *
-    * with propagate() method during merge
-    *
-    * use maxNNmerge
-    */
    HClustResult compute();
 
    inline const HClustStats& getStats()     { return stats; }

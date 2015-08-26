@@ -30,13 +30,11 @@ using namespace DataStructures;
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, RObject control) :
       opts(control),
-      _n(dist->getObjectCount()),
-      _distance(dist),
-      _indices(dist->getObjectCount()),
-      // _indicesinv(dist->getObjectCount()),
+      n(dist->getObjectCount()),
+      distance(dist),
+      indices(dist->getObjectCount()),
       neighborsCount(dist->getObjectCount(), 0),
       minRadiuses(dist->getObjectCount(), -INFINITY),
-      // maxRadiuses(vector<double>(dist->getObjectCount(), INFINITY)),
       shouldFind(dist->getObjectCount(), true),
       nearestNeighbors(dist->getObjectCount()),
    #ifdef GENERATE_STATS
@@ -44,11 +42,11 @@ HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, RObject control) :
    #endif
       ds(dist->getObjectCount())
 {
-   // starting _indices: random permutation of {0,1,...,_n-1}
-   for (size_t i=0;i<_n;i++)
-      _indices[i] = i;
-   for (size_t i=_n-1; i>= 1; i--)
-      swap(_indices[i], _indices[(size_t)(unif_rand()*(i+1))]);
+   // starting indices: random permutation of {0,1,...,_n-1}
+   for (size_t i=0;i<n;i++)
+      indices[i] = i;
+   for (size_t i=n-1; i>= 1; i--)
+      swap(indices[i], indices[(size_t)(unif_rand()*(i+1))]);
 }
 
 
@@ -80,7 +78,7 @@ HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double di
       size_t newNeighborsCount = nearestNeighbors[index].size();
 
       neighborsCount[index] += newNeighborsCount;
-      if (neighborsCount[index] > _n - index || newNeighborsCount == 0)
+      if (neighborsCount[index] > n - index || newNeighborsCount == 0)
          shouldFind[index] = false;
 
       if (newNeighborsCount > 0)
@@ -122,7 +120,7 @@ void HClustNNbasedSingle::computePrefetch(std::priority_queue<HeapHierarchicalIt
    omp_init_lock(&writelock);
    #pragma omp parallel for schedule(dynamic)
 #endif
-   for (size_t i=0; i<_n; i++)
+   for (size_t i=0; i<n; i++)
    {
 #ifndef _OPENMP
       Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
@@ -174,11 +172,11 @@ void HClustNNbasedSingle::computeMerge(
       {
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op
 
-         res.link(_indices[hhi.index1], _indices[hhi.index2], hhi.dist);
+         res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
          ds.link(s1, s2);
 
          ++i;
-         if (i == _n-1) break; /* avoid computing unnecessary nn */
+         if (i == n-1) break; /* avoid computing unnecessary nn */
       }
       MESSAGE_7("\r             %d / %d", i+1, _n);
 
@@ -188,7 +186,7 @@ void HClustNNbasedSingle::computeMerge(
       if (isfinite(hi.dist))
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
    }
-   MESSAGE_7("\r             %d / %d\n", _n, _n);
+   MESSAGE_7("\r             %d / %d\n", n, n);
    Rcpp::checkUserInterrupt();
 }
 
@@ -196,10 +194,10 @@ void HClustNNbasedSingle::computeMerge(
 HClustResult HClustNNbasedSingle::compute()
 {
    priority_queue<HeapHierarchicalItem> pq;
-   HClustResult res(_n, _distance);
+   HClustResult res(n, distance);
 
 #if VERBOSE >= 5
-   _distance->getStats().print();
+   distance->getStats().print();
 #endif
 
    prefetch = true;
@@ -207,7 +205,7 @@ HClustResult HClustNNbasedSingle::compute()
    prefetch = false;
 
 #if VERBOSE >= 5
-   _distance->getStats().print();
+   distance->getStats().print();
 #endif
 
    computeMerge(pq, res);

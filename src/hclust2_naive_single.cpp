@@ -46,10 +46,10 @@ void HClustNaiveSingle::getNearestNeighborsFromMinRadius(size_t index,
       size_t clusterIndex, double minR, NNHeap& nnheap)
 {
    double maxR = INFINITY;
-   for (size_t i=index+1; i<_n; ++i) {
+   for (size_t i=index+1; i<n; ++i) {
       size_t currentCluster = ds.find_set(i);
       if (currentCluster == clusterIndex) continue;
-      double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
+      double dist2 = (*distance)(indices[index], indices[i]); // the slow part
       if (dist2 > maxR || dist2 <= minR) continue;
       nnheap.insert(i, dist2, maxR);
    }

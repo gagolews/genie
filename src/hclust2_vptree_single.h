@@ -65,21 +65,20 @@ class HClustVpTreeSingle : public HClustNNbasedSingle
 {
 protected:
 
-   HClustVpTreeSingleNode* _root;
-   std::vector<double> distances;
+   HClustVpTreeSingleNode* root;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
-   HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right);
+   HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right, std::vector<double>& distances);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
       double maxR = INFINITY;
-      getNearestNeighborsFromMinRadiusRecursive(_root, index, clusterIndex, minR, maxR, nnheap);
+      getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, maxR, nnheap);
    }
 
-   void print(HClustVpTreeSingleNode* n);
+   void print(HClustVpTreeSingleNode* node);
 
 public:
 

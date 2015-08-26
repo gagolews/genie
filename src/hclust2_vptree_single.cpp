@@ -40,18 +40,18 @@ using namespace DataStructures;
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
    HClustNNbasedSingle(dist, control),
-   _root(NULL),
-   distances(vector<double>(_n))
+   root(NULL)
 {
    MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
-   _root = buildFromPoints(0, _n);
+   std::vector<double> distances(n);
+   root = buildFromPoints(0, n, distances);
 }
 
 
 HClustVpTreeSingle::~HClustVpTreeSingle() {
 //   MESSAGE_2("[%010.3f] destroying vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
-   if(_root) delete _root;
+   if(root) delete root;
 }
 
 
@@ -64,7 +64,7 @@ size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 
       // randomize:
       for (size_t i=left; i<left+opts.vpSelectCand+opts.vpSelectTest; ++i)
-         std::swap(_indices[i], _indices[i+(size_t)(unif_rand()*(right-i))]);
+         std::swap(indices[i], indices[i+(size_t)(unif_rand()*(right-i))]);
 
       // maximize variance
       size_t bestIndex = -1;
@@ -73,7 +73,7 @@ size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
          accumulators::accumulator_set< double,
             accumulators::features<accumulators::tag::variance> > acc;
          for (size_t j = left+opts.vpSelectCand; j < left+opts.vpSelectCand+opts.vpSelectTest; ++j)
-            acc( (*_distance)( _indices[i], _indices[j] ) );
+            acc( (*distance)( indices[i], indices[j] ) );
          double curSigma = accumulators::variance(acc);
          if (curSigma > bestSigma) {
             bestSigma = curSigma;
@@ -88,27 +88,27 @@ size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
       //      for similarity search queries"
 
       // randomize:
-      std::swap(_indices[left], _indices[left+(size_t)(unif_rand()*(right-left))]);
+      std::swap(indices[left], indices[left+(size_t)(unif_rand()*(right-left))]);
 
-      // which one maximizes dist to _indices[left]?
+      // which one maximizes dist to indices[left]?
       size_t bestIndex = left;
       double bestDist  = 0.0;
       for (size_t i=left+1; i<right; ++i) {
-         double curDist = (*_distance)(_indices[left], _indices[i]);
+         double curDist = (*distance)(indices[left], indices[i]);
          if (curDist > bestDist) {
             bestDist = curDist;
             bestIndex = i;
          }
       }
    //       for (size_t i=left+2; i<right; ++i) {
-   //          double curDist = (*_distance)(_indices[left+1], _indices[i]);
+   //          double curDist = (*distance)(indices[left+1], indices[i]);
    //          if (curDist > bestDist) {
    //             bestDist = curDist;
    //             bestIndex = i;
    //          }
    //       }
    //       for (size_t i=left+3; i<right; ++i) {
-   //          double curDist = (*_distance)(_indices[left+2], _indices[i]);
+   //          double curDist = (*distance)(indices[left+2], indices[i]);
    //          if (curDist > bestDist) {
    //             bestDist = curDist;
    //             bestIndex = i;
@@ -126,7 +126,7 @@ size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 
 
 HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
-   size_t right)
+   size_t right, std::vector<double>& distances)
 {
 #ifdef GENERATE_STATS
    ++stats.nodeCount;
@@ -137,45 +137,45 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
       ++stats.leafCount;
    #endif
       HClustVpTreeSingleNode* leaf = new HClustVpTreeSingleNode(left, right);
-      // std::sort(_indices.begin()+left, _indices.begin()+right, comparer_gt);
-      // leaf->maxindex = _indices[left];
-      // leaf->maxindex = _indices[left];
+      // std::sort(indices.begin()+left, indices.begin()+right, comparer_gt);
+      // leaf->maxindex = indices[left];
+      // leaf->maxindex = indices[left];
       // for (size_t i=left+1; i<right; ++i)
-         // if (_indices[i] > leaf->maxindex)
-            // leaf->maxindex = _indices[i];
+         // if (indices[i] > leaf->maxindex)
+            // leaf->maxindex = indices[i];
       // for (size_t i=left; i<right; ++i)
-         // _indicesinv[_indices[i]] = i;
+         // indicesinv[indices[i]] = i;
       leaf->maxindex = right-1;
       return leaf;
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
-   std::swap(_indices[left], _indices[vpi_idx]);
-   size_t vpi = _indices[left];
-   // _indicesinv[vpi] = left;
+   std::swap(indices[left], indices[vpi_idx]);
+   size_t vpi = indices[left];
+   // indicesinv[vpi] = left;
    size_t median = (right + left) / 2;
 
    for (size_t i=left+1; i<right; ++i)
-      distances[_indices[i]] = (*_distance)(vpi, _indices[i]);
+      distances[indices[i]] = (*distance)(vpi, indices[i]);
 
-   // std::sort(_indices.begin()+left+1, _indices.begin()+right, DistanceComparatorCached(&distances));
-   std::nth_element(_indices.begin()+left+1, _indices.begin() + median, _indices.begin()+right, DistanceComparatorCached(&distances));
+   // std::sort(indices.begin()+left+1, indices.begin()+right, DistanceComparatorCached(&distances));
+   std::nth_element(indices.begin()+left+1, indices.begin() + median, indices.begin()+right, DistanceComparatorCached(&distances));
 
 // slower -- computes some distances > 1 time
-//    std::nth_element(_indices.begin() + left + 1, _indices.begin() + median,  _indices.begin() + right,
-//                     DistanceComparator(vpi, _distance));
-//    HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, (*_distance)(vpi, _indices[median]));
+//    std::nth_element(indices.begin() + left + 1, indices.begin() + median,  indices.begin() + right,
+//                     DistanceComparator(vpi, distance));
+//    HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, (*distance)(vpi, indices[median]));
 
-   HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, distances[_indices[median]]);
+   HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, distances[indices[median]]);
 
    node->maxindex = left;
    if (median - left > 0) { // don't include vpi
-      node->childL = buildFromPoints(left+1, median+1);
+      node->childL = buildFromPoints(left+1, median+1, distances);
       if (node->childL->maxindex > node->maxindex)
          node->maxindex = node->childL->maxindex;
    }
    if (right - median - 1 > 0) {
-      node->childR = buildFromPoints(median+1, right);
+      node->childR = buildFromPoints(median+1, right, distances);
       if (node->childR->maxindex > node->maxindex)
          node->maxindex = node->childR->maxindex;
    }
@@ -207,7 +207,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
             if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
             if (currentCluster == clusterIndex) continue;
             if (index >= i) continue;
-            double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
+            double dist2 = (*distance)(indices[index], indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
             nnheap.insert(i, dist2, maxR);
@@ -218,7 +218,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
       else /* node->sameCluster */ {
          for (size_t i=node->left; i<node->right; ++i) {
             if (index >= i) continue;
-            double dist2 = (*_distance)(_indices[index], _indices[i]); // the slow part
+            double dist2 = (*distance)(indices[index], indices[i]); // the slow part
             if (dist2 > maxR || dist2 <= minR) continue;
 
             nnheap.insert(i, dist2, maxR);
@@ -229,7 +229,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
    // else // not a leaf
 
    // first visit the vantage point
-   double dist = (*_distance)(_indices[index], _indices[node->left]); // the slow part
+   double dist = (*distance)(indices[index], indices[node->left]); // the slow part
    if (index < node->left && dist <= maxR && dist > minR &&
          ds.find_set(node->left) != clusterIndex) {
       nnheap.insert(node->left, dist, maxR);
@@ -276,24 +276,24 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
 }
 
 
-void HClustVpTreeSingle::print(HClustVpTreeSingleNode* n) {
-   if (n->childL) {
+void HClustVpTreeSingle::print(HClustVpTreeSingleNode* node) {
+   if (node->childL) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"L\"];\n",
-         (unsigned long long)n, (unsigned long long)(n->childL));
-      print(n->childL);
+         (unsigned long long)node, (unsigned long long)(node->childL));
+      print(node->childL);
    }
-   if (n->childR) {
+   if (node->childR) {
       Rprintf("\"%llx\" -> \"%llx\" [label=\"R\"];\n",
-         (unsigned long long)n, (unsigned long long)(n->childR));
-      print(n->childR);
+         (unsigned long long)node, (unsigned long long)(node->childR));
+      print(node->childR);
    }
 
-   if (n->vpindex == SIZE_MAX) {
-      for (size_t i=n->left; i<n->right; ++i)
-         Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)n, (unsigned long long)_indices[i]+1);
+   if (node->vpindex == SIZE_MAX) {
+      for (size_t i=node->left; i<node->right; ++i)
+         Rprintf("\"%llx\" -> \"%llu\" [arrowhead = diamond];\n", (unsigned long long)node, (unsigned long long)indices[i]+1);
    }
    else {
-      Rprintf("\"%llx\" [label=\"(%llu, %g)\"];\n", (unsigned long long)n, (unsigned long long)n->vpindex+1, n->radius);
+      Rprintf("\"%llx\" [label=\"(%llu, %g)\"];\n", (unsigned long long)node, (unsigned long long)node->vpindex+1, node->radius);
    }
 }
 
@@ -302,6 +302,6 @@ void HClustVpTreeSingle::print() {
    Rprintf("digraph vptree {\n");
    Rprintf("size=\"6,6\";\n");
    Rprintf("node [color=lightblue2, style=filled];");
-   print(_root);
+   print(root);
    Rprintf("}\n");
 }
