@@ -38,7 +38,7 @@
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 // #include <fstream>
-// #include <deque>
+#include <deque>
 // #include <exception>
 // #include <string>
 // #include <boost/property_map/property_map.hpp>
@@ -46,7 +46,6 @@
 // #include <algorithm>
 
 #include "hclust2_common.h"
-#include "hclust2_merge.h"
 #ifdef USE_BOOST_DISJOINT_SETS
 #include <boost/pending/disjoint_sets.hpp>
 #include <boost/property_map/property_map.hpp>
@@ -57,6 +56,10 @@
 #ifdef MB_IMPROVEMENT
 #include <unordered_set>
 #endif // MB_IMPROVEMENT
+
+using namespace std;
+using namespace Rcpp;
+
 namespace DataStructures
 {
 

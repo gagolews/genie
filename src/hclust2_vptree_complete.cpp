@@ -878,13 +878,13 @@ Rprintf("[%010.3f] generating output matrix\n", clock()/(float)CLOCKS_PER_SEC);
    Rcout << "timeForPriorityQueues = " << timeForPriorityQueues << endl;
 #endif
 
-   MergeMatrixGenerator mmg(ret.nrow());
+   //MergeMatrixGenerator mmg(ret.nrow());
    if(!awaria)
    {
 #if VERBOSE > 11
       Rcout << "wyszedlem poprawnie!" << endl;
 #endif
-      return mmg.generateMergeMatrix(ret);
+      return ret;//mmg.generateMergeMatrix(ret);
    }
    else
    {

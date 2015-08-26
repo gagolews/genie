@@ -40,9 +40,10 @@
 // #include <algorithm>
 
 #include "hclust2_common.h"
-#include "hclust2_merge.h"
 #include "disjoint_sets.h"
 
+using namespace std;
+using namespace Rcpp;
 
 namespace DataStructures
 {
