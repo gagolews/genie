@@ -23,9 +23,8 @@ using namespace DataStructures;
 using namespace Rcpp;
 
 
-// TO DO:
-#warning HClustResult::order is not yet generated
-#warning HClustResult::merge should be generated in HClustResult::link()
+#pragma message "@TODO: HClustResult::order is not yet generated"
+#pragma message "@TODO: HClustResult::merge should be generated in HClustResult::link()"
 
 
 /*

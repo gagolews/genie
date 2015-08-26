@@ -182,8 +182,8 @@ GenericMatrixDistance::GenericMatrixDistance(const Rcpp::NumericMatrix& points) 
    double* items_ptr = items;
    for (size_t i=0; i<n; ++i) {
       for (size_t j=0; j<m; ++j) {
-         if (Rcpp::NumericVector::is_na(items2[j*n+i]))
-            Rcpp::stop("missing values in input objects are not allowed");
+         if (!std::isfinite(items2[j*n+i]))
+            Rcpp::stop("missing values and infinities in input objects are not allowed");
          *(items_ptr++) = items2[j*n+i];
       }
    }
