@@ -40,7 +40,8 @@ using namespace DataStructures;
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
    HClustNNbasedSingle(dist, control),
-   root(NULL)
+   root(NULL),
+   visitAll(false)
 {
    MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
@@ -137,14 +138,10 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
       ++stats.leafCount;
    #endif
       HClustVpTreeSingleNode* leaf = new HClustVpTreeSingleNode(left, right);
-      // std::sort(indices.begin()+left, indices.begin()+right, comparer_gt);
-      // leaf->maxindex = indices[left];
-      // leaf->maxindex = indices[left];
-      // for (size_t i=left+1; i<right; ++i)
-         // if (indices[i] > leaf->maxindex)
-            // leaf->maxindex = indices[i];
-      // for (size_t i=left; i<right; ++i)
-         // indicesinv[indices[i]] = i;
+      leaf->maxindex = indices[left];
+      for (size_t i=left+1; i<right; ++i)
+         if (indices[i] > leaf->maxindex)
+            leaf->maxindex = indices[i];
       leaf->maxindex = right-1;
       return leaf;
    }
@@ -152,7 +149,6 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
    size_t vpi_idx = chooseNewVantagePoint(left, right);
    std::swap(indices[left], indices[vpi_idx]);
    size_t vpi = indices[left];
-   // indicesinv[vpi] = left;
    size_t median = (right + left) / 2;
 
    for (size_t i=left+1; i<right; ++i)
@@ -235,28 +231,37 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
       nnheap.insert(node->left, dist, maxR);
    }
 
-   if (dist < node->radius) {
-      if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
-      }
+   if (visitAll) {
+      if (node->childL && index < node->childL->maxindex)
+         getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+      if (node->childR && index < node->childR->maxindex)
+         getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+   }
+   else {
+      if (dist < node->radius) {
+         if (dist - maxR <= node->radius && dist + node->radius > minR) {
+            if (node->childL && index < node->childL->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         }
 
-      if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         if (dist + maxR >= node->radius) {
+            if (node->childR && index < node->childR->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         }
+      }
+      else /* ( dist >= node->radius ) */ {
+         if (dist + maxR >= node->radius) {
+            if (node->childR && index < node->childR->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         }
+
+         if (dist - maxR <= node->radius && dist + node->radius > minR) {
+            if (node->childL && index < node->childL->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         }
       }
    }
-   else /* ( dist >= node->radius ) */ {
-      if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
-      }
 
-      if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
-      }
-   }
    if (prefetch || node->sameCluster ||
       (node->childL && !node->childL->sameCluster) ||
       (node->childR && !node->childR->sameCluster)

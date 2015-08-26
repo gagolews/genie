@@ -31,10 +31,10 @@ Distance::Distance(size_t n) :
    n(n)
 {
 #ifdef HASHMAP_ENABLED
-   Rcpp::Rcout << "Warning: HASHMAP_ENABLED is defined in hclust2_distance.h\n";
+   MESSAGE_1("Warning: HASHMAP_ENABLED is defined in hclust2_distance.h\n");
 #endif
 #ifdef GENERATE_STATS
-   Rcpp::Rcout << "Warning: GENERATE_STATS is defined in hclust2_distance.h\n";
+   MESSAGE_1("Warning: GENERATE_STATS is defined in hclust2_distance.h\n");
 #endif
 }
 

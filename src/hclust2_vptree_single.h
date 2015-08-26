@@ -66,6 +66,7 @@ class HClustVpTreeSingle : public HClustNNbasedSingle
 protected:
 
    HClustVpTreeSingleNode* root;
+   bool visitAll;
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
    HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right, std::vector<double>& distances);
