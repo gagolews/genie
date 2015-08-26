@@ -16,8 +16,10 @@
 #' If \code{d} is an R function, then \code{objects} should be an R list.
 #' Here, \code{d(objects[[i]], objects[[j]])} gives the value of a pseudometric.
 #'
-#' If \code{objects} is a character vector, then \code{d} is a single string,
+#' If \code{objects} is a character vector or a list, then \code{d} is a single string,
 #' one of: \code{levenshtein} (or \code{NULL}), \code{dinu}.
+#' Note that the list must consist of integer vectors only.
+#' Each string will be converted to UTF-32 with \link{stri_enc_toutf32}.
 #'
 #' Otherwise, if \code{objects} is a numeric matrix,
 #' then \code{d} is a single string, one of: \code{euclidean} (or \code{NULL}),

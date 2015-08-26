@@ -26,10 +26,9 @@
 
 #include "defs.h"
 
-/* to do: dist for CharacterVector (objects=strings) in UTF-8
-   dists = levensthein (q-gram: not -> see matrix input on q-gram profiles), lcs, dam-lev
+/*
+ add string dists = lcs, dam-lev
 
- levenshtein, dinu should work on integer vectors, char vect interface via stri_enc_toutf32
 
   numeric -> metric: binary (see dist) minkowski (p), canberra
 
@@ -75,28 +74,7 @@ struct DistanceStats
       hashmapHit(0), hashmapMiss(0), distCallCount(0),
       distCallTheoretical(n*(n-1)/2) {}
 
-   void print() const
-   {
-   #if VERBOSE > 0
-   #if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
-      Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
-         (double)hashmapHit, (double)hashmapMiss,
-         8.0f*hashmapMiss/1000.0f/1000.0f,
-         8.0f*distCallTheoretical/1000.0f/1000.0f);
-   #endif
-   #if defined(GENERATE_STATS)
-      Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
-         (double)distCallCount,
-         (double)distCallCount*100.0/(double)distCallTheoretical,
-         (double)distCallTheoretical
-      );
-   #endif
-   #endif
-   }
-
-   ~DistanceStats() {
-      print();
-   }
+   void print() const;
 
    Rcpp::NumericVector toR() const {
       return Rcpp::NumericVector::create(
@@ -240,14 +218,17 @@ public:
 class StringDistance : public Distance
 {
 protected:
-   const char** items;
+   const int** items;
    size_t* lengths;
    SEXP robj;
+
+   void constructFromList_robj();
 
 public:
    virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
 
    StringDistance(const Rcpp::CharacterVector& strings);
+   StringDistance(const Rcpp::List& strings);
    virtual ~StringDistance();
 };
 
@@ -256,9 +237,9 @@ class DinuDistance : public StringDistance
 {
 protected:
    struct Comparer {
-      const char* v;
-      Comparer(const char* _v) { v = _v; }
-      bool operator()(const int& i, const int& j) const { return v[i] < v[j]; }
+      const int* v;
+      Comparer(const int* _v) { v = _v; }
+      bool operator()(const size_t& i, const size_t& j) const { return v[i] < v[j]; }
    };
 
    virtual double compute(size_t v1, size_t v2);

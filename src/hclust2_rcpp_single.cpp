@@ -45,6 +45,9 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
       // do nothing yet
    }
 
+#if VERBOSE > 0
+   dist->getStats().print();
+#endif
    if (dist) delete dist;
    MESSAGE_2("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
    if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
