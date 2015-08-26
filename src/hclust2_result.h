@@ -48,6 +48,8 @@ private:
    Rcpp::RObject dist_method;
 
    void generateMergeMatrix();
+   void generateOrderVector();
+
 
 public:
    HClustResult(size_t n, Distance* dist);
