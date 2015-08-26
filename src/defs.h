@@ -28,7 +28,7 @@
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
-#define VERBOSE 2
+#define VERBOSE 5
 
 #define DISJOINT_SETS_DEBUG
 

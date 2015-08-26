@@ -29,7 +29,7 @@ DisjointSets::DisjointSets(std::size_t n) :
    n(n)
 {
 #ifdef DISJOINT_SETS_DEBUG
-   Rcpp::Rcout << "Warning: DISJOINT_SETS_DEBUG defined in disjoint_sets.h\n";
+   MESSAGE_1("Warning: DISJOINT_SETS_DEBUG defined in disjoint_sets.h\n");
 #endif
    for (std::size_t i=0; i<n; ++i)
       clusterParent[i] = i;

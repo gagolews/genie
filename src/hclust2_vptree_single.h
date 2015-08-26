@@ -66,17 +66,47 @@ class HClustVpTreeSingle : public HClustNNbasedSingle
 protected:
 
    HClustVpTreeSingleNode* root;
+   // bool visitAll; // for testing only
 
    size_t chooseNewVantagePoint(size_t left, size_t right);
    HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right, std::vector<double>& distances);
 
-   void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
+   inline void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
+      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
+   {
+      // search within (minR, maxR]
+      STOPIFNOT(node != NULL);
+      #ifdef GENERATE_STATS
+      #ifdef _OPENMP
+      #pragma omp atomic
+      #endif
+         ++stats.nodeVisit;
+      #endif
+
+      if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
+         return;
+
+      if (node->vpindex == SIZE_MAX) { // leaf
+         getNearestNeighborsFromMinRadiusRecursiveLeaf(node, index, clusterIndex,
+            minR, maxR, nnheap);
+      }
+      else {
+         getNearestNeighborsFromMinRadiusRecursiveNonLeaf(node, index, clusterIndex,
+            minR, maxR, nnheap);
+      }
+   }
+
+   void getNearestNeighborsFromMinRadiusRecursiveLeaf(HClustVpTreeSingleNode* node,
+      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
+   void getNearestNeighborsFromMinRadiusRecursiveNonLeaf(HClustVpTreeSingleNode* node,
       size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
       double maxR = INFINITY;
       getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, maxR, nnheap);
    }
+
+   void updateSameClusterFlag(HClustVpTreeSingleNode* node);
 
    void print(HClustVpTreeSingleNode* node);
 

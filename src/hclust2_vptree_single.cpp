@@ -21,14 +21,7 @@
 
 #include "hclust2_vptree_single.h"
 
-
-
-/* Improvement ideas:
- *
- * 1. add custom sort of input objects
- *       useful for Levenshtein distance
- *       long strings should be put at the end
- */
+#pragma message "@TODO: HClustVpTreeSingle - auto select maxNNprefetch, maxNNmerge"
 
 
 using namespace Rcpp;
@@ -39,8 +32,9 @@ using namespace DataStructures;
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
 HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
-   HClustNNbasedSingle(dist, control),
-   root(NULL)
+      HClustNNbasedSingle(dist, control),
+      root(NULL)
+//    visitAll(false)
 {
    MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
@@ -137,22 +131,13 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
       ++stats.leafCount;
    #endif
       HClustVpTreeSingleNode* leaf = new HClustVpTreeSingleNode(left, right);
-      // std::sort(indices.begin()+left, indices.begin()+right, comparer_gt);
-      // leaf->maxindex = indices[left];
-      // leaf->maxindex = indices[left];
-      // for (size_t i=left+1; i<right; ++i)
-         // if (indices[i] > leaf->maxindex)
-            // leaf->maxindex = indices[i];
-      // for (size_t i=left; i<right; ++i)
-         // indicesinv[indices[i]] = i;
-      leaf->maxindex = right-1;
+      leaf->maxindex = right-1; // left < right-1
       return leaf;
    }
 
    size_t vpi_idx = chooseNewVantagePoint(left, right);
    std::swap(indices[left], indices[vpi_idx]);
    size_t vpi = indices[left];
-   // indicesinv[vpi] = left;
    size_t median = (right + left) / 2;
 
    for (size_t i=left+1; i<right; ++i)
@@ -184,49 +169,43 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
 }
 
 
-void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
+void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveLeaf(
    HClustVpTreeSingleNode* node, size_t index,
    size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
 {
-   // search within (minR, maxR]
-   // if (node == NULL) return; // this should not happen
-#ifdef GENERATE_STATS
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-   ++stats.nodeVisit;
-#endif
+   STOPIFNOT(node->vpindex == SIZE_MAX);
+   if (!prefetch && !node->sameCluster) {
+      size_t commonCluster = ds.find_set(node->left);
+      for (size_t i=node->left; i<node->right; ++i) {
+         size_t currentCluster = ds.find_set(i);
+         if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
+         if (currentCluster == clusterIndex) continue;
+         if (index >= i) continue;
+         double dist2 = (*distance)(indices[index], indices[i]); // the slow part
+         if (dist2 > maxR || dist2 <= minR) continue;
 
-   if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
-      return;
-   if (node->vpindex == SIZE_MAX) { // leaf
-      if (!prefetch && !node->sameCluster) {
-         size_t commonCluster = ds.find_set(node->left);
-         for (size_t i=node->left; i<node->right; ++i) {
-            size_t currentCluster = ds.find_set(i);
-            if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
-            if (currentCluster == clusterIndex) continue;
-            if (index >= i) continue;
-            double dist2 = (*distance)(indices[index], indices[i]); // the slow part
-            if (dist2 > maxR || dist2 <= minR) continue;
-
-            nnheap.insert(i, dist2, maxR);
-         }
-         if (commonCluster != SIZE_MAX)
-            node->sameCluster = true; // set to true (btw, may be true already)
+         nnheap.insert(i, dist2, maxR);
       }
-      else /* node->sameCluster */ {
-         for (size_t i=node->left; i<node->right; ++i) {
-            if (index >= i) continue;
-            double dist2 = (*distance)(indices[index], indices[i]); // the slow part
-            if (dist2 > maxR || dist2 <= minR) continue;
-
-            nnheap.insert(i, dist2, maxR);
-         }
-      }
-      return; // nothing more to do
+      if (commonCluster != SIZE_MAX)
+         node->sameCluster = true; // set to true (btw, may be true already)
    }
-   // else // not a leaf
+   else /* node->sameCluster */ {
+      for (size_t i=node->left; i<node->right; ++i) {
+         if (index >= i) continue;
+         double dist2 = (*distance)(indices[index], indices[i]); // the slow part
+         if (dist2 > maxR || dist2 <= minR) continue;
+
+         nnheap.insert(i, dist2, maxR);
+      }
+   }
+}
+
+
+void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
+   HClustVpTreeSingleNode* node, size_t index,
+   size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
+{
+   STOPIFNOT(node->vpindex != SIZE_MAX);
 
    // first visit the vantage point
    double dist = (*distance)(indices[index], indices[node->left]); // the slow part
@@ -235,28 +214,43 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursive(
       nnheap.insert(node->left, dist, maxR);
    }
 
-   if (dist < node->radius) {
-      if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
-      }
+//    if (visitAll) {
+//       if (node->childL && index < node->childL->maxindex)
+//          getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+//       if (node->childR && index < node->childR->maxindex)
+//          getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+//    }
+//    else {
+      if (dist < node->radius) {
+         if (dist - maxR <= node->radius && dist + node->radius > minR) {
+            if (node->childL && index < node->childL->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         }
 
-      if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         if (dist + maxR >= node->radius) {
+            if (node->childR && index < node->childR->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         }
       }
-   }
-   else /* ( dist >= node->radius ) */ {
-      if (dist + maxR >= node->radius) {
-         if (node->childR && index < node->childR->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
-      }
+      else /* ( dist >= node->radius ) */ {
+         if (dist + maxR >= node->radius) {
+            if (node->childR && index < node->childR->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         }
 
-      if (dist - maxR <= node->radius && dist + node->radius > minR) {
-         if (node->childL && index < node->childL->maxindex)
-            getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         if (dist - maxR <= node->radius && dist + node->radius > minR) {
+            if (node->childL && index < node->childL->maxindex)
+               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         }
       }
-   }
+//   }
+
+   updateSameClusterFlag(node);
+}
+
+
+void HClustVpTreeSingle::updateSameClusterFlag(HClustVpTreeSingleNode* node)
+{
    if (prefetch || node->sameCluster ||
       (node->childL && !node->childL->sameCluster) ||
       (node->childR && !node->childR->sameCluster)
