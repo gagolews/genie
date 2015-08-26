@@ -174,8 +174,8 @@ void HClustResult::link(size_t i1, size_t i2, double d12) {
 void HClustResult::generateMergeMatrix() {
    STOPIFNOT(curiter == n-1);
 
-   vector<size_t> elements(n+1, 0);
-   vector<size_t> parents(n+1, 0);
+   std::vector<size_t> elements(n+1, 0);
+   std::vector<size_t> parents(n+1, 0);
 
    size_t clusterNumber = 1;
    for (size_t k=0; k<n-1; ++k, ++clusterNumber) {
