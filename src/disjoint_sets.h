@@ -90,6 +90,7 @@ public:
    inline std::size_t getClusterSize(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
       STOPIFNOT(find_set(x) == x);
+      STOPIFNOT(clusterSize[x] == 0 || clusterMembers[x] != NULL);
       #endif
       return clusterSize[x];
    }
