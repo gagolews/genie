@@ -109,7 +109,7 @@ HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double di
 
 
 
-void HClustNNbasedSingle::computePrefetch(std::priority_queue<HeapHierarchicalItem>& pq)
+void HClustNNbasedSingle::computePrefetch(HclustPriorityQueue& pq)
 {
    // INIT: Pre-fetch a few nearest neighbors for each point
    MESSAGE_2("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
@@ -148,7 +148,7 @@ void HClustNNbasedSingle::computePrefetch(std::priority_queue<HeapHierarchicalIt
 
 
 void HClustNNbasedSingle::computeMerge(
-      std::priority_queue<HeapHierarchicalItem>& pq,
+      HclustPriorityQueue& pq,
       HClustResult& res)
 {
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
@@ -160,7 +160,7 @@ void HClustNNbasedSingle::computeMerge(
       pq.pop();
 
       if (hhi.index2 == SIZE_MAX) {
-         HeapNeighborItem hi=getNearestNeighbor(hhi.index1, INFINITY);
+         HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
          if (isfinite(hi.dist))
             pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
          continue;
@@ -176,7 +176,7 @@ void HClustNNbasedSingle::computeMerge(
          ds.link(s1, s2);
 
          ++i;
-         if (i == n-1) break; /* avoid computing unnecessary nn */
+         if (i == n-1) break; /* avoids computing unnecessary nn */
       }
       MESSAGE_7("\r             %d / %d", i+1, _n);
 
@@ -193,7 +193,7 @@ void HClustNNbasedSingle::computeMerge(
 
 HClustResult HClustNNbasedSingle::compute()
 {
-   priority_queue<HeapHierarchicalItem> pq;
+   HclustPriorityQueue pq(n);
    HClustResult res(n, distance);
 
 #if VERBOSE >= 5

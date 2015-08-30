@@ -73,8 +73,8 @@ protected:
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
    HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
 
-   void computePrefetch(std::priority_queue<HeapHierarchicalItem>& pq);
-   void computeMerge(std::priority_queue<HeapHierarchicalItem>& pq, HClustResult& res);
+   void computePrefetch(HclustPriorityQueue& pq);
+   void computeMerge(HclustPriorityQueue& pq, HClustResult& res);
 
 
 public:

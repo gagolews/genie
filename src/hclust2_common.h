@@ -97,13 +97,21 @@ struct HeapNeighborItemFromSmallestComparator
    }
 
 };
-typedef std::priority_queue<HeapNeighborItem, std::vector<HeapNeighborItem>, HeapNeighborItemFromSmallestComparator> priority_queue_HeapNeighborItem_FromSmallest;
+
+
+typedef std::priority_queue<HeapNeighborItem,
+   std::vector<HeapNeighborItem>, HeapNeighborItemFromSmallestComparator>
+      priority_queue_HeapNeighborItem_FromSmallest;
+
 
 struct HeapHierarchicalItem
 {
    size_t index1;
    size_t index2;
    double dist;
+
+   HeapHierarchicalItem() :
+      index1(SIZE_MAX), index2(SIZE_MAX), dist(INFINITY) {}
 
    HeapHierarchicalItem(size_t index1, size_t index2, double dist) :
       index1(index1), index2(index2), dist(dist) {}
@@ -112,6 +120,47 @@ struct HeapHierarchicalItem
       return dist >= o.dist;
    }
 };
+
+
+class HclustPriorityQueue
+{
+   size_t n;
+   size_t ncur;
+   std::vector<HeapHierarchicalItem> items;
+   bool heapMade;
+
+public:
+   HclustPriorityQueue(size_t n) :
+      n(n), ncur(0), items(n), heapMade(false) { }
+
+   const HeapHierarchicalItem& top() {
+      if (!heapMade) {
+         std::make_heap(items.begin(), items.begin()+ncur);
+         heapMade = true;
+      }
+      return items[0];
+   }
+
+   void pop() {
+      if (!heapMade) {
+         std::make_heap(items.begin(), items.begin()+ncur);
+         heapMade = true;
+      }
+      std::pop_heap(items.begin(), items.begin()+ncur);
+      --ncur;
+      STOPIFNOT(ncur >= 0);
+   }
+
+   void push(const HeapHierarchicalItem& item) {
+      STOPIFNOT(ncur < n);
+      items[ncur++] = item;
+      if (heapMade) {
+         std::push_heap(items.begin(), items.begin()+ncur);
+      }
+   }
+
+};
+
 
 
 struct NNHeap {
