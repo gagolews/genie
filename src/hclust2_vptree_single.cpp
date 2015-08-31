@@ -38,6 +38,7 @@ HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
 {
    MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
+   bestRCount = 20;
    std::vector<double> distances(n);
    root = buildFromPoints(0, n, distances);
 }
@@ -171,7 +172,7 @@ HClustVpTreeSingleNode* HClustVpTreeSingle::buildFromPoints(size_t left,
 
 void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveLeaf(
    HClustVpTreeSingleNode* node, size_t index,
-   size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
+   size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap)
 {
    STOPIFNOT(node->vpindex == SIZE_MAX);
    if (!prefetch && !node->sameCluster) {
@@ -183,6 +184,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveLeaf(
          if (index >= i) continue;
          double dist2 = (*distance)(indices[index], indices[i]); // the slow part
          if (dist2 > maxR || dist2 <= minR) continue;
+         if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
 
          nnheap.insert(i, dist2, maxR);
       }
@@ -194,6 +196,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveLeaf(
          if (index >= i) continue;
          double dist2 = (*distance)(indices[index], indices[i]); // the slow part
          if (dist2 > maxR || dist2 <= minR) continue;
+         if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
 
          nnheap.insert(i, dist2, maxR);
       }
@@ -203,7 +206,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveLeaf(
 
 void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
    HClustVpTreeSingleNode* node, size_t index,
-   size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
+   size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap)
 {
    STOPIFNOT(node->vpindex != SIZE_MAX);
 
@@ -211,6 +214,7 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
    double dist = (*distance)(indices[index], indices[node->left]); // the slow part
    if (index < node->left && dist <= maxR && dist > minR &&
          ds.find_set(node->left) != clusterIndex) {
+      if (dist < bestR.top()) { bestR.pop(); bestR.push(dist); }
       nnheap.insert(node->left, dist, maxR);
    }
 
@@ -222,25 +226,61 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
 //    }
 //    else {
       if (dist < node->radius) {
-         if (dist - maxR <= node->radius && dist + node->radius > minR) {
-            if (node->childL && index < node->childL->maxindex)
-               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+            double cutR = dist - node->radius;
+            if (maxR >= cutR) {  // maxR >= bestR
+               if (bestR.top() < cutR) {
+                  while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     nnheap.pop();
+                  }
+                  maxR = cutR;
+               }
+               else
+                  getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
+            }
          }
 
-         if (dist + maxR >= node->radius) {
-            if (node->childR && index < node->childR->maxindex)
-               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         if (node->childR && index < node->childR->maxindex) {
+            double cutR = node->radius - dist;
+            if (maxR >= cutR) {
+               if (bestR.top() < cutR) {
+                  while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     nnheap.pop();
+                  }
+                  maxR = cutR;
+               }
+               else
+                  getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
+            }
          }
       }
       else /* ( dist >= node->radius ) */ {
-         if (dist + maxR >= node->radius) {
-            if (node->childR && index < node->childR->maxindex)
-               getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, maxR, nnheap);
+         if (node->childR && index < node->childR->maxindex) {
+            double cutR = node->radius - dist;
+            if (maxR >= cutR) {
+               if (bestR.top() < cutR) {
+                  while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     nnheap.pop();
+                  }
+                  maxR = cutR;
+               }
+               else
+                  getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
+            }
          }
 
-         if (dist - maxR <= node->radius && dist + node->radius > minR) {
-            if (node->childL && index < node->childL->maxindex)
-               getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
+         if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+            double cutR = dist - node->radius;
+            if (maxR >= cutR) {
+               if (bestR.top() < cutR) {
+                  while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     nnheap.pop();
+                  }
+                  maxR = cutR;
+               }
+               else
+                  getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
+            }
          }
       }
 //   }

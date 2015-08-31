@@ -339,6 +339,7 @@ struct IndexComparator
 };
 
 inline bool comparer_gt(size_t i, size_t j) { return (i>j); }
+inline bool comparer_gt(double i, double j) { return (i>j); }
 
 struct HClustOptions
 {

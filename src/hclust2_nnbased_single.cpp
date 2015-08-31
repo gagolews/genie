@@ -129,7 +129,7 @@ void HClustNNbasedSingle::computePrefetch(HclustPriorityQueue& pq)
       if (hi.index != SIZE_MAX)
       {
 #if !defined(_OPENMP)
-         MESSAGE_7("\r             prefetch NN: %d/%d", i, _n-1);
+         MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
 #endif
 #ifdef _OPENMP
          omp_set_lock(&writelock);
@@ -143,7 +143,7 @@ void HClustNNbasedSingle::computePrefetch(HclustPriorityQueue& pq)
 #ifdef _OPENMP
    omp_destroy_lock(&writelock);
 #endif
-   MESSAGE_7("\r             prefetch NN: %d/%d\n", _n-1, _n-1);
+   MESSAGE_7("\r             prefetch NN: %d/%d\n", n-1, n-1);
 }
 
 
@@ -178,7 +178,7 @@ void HClustNNbasedSingle::computeMerge(
          ++i;
          if (i == n-1) break; /* avoids computing unnecessary nn */
       }
-      MESSAGE_7("\r             %d / %d", i+1, _n);
+      MESSAGE_7("\r             %d / %d", i+1, n);
 
       STOPIFNOT(hhi.index1 < hhi.index2);
       HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);

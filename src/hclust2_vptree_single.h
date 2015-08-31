@@ -64,6 +64,7 @@ struct HClustVpTreeSingleNode
 class HClustVpTreeSingle : public HClustNNbasedSingle
 {
 protected:
+   size_t bestRCount;
 
    HClustVpTreeSingleNode* root;
    // bool visitAll; // for testing only
@@ -72,7 +73,7 @@ protected:
    HClustVpTreeSingleNode* buildFromPoints(size_t left, size_t right, std::vector<double>& distances);
 
    inline void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNode* node,
-      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap)
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap)
    {
       // search within (minR, maxR]
       STOPIFNOT(node != NULL);
@@ -88,22 +89,25 @@ protected:
 
       if (node->vpindex == SIZE_MAX) { // leaf
          getNearestNeighborsFromMinRadiusRecursiveLeaf(node, index, clusterIndex,
-            minR, maxR, nnheap);
+            minR, bestR, maxR, nnheap);
       }
       else {
          getNearestNeighborsFromMinRadiusRecursiveNonLeaf(node, index, clusterIndex,
-            minR, maxR, nnheap);
+            minR, bestR, maxR, nnheap);
       }
    }
 
    void getNearestNeighborsFromMinRadiusRecursiveLeaf(HClustVpTreeSingleNode* node,
-      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
    void getNearestNeighborsFromMinRadiusRecursiveNonLeaf(HClustVpTreeSingleNode* node,
-      size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap);
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
       double maxR = INFINITY;
-      getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, maxR, nnheap);
+      std::priority_queue<double> bestR;
+      for (size_t i=0; i<bestRCount; ++i) bestR.push(INFINITY);
+
+      getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, bestR, maxR, nnheap);
    }
 
    void updateSameClusterFlag(HClustVpTreeSingleNode* node);
