@@ -23,47 +23,48 @@
 using namespace DataStructures;
 
 HClustOptions::HClustOptions(Rcpp::RObject control) {
-   maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
-   maxNNPrefetch  = DEFAULT_MAX_NN_PREFETCH;
-   maxNNMerge     = DEFAULT_MAX_NN_MERGE;
-   vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
-   vpSelectCand   = DEFAULT_VP_SELECT_CAND;
-   vpSelectTest   = DEFAULT_VP_SELECT_TEST;
-   // degree = DEFAULT_GNAT_DEGREE;
-   // candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
-   // minDegree = DEFAULT_GNAT_MIN_DEGREE;
-   // maxDegree = DEFAULT_GNAT_MAX_DEGREE;
-   // maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
-   // exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
-   // maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
-   // isCurseOfDimensionality = DEFAULT_IS_CURSE_OF_DIMENSIONALITY;
-
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
 
       if (control2.containsElementNamed("maxLeavesElems")) {
          maxLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxLeavesElems"])[0];
       }
+      else maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
 
       if (control2.containsElementNamed("maxNNPrefetch")) {
          maxNNPrefetch = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxNNPrefetch"])[0];
       }
+      else maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
 
       if (control2.containsElementNamed("maxNNMerge")) {
          maxNNMerge = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxNNMerge"])[0];
       }
+      else maxNNMerge = DEFAULT_MAX_NN_MERGE;
+
+      if (control2.containsElementNamed("minNNPrefetch")) {
+         minNNPrefetch = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minNNPrefetch"])[0];
+      }
+      else minNNPrefetch = DEFAULT_MIN_NN_PREFETCH;
+
+      if (control2.containsElementNamed("minNNMerge")) {
+         minNNMerge = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minNNMerge"])[0];
+      }
+      else minNNMerge = DEFAULT_MIN_NN_MERGE;
 
       if (control2.containsElementNamed("vpSelectScheme")) {
          vpSelectScheme = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectScheme"])[0];
       }
+      else vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
 
       if (control2.containsElementNamed("vpSelectCand")) {
          vpSelectCand = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectCand"])[0];
       }
+      else vpSelectCand = DEFAULT_VP_SELECT_CAND;
 
       if (control2.containsElementNamed("vpSelectTest")) {
          vpSelectTest = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectTest"])[0];
       }
+      else vpSelectTest = DEFAULT_VP_SELECT_TEST;
 
 //       if (control2.containsElementNamed("degree")) {
 //          degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
@@ -128,15 +129,25 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
 //    }
    if (maxLeavesElems < 2 || maxLeavesElems > 64) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
-      Rf_warning("wrong maxLeavesElems value. using default");
+      // Rf_warning("wrong maxLeavesElems value. using default");
    }
    if (maxNNPrefetch < 1) {
       maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
       Rf_warning("wrong maxNNPrefetch value. using default");
    }
    if (maxNNMerge < 1) {
+      STOPIFNOT(maxNNPrefetch >= 1 && maxNNPrefetch != SIZE_MAX);
       maxNNMerge = DEFAULT_MAX_NN_MERGE;
       Rf_warning("wrong maxNNMerge value. using default");
+   }
+   if (minNNPrefetch < 1) {
+      minNNPrefetch = DEFAULT_MIN_NN_PREFETCH;
+      Rf_warning("wrong minNNPrefetch value. using default");
+   }
+   if (minNNMerge < 1) {
+      STOPIFNOT(minNNPrefetch >= 1 && minNNPrefetch != SIZE_MAX);
+      minNNMerge = DEFAULT_MIN_NN_MERGE;
+      Rf_warning("wrong minNNMerge value. using default");
    }
    if (vpSelectScheme < 1 || vpSelectScheme > 3) {
       vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
@@ -159,6 +170,8 @@ Rcpp::NumericVector HClustOptions::toR() const
       Rcpp::_["maxLeavesElems"] = maxLeavesElems,
       Rcpp::_["maxNNPrefetch"]  = maxNNPrefetch,
       Rcpp::_["maxNNMerge"]     = maxNNMerge,
+      Rcpp::_["minNNPrefetch"]  = minNNPrefetch,
+      Rcpp::_["minNNMerge"]     = minNNMerge,
       Rcpp::_["vpSelectScheme"] = vpSelectScheme,
       Rcpp::_["vpSelectCand"]   = vpSelectCand,
       Rcpp::_["vpSelectTest"]   = vpSelectTest

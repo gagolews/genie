@@ -21,9 +21,6 @@
 
 #include "hclust2_vptree_single.h"
 
-#pragma message "@TODO: HClustVpTreeSingle - auto select maxNNprefetch, maxNNmerge"
-
-
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
@@ -38,7 +35,6 @@ HClustVpTreeSingle::HClustVpTreeSingle(Distance* dist, RObject control) :
 {
    MESSAGE_2("[%010.3f] building vp-tree\n", clock()/(float)CLOCKS_PER_SEC);
 
-   bestRCount = 20;
    std::vector<double> distances(n);
    root = buildFromPoints(0, n, distances);
 }

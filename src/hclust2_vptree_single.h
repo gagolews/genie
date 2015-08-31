@@ -64,8 +64,6 @@ struct HClustVpTreeSingleNode
 class HClustVpTreeSingle : public HClustNNbasedSingle
 {
 protected:
-   size_t bestRCount;
-
    HClustVpTreeSingleNode* root;
    // bool visitAll; // for testing only
 
@@ -103,9 +101,11 @@ protected:
       size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
-      double maxR = INFINITY;
       std::priority_queue<double> bestR;
-      for (size_t i=0; i<bestRCount; ++i) bestR.push(INFINITY);
+      size_t minNN = (prefetch)?opts.minNNPrefetch:opts.minNNMerge;
+      for (size_t i=0; i<minNN; ++i) bestR.push(INFINITY);
+
+      double maxR = INFINITY;
 
       getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, bestR, maxR, nnheap);
    }

@@ -351,6 +351,8 @@ struct HClustOptions
    size_t maxLeavesElems;   //
    size_t maxNNPrefetch;    //
    size_t maxNNMerge;       //
+   size_t minNNPrefetch;    //
+   size_t minNNMerge;       //
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
