@@ -34,11 +34,12 @@
 #' }
 #'
 #' @export
-hclust2 <- function(d=NULL, method=c("single", "complete", "exemplar", "exemplar_naive"), objects=NULL, ...) {
+hclust2 <- function(d=NULL, method=c("single", "single_approx", "complete", "exemplar", "exemplar_naive"), objects=NULL, ...) {
    # TO DO: `single` has list control arg........
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
+      single_approx=.hclust2_single_approx(d, objects, ...),
       complete=.hclust2_complete(d, objects, ...),
       exemplar=.hclust2_exemplar(d, objects, ...),
       exemplar_naive=.hclust2_exemplar_naive(d, objects, ...)
