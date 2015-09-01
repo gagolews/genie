@@ -71,6 +71,7 @@ HeapNeighborItem HClustNNbasedSingleApprox::getNearestNeighbor(size_t index, dou
 #endif
       ++stats.nnCals;
 #endif
+      vptree.zeroNodesVisited();
       NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
       vptree.getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);

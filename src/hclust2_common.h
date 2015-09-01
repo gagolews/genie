@@ -356,6 +356,7 @@ struct HClustOptions
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
+   size_t nodesVisitedLimit;// for single approx
    // size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
    // size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
    // bool isCurseOfDimensionality;

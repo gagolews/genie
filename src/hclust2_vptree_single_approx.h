@@ -86,6 +86,7 @@ protected:
    size_t& n;
    Distance* distance;
    std::vector<size_t>& indices;
+   size_t nodesVisited;
 
    HClustVpTreeSingleNodeApprox* root;
    // bool visitAll; // for testing only
@@ -112,6 +113,7 @@ public:
    void build();
    void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap);
    void print();
+   inline void zeroNodesVisited(){nodesVisited=0;}
 
 }; // class
 

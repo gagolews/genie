@@ -197,6 +197,8 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursive(HClustV
       ++stats.nodeVisit;
    #endif
 
+
+
    if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
       return;
 
@@ -215,6 +217,10 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveLeaf(
    size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap)
 {
    STOPIFNOT(node->vpindex == SIZE_MAX);
+   nodesVisited++;
+   if(nodesVisited >= opts.nodesVisitedLimit && nnheap.size() > 0)
+      return;
+
    if (!prefetch && !node->sameCluster) {
       size_t commonCluster = ds.find_set(node->left);
       for (size_t i=node->left; i<node->right; ++i) {
@@ -279,7 +285,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
                   getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
             }
          }
-         else if (node->childR && index < node->childR->maxindex) {
+          if (node->childR && index < node->childR->maxindex) {
             double cutR = node->radius - dist;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
@@ -307,7 +313,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
                   getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
             }
          }
-         else if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+          if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
             double cutR = dist - node->radius;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {

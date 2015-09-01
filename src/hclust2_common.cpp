@@ -66,6 +66,11 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
       }
       else vpSelectTest = DEFAULT_VP_SELECT_TEST;
 
+      if (control2.containsElementNamed("nodesVisitedLimit")) {
+         nodesVisitedLimit = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["nodesVisitedLimit"])[0];
+      }
+      else nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
+
 //       if (control2.containsElementNamed("degree")) {
 //          degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
 //       }
@@ -160,6 +165,10 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
    if (vpSelectTest < 1 || vpSelectTest > 128) {
       vpSelectTest = DEFAULT_VP_SELECT_TEST;
       Rf_warning("wrong vpSelectTest value. using default");
+   }
+   if (nodesVisitedLimit < 1) {
+      nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
+      Rf_warning("wrong nodesVisitedLimit value. using default");
    }
 }
 
