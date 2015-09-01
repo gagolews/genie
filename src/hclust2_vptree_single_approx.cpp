@@ -279,8 +279,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
                   getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
             }
          }
-
-         if (node->childR && index < node->childR->maxindex) {
+         else if (node->childR && index < node->childR->maxindex) {
             double cutR = node->radius - dist;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
@@ -308,8 +307,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
                   getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
             }
          }
-
-         if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+         else if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
             double cutR = dist - node->radius;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
