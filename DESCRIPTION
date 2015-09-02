@@ -2,7 +2,7 @@ Package: DataStructures
 Type: Package
 Title: General data structures and algorithms
 Version: 1.0
-Date: 2015-08-29
+Date: 2015-09-02
 Authors@R: c(
     person("Maciej", "Bartoszuk", role = "aut",
     email = "bartoszuk@rexamine.com"),
@@ -13,5 +13,5 @@ Description: Provides various data structures, like stack, queue,
     Vintage Point metric tree (vp-tree), etc.
 License: GPL (>= 3)
 Imports: Rcpp (>= 0.11.3), stringi (>= 0.5-9000)
-LinkingTo: Rcpp, BH, stringi (>= 0.5-9000)
+LinkingTo: Rcpp (>= 0.11.3), BH, stringi (>= 0.5-9000)
 SystemRequirements: C++11
