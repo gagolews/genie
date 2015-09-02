@@ -33,6 +33,10 @@ seboid_approx <- function(distance, objects, control = NULL, iters = 25L, nntry 
     .Call('DataStructures_hclust2_single', PACKAGE = 'DataStructures', distance, objects, control)
 }
 
+.hclust2_single_approx <- function(distance, objects, control = NULL) {
+    .Call('DataStructures_hclust2_single_approx', PACKAGE = 'DataStructures', distance, objects, control)
+}
+
 .hclust2_complete <- function(distance, objects, maxNumberOfElementsInLeaves = 2L) {
     .Call('DataStructures_hclust2_complete', PACKAGE = 'DataStructures', distance, objects, maxNumberOfElementsInLeaves)
 }
