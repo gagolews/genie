@@ -151,43 +151,120 @@ void HClustNNbasedSingle::computeMerge(
       HclustPriorityQueue& pq,
       HClustResult& res)
 {
+#ifndef _OPENMP
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
+#endif
+#ifdef _OPENMP
+   volatile bool go=true;
+   omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
+   omp_lock_t writelock; //critical section for pq
+   omp_init_lock(&writelock);
+#endif
 
-   size_t i = 0;
+   volatile size_t i = 0;
+#ifdef _OPENMP
+   #pragma omp parallel shared(go, i, pq, res)
+
+   while (go)
+#else
    while (true)
+#endif
    {
+#ifdef _OPENMP
+         omp_set_lock(&writelock);
+#endif
       HeapHierarchicalItem hhi = pq.top();
-      pq.pop();
+
 
       if (hhi.index2 == SIZE_MAX) {
+         pq.pop();
+#ifdef _OPENMP
+         omp_unset_lock(&writelock);
+#endif
          HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
          if (isfinite(hi.dist))
+         {
+#ifdef _OPENMP
+            omp_set_lock(&writelock);
+#endif
             pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+#ifdef _OPENMP
+            omp_unset_lock(&writelock);
+#endif
+         }
          continue;
       }
 
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
+
+      if(s1==s2)
+      {
+         pq.pop();
+#ifdef _OPENMP
+         omp_unset_lock(&writelock);
+#endif
+         STOPIFNOT(hhi.index1 < hhi.index2);
+         HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
+         STOPIFNOT(hhi.index1 < hi.index);
+         if (isfinite(hi.dist))
+         {
+#ifdef _OPENMP
+            omp_set_lock(&writelock);
+#endif
+            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+#ifdef _OPENMP
+            omp_unset_lock(&writelock);
+#endif
+         }
+         continue;
+      }
+
+#ifdef _OPENMP
+      omp_unset_lock(&writelock); //different threads will be unable to put data into pq without it
+      #pragma omp barrier
+      #pragma omp single
+      {
+#endif
       if (s1 != s2)
       {
-         Rcpp::checkUserInterrupt(); // may throw an exception, fast op
+         hhi = pq.top(); //it can change, because other threads can push something
+         pq.pop();
+         STOPIFNOT(hhi.index1 < hhi.index2 && ds.find_set(hhi.index1) != ds.find_set(hhi.index2));
+#ifndef _OPENMP
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+#endif
 
          res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
          ds.link(s1, s2);
 
          ++i;
+#ifdef _OPENMP
+         if (i == n-1) go=false; /* avoids computing unnecessary nn */
+#else
          if (i == n-1) break; /* avoids computing unnecessary nn */
+#endif
       }
+#ifndef _OPENMP
       MESSAGE_7("\r             %d / %d", i+1, n);
+#endif
 
       STOPIFNOT(hhi.index1 < hhi.index2);
       HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
       STOPIFNOT(hhi.index1 < hi.index);
       if (isfinite(hi.dist))
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+#ifdef _OPENMP
+      }
+#endif
    }
+#ifndef _OPENMP
    MESSAGE_7("\r             %d / %d\n", n, n);
    Rcpp::checkUserInterrupt();
+#endif
+#ifdef _OPENMP
+   omp_destroy_lock(&writelock);
+#endif
 }
 
 
