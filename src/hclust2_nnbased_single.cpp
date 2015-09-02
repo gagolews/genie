@@ -175,7 +175,6 @@ void HClustNNbasedSingle::computeMerge(
 #endif
       HeapHierarchicalItem hhi = pq.top();
 
-
       if (hhi.index2 == SIZE_MAX) {
          pq.pop();
 #ifdef _OPENMP
@@ -226,25 +225,27 @@ void HClustNNbasedSingle::computeMerge(
       #pragma omp single
       {
 #endif
-      if (s1 != s2)
-      {
-         hhi = pq.top(); //it can change, because other threads can push something
-         pq.pop();
-         STOPIFNOT(hhi.index1 < hhi.index2 && ds.find_set(hhi.index1) != ds.find_set(hhi.index2));
+      STOPIFNOT(s1 != s2);
+
+      hhi = pq.top(); //it can change, because other threads can push something
+      pq.pop();
+      s1 = ds.find_set(hhi.index1);
+      s2 = ds.find_set(hhi.index2);
+      STOPIFNOT(hhi.index1 < hhi.index2 && ds.find_set(hhi.index1) != ds.find_set(hhi.index2));
 #ifndef _OPENMP
-         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+      Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
 #endif
 
-         res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
-         ds.link(s1, s2);
+      res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
+      ds.link(s1, s2);
 
-         ++i;
+      ++i;
 #ifdef _OPENMP
-         if (i == n-1) go=false; /* avoids computing unnecessary nn */
+      if (i == n-1) {go=false;}/* avoids computing unnecessary nn */
 #else
-         if (i == n-1) break; /* avoids computing unnecessary nn */
+      if (i == n-1) break; /* avoids computing unnecessary nn */
 #endif
-      }
+
 #ifndef _OPENMP
       MESSAGE_7("\r             %d / %d", i+1, n);
 #endif
