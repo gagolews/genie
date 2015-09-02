@@ -197,8 +197,6 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursive(HClustV
       ++stats.nodeVisit;
    #endif
 
-
-
    if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
       return;
 

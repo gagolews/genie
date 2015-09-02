@@ -152,27 +152,65 @@ void HClustNNbasedSingleApprox::computeMerge(
 {
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 
+   /*
+    * stworz zbior LINKING (czas terazniejszy continous, bo one sie wlasnie teraz linkuja)
+    * niech bedzie on pusty
+    */
+
    size_t i = 0;
    while (true)
    {
+      //poczatek sekcji krytycznej (sekcja krytyczna powinna byc na dzialania na pq i LINKING)
       HeapHierarchicalItem hhi = pq.top();
+
+      /*
+       * tutaj sobie sprawdzaj, czy aby mozna go przetworzyc. jak nie mozna, bo jest w
+       * LINKING, to sie zatrzymaj, nie zdejmuj go z kolejki, bo po wykonaniu sie innego linkinga
+       * to moze juz nie byc pierwszy element w kolejce. Czekaj na sygnal od innego watku z konca petli
+       *
+       * tutaj moze miec miejsce taki efekt, ze raz bierzemy element, i mamy s1 i s2, ktore sa przetwarzane,
+       * a jak drugi raz wezmiemy ten element, to mozemy dostac s1 i s1, albo np. s1 i s3 czy s3 i s4
+       *
+       * wersja 1: jak znajdziemy element, ktorego nie mozemy przetworzyc, to stop
+       *
+       * wersja 2: w takim przypadku wyciagamy kolejny element z kolejki az mozemy go przetworzyc
+       *
+       * jesli mamy element i wiemy, ze mozemy go przetworzyc, to trzeba zalozyc jakis mutex,
+       * zeby zdazyc wrzucic do go LINKING zanim inny watek nam wyjmie kolejny element z kolejki,
+       * w ktorym moze byc ten sam cluster
+       */
+
       pq.pop();
 
       if (hhi.index2 == SIZE_MAX) {
+         //wrzuc s1 do LINKING
+         //koniec sekcji krytycznej
          HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
          if (isfinite(hi.dist))
-            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));//tutaj wyrzucamy s1 z LINKING (sekcja krytyczna), dajemy sygnal
          continue;
       }
 
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
+      /*
+       * wrzuc s1 do LINKING
+       */
       if (s1 != s2)
       {
+         /*
+          * wrzuc s2 do LINKING
+          */
+         //koniec sekcji krytycznej
+
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op
 
          res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
          ds.link(s1, s2);
+
+         /*
+          * wyrzuc s2 z LINKING (?) -- o tyle niepotrzebne, ze juz i tak s2 nie bedzie zwracane przez ds.find_set()
+          */
 
          ++i;
          if (i == n-1) break; /* avoids computing unnecessary nn */
@@ -180,10 +218,19 @@ void HClustNNbasedSingleApprox::computeMerge(
       MESSAGE_7("\r             %d / %d", i+1, n);
 
       STOPIFNOT(hhi.index1 < hhi.index2);
+
       HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
+      //poczatek sekcji krytycznej
       STOPIFNOT(hhi.index1 < hi.index);
       if (isfinite(hi.dist))
          pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+
+      /*
+       * wyrzuc s1 z LINKING
+       * rzuc jakims sygnalem, ktory zwolni watek z poczatku petli, aby wzial element
+       * z kolejki i sprawdzil, czy moze go przetworzyc
+       */
+      //koniec sekcji krytycznej
    }
    MESSAGE_7("\r             %d / %d\n", n, n);
    Rcpp::checkUserInterrupt();
