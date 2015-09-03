@@ -23,118 +23,59 @@
 using namespace DataStructures;
 
 HClustOptions::HClustOptions(Rcpp::RObject control) {
+   maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
+   maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
+   maxNNMerge = DEFAULT_MAX_NN_MERGE;
+   minNNPrefetch = DEFAULT_MIN_NN_PREFETCH;
+   minNNMerge = DEFAULT_MIN_NN_MERGE;
+   vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
+   vpSelectCand = DEFAULT_VP_SELECT_CAND;
+   vpSelectTest = DEFAULT_VP_SELECT_TEST;
+   nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
+   
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
 
       if (control2.containsElementNamed("maxLeavesElems")) {
          maxLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxLeavesElems"])[0];
       }
-      else maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
 
       if (control2.containsElementNamed("maxNNPrefetch")) {
          maxNNPrefetch = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxNNPrefetch"])[0];
       }
-      else maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;
 
       if (control2.containsElementNamed("maxNNMerge")) {
          maxNNMerge = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxNNMerge"])[0];
       }
-      else maxNNMerge = DEFAULT_MAX_NN_MERGE;
 
       if (control2.containsElementNamed("minNNPrefetch")) {
          minNNPrefetch = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minNNPrefetch"])[0];
       }
-      else minNNPrefetch = DEFAULT_MIN_NN_PREFETCH;
 
       if (control2.containsElementNamed("minNNMerge")) {
          minNNMerge = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minNNMerge"])[0];
       }
-      else minNNMerge = DEFAULT_MIN_NN_MERGE;
 
       if (control2.containsElementNamed("vpSelectScheme")) {
          vpSelectScheme = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectScheme"])[0];
       }
-      else vpSelectScheme = DEFAULT_VP_SELECT_SCHEME;
 
       if (control2.containsElementNamed("vpSelectCand")) {
          vpSelectCand = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectCand"])[0];
       }
-      else vpSelectCand = DEFAULT_VP_SELECT_CAND;
 
       if (control2.containsElementNamed("vpSelectTest")) {
          vpSelectTest = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["vpSelectTest"])[0];
       }
-      else vpSelectTest = DEFAULT_VP_SELECT_TEST;
 
       if (control2.containsElementNamed("nodesVisitedLimit")) {
          nodesVisitedLimit = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["nodesVisitedLimit"])[0];
       }
-      else nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
-
-//       if (control2.containsElementNamed("degree")) {
-//          degree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["degree"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("minDegree")) {
-//          minDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["minDegree"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("maxDegree")) {
-//          maxDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxDegree"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("maxTimesDegree")) {
-//          maxTimesDegree = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxTimesDegree"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("candidatesTimes")) {
-//          candidatesTimes = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["candidatesTimes"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("exemplarUpdateMethod")) {
-//          exemplarUpdateMethod = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["exemplarUpdateMethod"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("maxExemplarLeavesElems")) {
-//          maxExemplarLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxExemplarLeavesElems"])[0];
-//       }
-//
-//       if (control2.containsElementNamed("isCurseOfDimensionality")) {
-//          isCurseOfDimensionality = (bool)Rcpp::as<Rcpp::LogicalVector>(control2["isCurseOfDimensionality"])[0];
-//       }
    }
 
-//    if (exemplarUpdateMethod < 0 && exemplarUpdateMethod > 2) {
-//       exemplarUpdateMethod = DEFAULT_EXEMPLAR_UPDATE_METHOD;
-//       Rf_warning("wrong exemplarUpdateMethod value. using default");
-//    }
-//    if (degree < 2 || degree > 2000) {
-//       degree = DEFAULT_GNAT_DEGREE;
-//       Rf_warning("wrong degree value. using default");
-//    }
-//    if (minDegree < 2 || minDegree > 2000) {
-//       minDegree = DEFAULT_GNAT_MIN_DEGREE;
-//          Rf_warning("wrong min degree. using default");
-//       }
-//    if (maxDegree < 2 || maxDegree > 2000) {
-//       maxDegree = DEFAULT_GNAT_MAX_DEGREE;
-//       Rf_warning("wrong max degree. using default");
-//    }
-//    if (maxTimesDegree < 2 || maxTimesDegree > 2000) {
-//       maxTimesDegree = DEFAULT_GNAT_MAX_TIMES_DEGREE;
-//       Rf_warning("wrong max times degree. using default");
-//    }
-//    if (candidatesTimes < 2 || candidatesTimes > 2000) {
-//       candidatesTimes = DEFAULT_GNAT_CANDIDATES_TIMES;
-//       Rf_warning("wrong candidatesTimes value. using default");
-//    }
-//    if (maxExemplarLeavesElems < 2 || maxExemplarLeavesElems > 1024) {
-//       maxExemplarLeavesElems = DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS;
-//       Rf_warning("wrong maxExemplarLeavesElems value. using default");
-//    }
    if (maxLeavesElems < 2 || maxLeavesElems > 64) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
-      // Rf_warning("wrong maxLeavesElems value. using default");
+      Rf_warning("wrong maxLeavesElems value. using default");
    }
    if (maxNNPrefetch < 1) {
       maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;

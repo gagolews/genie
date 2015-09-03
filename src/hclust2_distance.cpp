@@ -253,7 +253,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
       return (DataStructures::Distance*)
          new DataStructures::GenericRDistance(
             distance2,
-            std::vector<Rcpp::RObject>(objects2.begin(), objects2.end())
+            objects2
          );
    }
    else if (Rf_isNumeric(distance) && Rf_isObject(distance) && !strcmp(distance.attr("class"), "dist") && Rf_isNull(objects))

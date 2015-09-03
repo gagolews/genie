@@ -303,7 +303,7 @@ class GenericRDistance : public Distance
 {
 private:
    Rcpp::Function distfun;
-   std::vector<Rcpp::RObject> items;
+   Rcpp::List items;
 
 protected:
    virtual double compute(size_t v1, size_t v2);
@@ -312,15 +312,17 @@ public:
    //virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); } ....deparse???? in R
    // virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj1).attr("names"); } .... get names attrib from items....
 
-   GenericRDistance(const Rcpp::Function& distfun, const std::vector<Rcpp::RObject>& items) :
+   GenericRDistance(const Rcpp::Function& distfun, const Rcpp::List& items) :
          Distance(items.size()),
          distfun(distfun),
          items(items) {
       R_PreserveObject(distfun);
+      R_PreserveObject(items);
    }
 
    virtual ~GenericRDistance() {
       R_ReleaseObject(distfun);
+      R_ReleaseObject(items);
    }
 };
 
