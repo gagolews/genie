@@ -52,6 +52,8 @@ struct HClustVpTreeSingleNodeApprox
    size_t left;
    size_t right;
    double radius;
+   double minDist;
+   double maxDist;
    bool sameCluster;
    size_t maxindex;
    HClustVpTreeSingleNodeApprox* childL;
@@ -89,6 +91,7 @@ protected:
    size_t nodesVisited;
 
    HClustVpTreeSingleNodeApprox* root;
+   bool endOfSearching;
    // bool visitAll; // for testing only
 
    size_t chooseNewVantagePoint(size_t left, size_t right);

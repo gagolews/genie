@@ -107,12 +107,6 @@ HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double di
    }
 }
 
-#ifdef _OPENMP
-#define MASTER_OR_SINGLE_THREAD (omp_get_thread_num() == 0)
-#else
-#define MASTER_OR_SINGLE_THREAD (1)
-#endif
-
 
 void HClustNNbasedSingle::computePrefetch(HclustPriorityQueue& pq)
 {

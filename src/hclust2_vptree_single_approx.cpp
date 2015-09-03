@@ -148,11 +148,20 @@ HClustVpTreeSingleNodeApprox* HClustVpTreeSingleApprox::buildFromPoints(size_t l
    size_t vpi = indices[left];
    size_t median = (right + left) / 2;
 
+   double minD = INFINITY;
+   double maxD = -INFINITY;
    for (size_t i=left+1; i<right; ++i)
+   {
       distances[indices[i]] = (*distance)(vpi, indices[i]);
+      if(distances[indices[i]] < minD)
+         minD = distances[indices[i]];
+      if(distances[indices[i]] > maxD)
+         maxD = distances[indices[i]];
+   }
 
    // std::sort(indices.begin()+left+1, indices.begin()+right, DistanceComparatorCached(&distances));
    std::nth_element(indices.begin()+left+1, indices.begin() + median, indices.begin()+right, DistanceComparatorCached(&distances));
+
 
 // slower -- computes some distances > 1 time
 //    std::nth_element(indices.begin() + left + 1, indices.begin() + median,  indices.begin() + right,
@@ -160,6 +169,8 @@ HClustVpTreeSingleNodeApprox* HClustVpTreeSingleApprox::buildFromPoints(size_t l
 //    HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, (*distance)(vpi, indices[median]));
 
    HClustVpTreeSingleNodeApprox* node = new HClustVpTreeSingleNodeApprox(vpi, left, left+1, distances[indices[median]]);
+   node->minDist = minD;
+   node->maxDist = maxD;
 
    node->maxindex = left;
    if (median - left > 0) { // don't include vpi
@@ -182,6 +193,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadius(size_t index, si
    for (size_t i=0; i<minNN; ++i) bestR.push(INFINITY);
 
    double maxR = INFINITY;
+   endOfSearching = false;
    getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, bestR, maxR, nnheap);
 }
 
@@ -196,6 +208,8 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursive(HClustV
    #endif
       ++stats.nodeVisit;
    #endif
+
+   if(endOfSearching) return;
 
    if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
       return;
@@ -216,12 +230,12 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveLeaf(
 {
    STOPIFNOT(node->vpindex == SIZE_MAX);
    nodesVisited++;
-   if(nodesVisited >= opts.nodesVisitedLimit && nnheap.size() > 0)
+   if(nodesVisited >= opts.nodesVisitedLimit && nnheap.size() > opts.minNNPrefetch)
       return;
 
    if (!prefetch && !node->sameCluster) {
       size_t commonCluster = ds.find_set(node->left);
-      for (size_t i=node->left; i<node->right; ++i) {
+      for (size_t i=node->left; i<node->right; i++) {
          size_t currentCluster = ds.find_set(i);
          if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
          if (currentCluster == clusterIndex) continue;
@@ -231,18 +245,24 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveLeaf(
          if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
 
          nnheap.insert(i, dist2, maxR);
+         //if(nnheap.size() >= nnheap.maxNNPrefetch) endOfSearching = true;
+
       }
       if (commonCluster != SIZE_MAX)
          node->sameCluster = true; // set to true (btw, may be true already)
    }
-   else /* node->sameCluster */ {
-      for (size_t i=node->left; i<node->right; ++i) {
+   else /* node->sameCluster or prefetch*/ {
+
+      size_t start = (size_t)(unif_rand()*(2));
+      start = 0;
+      for (size_t i=node->left+start; i<node->right; i++) {
          if (index >= i) continue;
          double dist2 = (*distance)(indices[index], indices[i]); // the slow part
          if (dist2 > maxR || dist2 <= minR) continue;
          if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
 
          nnheap.insert(i, dist2, maxR);
+         //if(nnheap.size() >= nnheap.maxNNPrefetch) endOfSearching = true;
       }
    }
 }
@@ -256,12 +276,17 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
 
    // first visit the vantage point
    double dist = (*distance)(indices[index], indices[node->left]); // the slow part
+
    if (index < node->left && dist <= maxR && dist > minR &&
          ds.find_set(node->left) != clusterIndex) {
       if (dist < bestR.top()) { bestR.pop(); bestR.push(dist); }
       nnheap.insert(node->left, dist, maxR);
+      //if(nnheap.size() >= nnheap.maxNNPrefetch) endOfSearching = true;
    }
-
+   if(5 * node->maxDist < dist && node->sameCluster)
+   {
+      return;
+   }
 //    if (visitAll) {
 //       if (node->childL && index < node->childL->maxindex)
 //          getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);
@@ -275,6 +300,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
             if (maxR >= cutR) {  // maxR >= bestR
                if (bestR.top() < cutR) {
                   while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     //endOfSearching = true;
                      nnheap.pop();
                   }
                   maxR = cutR;
@@ -288,6 +314,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
                   while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     //endOfSearching = true;
                      nnheap.pop();
                   }
                   maxR = cutR;
@@ -303,6 +330,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
                   while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     //endOfSearching = true;
                      nnheap.pop();
                   }
                   maxR = cutR;
@@ -316,6 +344,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
                   while (!nnheap.empty() && nnheap.top().dist > cutR) {
+                     //endOfSearching = true;
                      nnheap.pop();
                   }
                   maxR = cutR;

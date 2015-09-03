@@ -25,6 +25,12 @@
 #include <omp.h>
 #endif
 
+#ifdef _OPENMP
+#define MASTER_OR_SINGLE_THREAD (omp_get_thread_num() == 0)
+#else
+#define MASTER_OR_SINGLE_THREAD (1)
+#endif
+
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
@@ -50,7 +56,6 @@
 // #define DEFAULT_EXEMPLAR_UPDATE_METHOD 2
 // #define DEFAULT_EXEMPLAR_MAX_LEAVES_ELEMS 32
 // #define DEFAULT_IS_CURSE_OF_DIMENSIONALITY false
-
 
 // ---------------------------------------------------------------------------
 
