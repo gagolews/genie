@@ -158,6 +158,7 @@ void HClustNNbasedSingle::computeMerge(
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 
 #ifdef _OPENMP
+   int threadMerge;
    omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
    omp_lock_t writelock; //critical section for pq
    omp_init_lock(&writelock);
@@ -166,7 +167,7 @@ void HClustNNbasedSingle::computeMerge(
    volatile bool go=true;
    volatile size_t i = 0;
 #ifdef _OPENMP
-   #pragma omp parallel shared(go, i, pq, res)
+   #pragma omp parallel shared(go, i, pq, res, threadMerge)
 #endif
    while (go)
    {
@@ -225,6 +226,9 @@ void HClustNNbasedSingle::computeMerge(
       #pragma omp single
 #endif
       {
+#ifdef _OPENMP
+         threadMerge = omp_get_thread_num();
+#endif
          hhi = pq.top(); //it can change, because other threads can push something
          pq.pop();
          s1 = ds.find_set(hhi.index1);
@@ -238,12 +242,27 @@ void HClustNNbasedSingle::computeMerge(
          ++i;
          if (i == n-1)
             go = false;/* avoids computing unnecessary nn */
-         else {
+
+      }
+#ifdef _OPENMP
+
+      if(threadMerge == omp_get_thread_num())
+#endif
+      {
+         if(go) {
             STOPIFNOT(hhi.index1 < hhi.index2);
             HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
             STOPIFNOT(hhi.index1 < hi.index);
             if (isfinite(hi.dist))
+            {
+#ifdef _OPENMP
+               omp_set_lock(&writelock);
+#endif
                pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
+#ifdef _OPENMP
+               omp_unset_lock(&writelock);
+#endif
+            }
          }
       } // #pragma omp single
       if (MASTER_OR_SINGLE_THREAD) {
