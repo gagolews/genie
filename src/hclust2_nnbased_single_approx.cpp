@@ -40,8 +40,8 @@ HClustNNbasedSingleApprox::HClustNNbasedSingleApprox(Distance* dist, RObject con
    #ifdef GENERATE_STATS
       stats(),
    #endif
-      prefetch(true),
       ds(dist->getObjectCount()),
+      prefetch(true),
       vptree(opts, stats, prefetch, ds, n, dist, indices)
 {
    // starting indices: random permutation of {0,1,...,_n-1}
