@@ -1,26 +1,26 @@
 /* ************************************************************************* *
- *   This file is part of the `DataStructures` package.                      *
+ *   This file is part of the `grup` package.                                *
  *                                                                           *
  *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
  *                                                                           *
- *   'DataStructures' is free software: you can redistribute it and/or       *
+ *   'grup' is free software: you can redistribute it and/or                 *
  *   modify it under the terms of the GNU Lesser General Public License      *
  *   as published by the Free Software Foundation, either version 3          *
  *   of the License, or (at your option) any later version.                  *
  *                                                                           *
- *   'DataStructures' is distributed in the hope that it will be useful,     *
+ *   'grup' is distributed in the hope that it will be useful,               *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
  *   GNU Lesser General Public License for more details.                     *
  *                                                                           *
  *   You should have received a copy of the GNU Lesser General Public        *
- *   License along with 'DataStructures'.                                    *
+ *   License along with 'grup'.                                              *
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
 #include <algorithm>
 #include "hclust2_distance.h"
-using namespace DataStructures;
+using namespace grup;
 #include <stringi.h>
 
 
@@ -250,16 +250,16 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
    {
       Rcpp::Function distance2(distance);
       Rcpp::List objects2(objects);
-      return (DataStructures::Distance*)
-         new DataStructures::GenericRDistance(
+      return (grup::Distance*)
+         new grup::GenericRDistance(
             distance2,
             objects2
          );
    }
    else if (Rf_isNumeric(distance) && Rf_isObject(distance) && !strcmp(distance.attr("class"), "dist") && Rf_isNull(objects))
    {
-      return (DataStructures::Distance*)
-            new DataStructures::DistObjectDistance(
+      return (grup::Distance*)
+            new grup::DistObjectDistance(
                (Rcpp::NumericVector)distance
             );
    }
@@ -271,14 +271,14 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
 
       const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
       if (!strcmp(distance3, "levenshtein")) {
-         return (DataStructures::Distance*)
-            new DataStructures::LevenshteinDistance(
+         return (grup::Distance*)
+            new grup::LevenshteinDistance(
                objects2
             );
       }
       else if (!strcmp(distance3, "dinu")) {
-         return (DataStructures::Distance*)
-            new DataStructures::DinuDistance(
+         return (grup::Distance*)
+            new grup::DinuDistance(
                objects2
             );
       }
@@ -294,26 +294,26 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
 
       const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
       if (!strcmp(distance3, "euclidean")) {
-         return (DataStructures::Distance*)
-            new DataStructures::EuclideanDistance(
+         return (grup::Distance*)
+            new grup::EuclideanDistance(
                objects2
             );
       }
       else if (!strcmp(distance3, "manhattan")) {
-         return (DataStructures::Distance*)
-            new DataStructures::ManhattanDistance(
+         return (grup::Distance*)
+            new grup::ManhattanDistance(
                objects2
             );
       }
       else if (!strcmp(distance3, "maximum")) {
-         return (DataStructures::Distance*)
-            new DataStructures::MaximumDistance(
+         return (grup::Distance*)
+            new grup::MaximumDistance(
                objects2
             );
       }
       else if (!strcmp(distance3, "hamming")) {
-         return (DataStructures::Distance*)
-            new DataStructures::HammingDistance(
+         return (grup::Distance*)
+            new grup::HammingDistance(
                objects2
             );
       }

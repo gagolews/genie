@@ -4,17 +4,17 @@
 \alias{hclust2}
 \title{Faster Hierarchical Clustering in Pseudometric Spaces}
 \usage{
-hclust2(d = NULL, method = c("single", "single_approx", "complete",
-  "exemplar", "exemplar_naive"), objects = NULL, ...)
+hclust2(d = NULL, method = c("single", "single_approx"), objects = NULL,
+  ...)
 }
 \arguments{
 \item{d}{an object of class \code{\link{dist}},
-\code{NULL}, an R function or a single string}
+\code{NULL}, an R function, or a single string}
 
 \item{method}{a single string,
-one of \code{single}, \code{complete}, or \code{exemplar}}
+one of: \code{single}, \code{single_approx}}
 
-\item{objects}{\code{NULL}, numeric matrix or a list}
+\item{objects}{\code{NULL}, numeric matrix, a list, or a character vector}
 
 \item{...}{internal tuning parameters}
 }
@@ -22,28 +22,27 @@ one of \code{single}, \code{complete}, or \code{exemplar}}
 A named list of class \code{hclust}, see \code{\link{hclust}},
 with additional components:
 \itemize{
-\item stats ...
-\item control ...
+     \item stats   performance statistics
+     \item control internal tuning parameters used
 }
 }
 \description{
 Faster Hierarchical Clustering in Pseudometric Spaces
 }
 \details{
-For compatibility with \code{\link{hclust}}, \code{d}
-may be an object of class \code{dist}. In such a case, the \code{objects}
-argument is ignored.
+For compatibility with \code{\link{hclust}}, \code{d} may be an object
+of class \code{dist}. In such a case, the \code{objects} argument is ignored.
 
 If \code{d} is an R function, then \code{objects} should be an R list.
 Here, \code{d(objects[[i]], objects[[j]])} gives the value of a pseudometric.
 
-If \code{objects} is a character vector or a list, then \code{d} is a single string,
-one of: \code{levenshtein} (or \code{NULL}), \code{dinu}.
-Note that the list must consist of integer vectors only.
-Each string will be converted to UTF-32 with \link{stri_enc_toutf32}.
+If \code{objects} is a character vector or a list, then \code{d}
+should be a single string, one of: \code{levenshtein} (or \code{NULL}),
+\code{dinu}. Note that the list must consist of integer vectors only.
+Each string will be converted to UTF-32 with \link[stringi]{stri_enc_toutf32}.
 
-Otherwise, if \code{objects} is a numeric matrix,
-then \code{d} is a single string, one of: \code{euclidean} (or \code{NULL}),
+Otherwise, if \code{objects} is a numeric matrix, then \code{d} should be
+a single string, one of: \code{euclidean} (or \code{NULL}),
 \code{manhattan}, \code{maximum}, or \code{hamming}.
 }
 

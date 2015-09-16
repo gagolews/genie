@@ -1,8 +1,8 @@
-Package: DataStructures
+Package: grup
 Type: Package
-Title: General data structures and algorithms
+Title: Fast clustering algorithms
 Version: 1.0
-Date: 2015-09-03
+Date: 2015-09-16
 Authors@R: c(
     person("Maciej", "Bartoszuk", role = "aut",
     email = "bartoszuk@rexamine.com"),
@@ -11,8 +11,8 @@ Authors@R: c(
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com")
     )
-Description: Provides various data structures, like stack, queue,
-    Vintage Point metric tree (vp-tree), etc.
+Description: Fast exact and approximate single linkage hierarchical clustering
+    algorithms in arbitrary finite pseudometric spaces.
 License: GPL (>= 3)
 Imports: Rcpp (>= 0.12.0), stringi (>= 0.5-9000)
 LinkingTo: Rcpp (>= 0.12.0), BH, stringi (>= 0.5-9000)

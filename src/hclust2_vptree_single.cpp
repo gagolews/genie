@@ -1,20 +1,20 @@
 /* ************************************************************************* *
- *   This file is part of the `DataStructures` package.                      *
+ *   This file is part of the `grup` package.                                *
  *                                                                           *
  *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
  *                                                                           *
- *   'DataStructures' is free software: you can redistribute it and/or       *
+ *   'grup' is free software: you can redistribute it and/or                 *
  *   modify it under the terms of the GNU Lesser General Public License      *
  *   as published by the Free Software Foundation, either version 3          *
  *   of the License, or (at your option) any later version.                  *
  *                                                                           *
- *   'DataStructures' is distributed in the hope that it will be useful,     *
+ *   'grup' is distributed in the hope that it will be useful,               *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
  *   GNU Lesser General Public License for more details.                     *
  *                                                                           *
  *   You should have received a copy of the GNU Lesser General Public        *
- *   License along with 'DataStructures'.                                    *
+ *   License along with 'grup'.                                              *
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
@@ -24,7 +24,7 @@
 using namespace Rcpp;
 using namespace std;
 using namespace boost;
-using namespace DataStructures;
+using namespace grup;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
@@ -223,11 +223,10 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
 //    else {
       if (dist < node->radius) {
          if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
-            double cutR = dist - node->radius;
+            // double cutR = dist - node->radius;
             //STOPIFNOT(maxR >= cutR);
             //STOPIFNOT(!(bestR.top() < cutR));
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
-
          }
 
          if (node->childR && index < node->childR->maxindex) {
@@ -246,11 +245,10 @@ void HClustVpTreeSingle::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
       }
       else /* ( dist >= node->radius ) */ {
          if (node->childR && index < node->childR->maxindex) {
-            double cutR = node->radius - dist;
+            // double cutR = node->radius - dist;
             //STOPIFNOT(maxR >= cutR);
             //STOPIFNOT(!(bestR.top() < cutR));
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
-
          }
 
          if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {

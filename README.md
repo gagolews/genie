@@ -1,11 +1,6 @@
-# DataStructures
+# grup
 
-[![Build Status](https://travis-ci.org/Rexamine/DataStructures.png?branch=master)](https://travis-ci.org/Rexamine/DataStructures)
+Fast exact and approximate single linkage hierarchical clustering algorithms
+in arbitrary finite pseudometric spaces
 
-General data structures and algorithms for use with R, including:
-
-* stack
-* queue
-* vp-tree (a metric tree)
-
-Authors: Maciej Bartoszuk, Marek Gagolewski
+Authors: Maciej Bartoszuk, Anna Cena, and Marek Gagolewski
