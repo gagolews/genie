@@ -31,3 +31,30 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// medoid_approx
+RObject medoid_approx(RObject distance, RObject objects, int iters, int nntry);
+RcppExport SEXP grup_medoid_approx(SEXP distanceSEXP, SEXP objectsSEXP, SEXP itersSEXP, SEXP nntrySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< int >::type iters(itersSEXP);
+    Rcpp::traits::input_parameter< int >::type nntry(nntrySEXP);
+    __result = Rcpp::wrap(medoid_approx(distance, objects, iters, nntry));
+    return __result;
+END_RCPP
+}
+// medoid_exact
+RObject medoid_exact(RObject distance, RObject objects, bool limit);
+RcppExport SEXP grup_medoid_exact(SEXP distanceSEXP, SEXP objectsSEXP, SEXP limitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< bool >::type limit(limitSEXP);
+    __result = Rcpp::wrap(medoid_exact(distance, objects, limit));
+    return __result;
+END_RCPP
+}

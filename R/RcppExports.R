@@ -9,3 +9,11 @@
     .Call('grup_hclust2_single_approx', PACKAGE = 'grup', distance, objects, control)
 }
 
+medoid_approx <- function(distance, objects, iters = 15L, nntry = 5L) {
+    .Call('grup_medoid_approx', PACKAGE = 'grup', distance, objects, iters, nntry)
+}
+
+medoid_exact <- function(distance, objects, limit = TRUE) {
+    .Call('grup_medoid_exact', PACKAGE = 'grup', distance, objects, limit)
+}
+
