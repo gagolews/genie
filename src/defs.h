@@ -34,7 +34,7 @@
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
-#define VERBOSE 5
+#define VERBOSE 0
 
 // #define DISJOINT_SETS_DEBUG
 #define MEASURE_MEM_USE
