@@ -1,3 +1,4 @@
+#PKG_LIBS= -lboost_iostreams -lboost_serialization
 PKG_CXXFLAGS = -Wall -pedantic # temporary
 CXX_STD = CXX11
 #PKG_CXXFLAGS += $(SHLIB_OPENMP_CXXFLAGS)
