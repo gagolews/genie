@@ -35,17 +35,20 @@
 #' @export
 hclust2 <- function(
       d=NULL,
-      method=c("single", "single_approx"), # , "complete", "exemplar", "exemplar_naive"
+      method=c("single", "single_approx", "exemplar", "exemplar2", 
+               "exemplar_approx", "exemplar_naive"), # , "complete", "exemplar", "exemplar_naive"
       objects=NULL,
       ...)
 {
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
-      single_approx=.hclust2_single_approx(d, objects, ...)
+      single_approx=.hclust2_single_approx(d, objects, ...),
 #       complete=.hclust2_complete(d, objects, ...),
-#       exemplar=.hclust2_exemplar(d, objects, ...),
-#       exemplar_naive=.hclust2_exemplar_naive(d, objects, ...)
+      exemplar=.hclust2_exemplar(d, objects, ...),
+      exemplar2=.hclust2_exemplar2(d, objects, ...),
+      exemplar_approx=.hclust2_exemplar_approx(d, objects, ...),
+      exemplar_naive=.hclust2_exemplar_naive(d, objects, ...)
    )
    result[["call"]] <- match.call()
    result[["method"]] <- method

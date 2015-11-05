@@ -36,6 +36,13 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
 
+      if (control2.containsElementNamed("exemplar")) {
+         Rcpp::CharacterVector ex = Rcpp::clone(Rcpp::as<Rcpp::CharacterVector>(control2["exemplar"]));
+         const char* exc = CHAR(STRING_ELT((SEXP)ex, 0));
+         exemplar = std::string(exc);
+         //Rcpp::CharacterVector exemplar = Rcpp::CharacterVector(control2["exemplar"]);
+      }
+
       if (control2.containsElementNamed("maxLeavesElems")) {
          maxLeavesElems = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["maxLeavesElems"])[0];
       }
