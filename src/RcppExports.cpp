@@ -5,19 +5,6 @@
 
 using namespace Rcpp;
 
-// hclust2_single
-RObject hclust2_single(RObject distance, RObject objects, RObject control);
-RcppExport SEXP grup_hclust2_single(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
-    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
-    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
-    __result = Rcpp::wrap(hclust2_single(distance, objects, control));
-    return __result;
-END_RCPP
-}
 // hclust2_single_approx
 RObject hclust2_single_approx(RObject distance, RObject objects, RObject control);
 RcppExport SEXP grup_hclust2_single_approx(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
@@ -28,6 +15,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
     Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
     __result = Rcpp::wrap(hclust2_single_approx(distance, objects, control));
+    return __result;
+END_RCPP
+}
+// hclust2_single
+RObject hclust2_single(RObject distance, RObject objects, RObject control);
+RcppExport SEXP grup_hclust2_single(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(hclust2_single(distance, objects, control));
     return __result;
 END_RCPP
 }
@@ -42,6 +42,36 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type iters(itersSEXP);
     Rcpp::traits::input_parameter< int >::type nntry(nntrySEXP);
     __result = Rcpp::wrap(medoid_approx(distance, objects, iters, nntry));
+    return __result;
+END_RCPP
+}
+// medoid_approx_prl
+RObject medoid_approx_prl(RObject distance, RObject objects, size_t nr, size_t nt);
+RcppExport SEXP grup_medoid_approx_prl(SEXP distanceSEXP, SEXP objectsSEXP, SEXP nrSEXP, SEXP ntSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< size_t >::type nr(nrSEXP);
+    Rcpp::traits::input_parameter< size_t >::type nt(ntSEXP);
+    __result = Rcpp::wrap(medoid_approx_prl(distance, objects, nr, nt));
+    return __result;
+END_RCPP
+}
+// medoid_approx_prl_ours
+RObject medoid_approx_prl_ours(RObject distance, RObject objects, size_t nr, size_t nt, size_t iters, size_t nntry);
+RcppExport SEXP grup_medoid_approx_prl_ours(SEXP distanceSEXP, SEXP objectsSEXP, SEXP nrSEXP, SEXP ntSEXP, SEXP itersSEXP, SEXP nntrySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< size_t >::type nr(nrSEXP);
+    Rcpp::traits::input_parameter< size_t >::type nt(ntSEXP);
+    Rcpp::traits::input_parameter< size_t >::type iters(itersSEXP);
+    Rcpp::traits::input_parameter< size_t >::type nntry(nntrySEXP);
+    __result = Rcpp::wrap(medoid_approx_prl_ours(distance, objects, nr, nt, iters, nntry));
     return __result;
 END_RCPP
 }
