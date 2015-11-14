@@ -105,7 +105,7 @@ public:
    Distance(size_t n);
    virtual ~Distance();
    inline size_t getObjectCount() { return n; }
-   static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects);
+   static Distance* createDistance(Rcpp::RObject distance, Rcpp::RObject objects, Rcpp::RObject control=R_NilValue);
 
    virtual Rcpp::RObject getLabels() { /* stub */ return R_NilValue; }
    virtual Rcpp::RObject getDistMethod() { /* stub */ return R_NilValue; }
@@ -350,6 +350,47 @@ public:
    virtual ~DistObjectDistance()  {
       R_ReleaseObject(robj1);
    }
+};
+
+class VariableLengthNumericDistance : public Distance
+{
+protected:
+  const double** items;
+  size_t* lengths;
+  SEXP robj;
+  
+  void constructFromList_robj();
+  
+public:
+  virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
+  
+  // VariableLengthNumericDistance(const Rcpp::CharacterVector& strings);
+  VariableLengthNumericDistance(const Rcpp::List& vectors);
+  virtual ~VariableLengthNumericDistance();
+};
+
+
+class Euclinf : public VariableLengthNumericDistance
+{
+protected:
+  double p;
+  double r;
+  virtual double compute(size_t v1, size_t v2);
+  
+public:
+  virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclinf"); }
+  
+  Euclinf(const Rcpp::List& vectors, double p, double r) :
+  VariableLengthNumericDistance(vectors),
+  p(p),
+  r(r)
+  {
+  }
+  
+  virtual ~Euclinf() {
+
+  }
+  
 };
 
 } // namespace grup

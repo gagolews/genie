@@ -27,7 +27,7 @@
 RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilValue) {
    MESSAGE_2("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
    RObject result(R_NilValue);
-   grup::Distance* dist = grup::Distance::createDistance(distance, objects);
+   grup::Distance* dist = grup::Distance::createDistance(distance, objects, control);
 
    try { /* Rcpp::checkUserInterrupt(); may throw an exception */
 

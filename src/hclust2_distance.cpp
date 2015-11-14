@@ -244,7 +244,7 @@ double Distance::operator()(size_t v1, size_t v2)
 #endif
 
 
-Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects)
+Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects, Rcpp::RObject control)
 {
    if (Rf_isVectorList(objects) && Rf_isFunction(distance))
    {
@@ -262,6 +262,39 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
             new grup::DistObjectDistance(
                (Rcpp::NumericVector)distance
             );
+   }
+   else if(Rf_isVectorList(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
+   {
+     Rcpp::List objects2(objects);
+     Rcpp::CharacterVector distance2 =
+       ((Rf_isNull(distance))?Rcpp::CharacterVector("euclinf"):Rcpp::CharacterVector(distance));
+     const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
+     if (!strcmp(distance3, "euclinf")) {
+       Rcpp::List control2(control);
+       double p, r;
+       if (control2.containsElementNamed("p")) {
+         p = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["p"])[0];
+       }
+       else
+         Rcpp::stop("In euclinf p should be given.");
+       if (control2.containsElementNamed("r")) {
+         r = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["r"])[0];
+       }
+       else
+         Rcpp::stop("In euclinf r should be given.");
+       
+       return (grup::Distance*)
+         new grup::Euclinf(
+             objects2,
+             p,
+             r
+         );
+     }
+     else {
+       Rcpp::stop("`distance` should be one of: \"euclinf\" (default)");
+     }
+     
+     
    }
    else if ((Rf_isVectorList(objects) || Rf_isString(objects)) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
@@ -528,4 +561,63 @@ double DinuDistance::compute(size_t v1, size_t v2)
 
    return d;
 }
+
+void VariableLengthNumericDistance::constructFromList_robj()
+{
+  items = new const double*[n];
+  lengths = new size_t[n];
+  
+  for (size_t i=0; i<n; ++i) {
+    SEXP cur = VECTOR_ELT(robj, i);
+    if (!Rf_isReal(cur))
+      Rcpp::stop("only real vectors are allowed in the input list; check for NULLs, NAs, etc.");
+    lengths[i] = LENGTH(cur);
+    items[i] = REAL(cur);
+    
+    for (size_t j=0; j<lengths[i]; ++j)
+      if (items[i][j] == NA_REAL)
+        Rcpp::stop("missing values in input objects are not allowed");
+  }
+  
+}
+
+
+VariableLengthNumericDistance::VariableLengthNumericDistance(const Rcpp::List& vectors) :
+  Distance(vectors.size()),
+  robj()
+{
+  R_PreserveObject(robj = (SEXP)vectors);
+  constructFromList_robj();
+}
+
+
+// VariableLengthNumericDistance::VariableLengthNumericDistance(const Rcpp::CharacterVector& vectors) :
+//   Distance(vectors.size())
+// {
+//   R_PreserveObject(robj = stri_enc_toutf32((SEXP)vectors));
+//   constructFromList_robj();
+// }
+
+
+VariableLengthNumericDistance::~VariableLengthNumericDistance() {
+  delete [] items;
+  delete [] lengths;
+  R_ReleaseObject(robj);
+}
+
+double Euclinf::compute(size_t v1, size_t v2)
+{
+  const double* x = items[v1];
+  const double* y = items[v2];
+  size_t nx = lengths[v1];
+  size_t ny = lengths[v2];
+  double dist = 0.0;
+  int min_nx_ny = std::min(nx, ny);
+  for (int i=0; i<min_nx_ny;  ++i) dist += (x[i]-y[i])*(x[i]-y[i]);
+  for (int i=min_nx_ny; i<nx; ++i) dist += x[i]*x[i];
+  for (int i=min_nx_ny; i<ny; ++i) dist += y[i]*y[i];
+  dist += p*abs(std::pow(nx, r)-std::pow(ny, r));
+  return dist;
+}
+
 
