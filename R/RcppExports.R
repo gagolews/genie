@@ -5,10 +5,6 @@
     .Call('grup_hclust2_exemplar_naive', PACKAGE = 'grup', distance, objects, control)
 }
 
-.hclust2_exemplar_approx <- function(distance, objects, control = NULL) {
-    .Call('grup_hclust2_exemplar_approx', PACKAGE = 'grup', distance, objects, control)
-}
-
 .hclust2_exemplar <- function(distance, objects, control = NULL) {
     .Call('grup_hclust2_exemplar', PACKAGE = 'grup', distance, objects, control)
 }
@@ -17,16 +13,20 @@
     .Call('grup_hclust2_exemplar2', PACKAGE = 'grup', distance, objects, control)
 }
 
+.hclust2_exemplar_approx <- function(distance, objects, control = NULL) {
+    .Call('grup_hclust2_exemplar_approx', PACKAGE = 'grup', distance, objects, control)
+}
+
 .hclust2_nntest_single_approx <- function(distance, objects, control = NULL) {
     .Call('grup_hclust2_nntest_single_approx', PACKAGE = 'grup', distance, objects, control)
 }
 
-.hclust2_single_approx <- function(distance, objects, control = NULL) {
-    .Call('grup_hclust2_single_approx', PACKAGE = 'grup', distance, objects, control)
-}
-
 .hclust2_single <- function(distance, objects, control = NULL) {
     .Call('grup_hclust2_single', PACKAGE = 'grup', distance, objects, control)
+}
+
+.hclust2_single_approx <- function(distance, objects, control = NULL) {
+    .Call('grup_hclust2_single_approx', PACKAGE = 'grup', distance, objects, control)
 }
 
 medoid_approx <- function(distance, objects, iters = 15L, nntry = 5L) {

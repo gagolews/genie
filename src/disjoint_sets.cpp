@@ -75,11 +75,13 @@ std::size_t DisjointSets::union_set(std::size_t x, std::size_t y) {
 PhatDisjointSets::PhatDisjointSets(std::size_t n) :
    DisjointSets(n),
    clusterSize(std::vector< std::size_t >(n, 1)),
-   clusterCount(n),
    clusterMembers(n),
    clusterNext(std::vector< std::size_t >(n)),
    clusterPrev(std::vector< std::size_t >(n))
 {
+   clusterCount = n;
+   minClusterSize = 1;
+   minClusterCount = n;
    for (std::size_t i=0; i<n; ++i) {
       clusterMembers[i] = (std::size_t*)malloc(sizeof(std::size_t)*1);
       clusterMembers[i][0] = i;
@@ -105,6 +107,8 @@ PhatDisjointSets::~PhatDisjointSets()
 
 std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
 {
+   std::size_t sizex = getClusterSize(x);
+   std::size_t sizey = getClusterSize(y);
    std::size_t z = DisjointSets::link(x, y);
 #ifdef DISJOINT_SETS_DEBUG
    STOPIFNOT(z == x);
@@ -132,6 +136,10 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y)
    // clusterMembers[z]->splice(clusterMembers[z]->end(), *(clusterMembers[y])); // O(1)
 
    --clusterCount;
+   if (minClusterCount > 0 && sizex == minClusterSize) minClusterCount--;
+   if (minClusterCount > 0 && sizey == minClusterSize) minClusterCount--;
+   if (minClusterCount == 0) recomputeMinClusterSize();
+
    return z;
 }
 
@@ -192,5 +200,24 @@ std::size_t PhatDisjointSets::link(std::size_t x, std::size_t y, std::size_t z)
 
    --clusterCount;
    return z2;
+}
+
+
+
+void PhatDisjointSets::recomputeMinClusterSize() {
+   std::size_t start = find_set(0);
+   minClusterSize = getClusterSize(start);
+   minClusterCount = 1;
+   size_t curi = getClusterNext(start);
+   while (curi != start) {
+      std::size_t curSize = getClusterSize(curi);
+      if (curSize == minClusterSize)
+         minClusterCount++;
+      else if (curSize < minClusterSize) {
+         minClusterSize = curSize;
+         minClusterCount = 1;
+      }
+      curi = getClusterNext(curi);
+   }
 }
 

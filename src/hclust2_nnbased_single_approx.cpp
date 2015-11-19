@@ -20,6 +20,7 @@
 
 
 #include "hclust2_nnbased_single_approx.h"
+#include <cmath>
 
 using namespace Rcpp;
 using namespace std;
@@ -121,15 +122,9 @@ void HClustNNbasedSingleApprox::computePrefetch(HclustPriorityQueue& pq)
 #endif
    for (size_t i=0; i<n; i++)
    {
-#ifndef _OPENMP
-      Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
-#endif
       HeapNeighborItem hi=getNearestNeighbor(i);
       if (hi.index != SIZE_MAX)
       {
-#if !defined(_OPENMP)
-         MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
-#endif
 #ifdef _OPENMP
          omp_set_lock(&writelock);
 #endif
@@ -137,6 +132,11 @@ void HClustNNbasedSingleApprox::computePrefetch(HclustPriorityQueue& pq)
 #ifdef _OPENMP
          omp_unset_lock(&writelock);
 #endif
+      }
+
+      if (MASTER_OR_SINGLE_THREAD) {
+         if (i % 16 == 0) MESSAGE_7("\r             prefetch NN: %d / %d", i+1, n-1);
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
       }
    }
 #ifdef _OPENMP
@@ -146,6 +146,70 @@ void HClustNNbasedSingleApprox::computePrefetch(HclustPriorityQueue& pq)
 }
 
 
+// double computeGini(PhatDisjointSets& ds, size_t n) {
+//    // compute the Gini  coefficient
+//    std::size_t start = ds.find_set(0);
+//    double gini = 0.0;
+//    std::size_t curi = start;
+//    do {
+//       std::size_t curj = ds.getClusterNext(curi);
+//       while (curj != start) {
+//          gini += std::fabs((double)ds.getClusterSize(curi)-ds.getClusterSize(curj));
+//          curj = ds.getClusterNext(curj);
+//       }
+//       curi = ds.getClusterNext(curi);
+//    } while (curi != start);
+//    gini /= (n-1)*(double)ds.getClusterCount();
+//    return gini;
+// }
+
+
+void HClustNNbasedSingleApprox::linkAndRecomputeGini(double& lastGini, size_t s1, size_t s2)
+{
+   double size1 = ds.getClusterSize(s1);
+   double size2 = ds.getClusterSize(s2);
+   lastGini *= (n)*(double)(ds.getClusterCount()-1);
+   std::size_t curi = s1;
+   do {
+      double curs = ds.getClusterSize(curi);
+      lastGini -= std::fabs(curs-size1);
+      lastGini -= std::fabs(curs-size2);
+      lastGini += std::fabs(curs-size1-size2);
+      curi = ds.getClusterNext(curi);
+   } while (curi != s1);
+   lastGini += std::fabs(size2-size1);
+   lastGini -= std::fabs(size2-size1-size2);
+   lastGini -= std::fabs(size1-size1-size2);
+
+   ds.link(s1, s2);
+
+   lastGini /= (n)*(double)(ds.getClusterCount()-1);
+}
+
+
+// std::size_t getMinClusterSize(PhatDisjointSets& ds) {
+//    // static double ttot = 0.0;
+//    // double t0 = clock()/(float)CLOCKS_PER_SEC;
+//    std::size_t start = ds.find_set(0);
+//    std::size_t minsize = ds.getClusterSize(start);
+//    size_t curi = ds.getClusterNext(start);
+//    while (curi != start) {
+//       minsize = min(minsize, ds.getClusterSize(curi));
+//       curi = ds.getClusterNext(curi);
+//    }
+//    // ttot += (clock()/(float)CLOCKS_PER_SEC)-t0;
+//    // if (ds.getClusterCount() == 2) cerr << endl << ttot << endl;
+//    return minsize;
+// }
+
+
+#ifdef _OPENMP
+#define OPENMP_ONLY(x) {x;}
+#else
+#define OPENMP_ONLY(x)  ;
+#endif
+
+
 void HClustNNbasedSingleApprox::computeMerge(
       HclustPriorityQueue& pq,
       HClustResult& res)
@@ -153,124 +217,115 @@ void HClustNNbasedSingleApprox::computeMerge(
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 
    #ifdef _OPENMP
-      int threadMerge;
-      omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
-      omp_lock_t writelock; //critical section for pq
-      omp_init_lock(&writelock);
+   omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
+   omp_lock_t writelock; //critical section for pq
+   omp_init_lock(&writelock);
    #endif
 
-      volatile bool go=true;
-      volatile size_t i = 0;
+   double lastGini = 0.0;
+   double thresholdGini = 0.5; // TO DO: OPTION
+   bool go = true;
+   size_t i = 0;
+   std::size_t minsize = 1;
+   std::deque<HeapHierarchicalItem> pq_cache;
    #ifdef _OPENMP
-      #pragma omp parallel shared(go, i, pq, res, threadMerge)
+   #pragma omp parallel shared(go, i, pq, res, lastGini, pq_cache, minsize)
    #endif
-      while (go)
-      {
-   #ifdef _OPENMP
-         omp_set_lock(&writelock);
-   #endif
+   while (go)
+   {
+      STOPIFNOT(lastGini >= 0 && lastGini <= 1)
+      OPENMP_ONLY(omp_set_lock(&writelock))
+      // pq may be empty if we have all the elements in pq_cache
+      if (!pq.empty()) {
          HeapHierarchicalItem hhi = pq.top();
-
-         if (hhi.index2 == SIZE_MAX) {
-            pq.pop();
-   #ifdef _OPENMP
-            omp_unset_lock(&writelock);
-   #endif
-            HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
-            if (isfinite(hi.dist))
-            {
-   #ifdef _OPENMP
-               omp_set_lock(&writelock);
-   #endif
-               pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-   #ifdef _OPENMP
-               omp_unset_lock(&writelock);
-   #endif
-            }
-            continue;
-         }
-
          size_t s1 = ds.find_set(hhi.index1);
-         size_t s2 = ds.find_set(hhi.index2);
-
-         if (s1==s2)
-         {
+         size_t s2 = (hhi.index2 == SIZE_MAX)?s1:ds.find_set(hhi.index2);
+         if (s1 == s2) {
+            // Two cases are possible here:
+            //   a) (hhi.index2 == SIZE_MAX) <-- this was a "fake" PQ element
+            //   (used an estimate for the lower bound of the distance to the
+            //   next nearest neighbor);
+            //   b) we just got two elements in the same cluster;
+            // So now it's time to fetch the next "real" NN of hhi.index1
+            // the one we get will surely be s.t. s1 != s2
+            // the writelock is still in ON
             pq.pop();
-   #ifdef _OPENMP
-            omp_unset_lock(&writelock);
-   #endif
-            STOPIFNOT(hhi.index1 < hhi.index2);
-            HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
-            STOPIFNOT(hhi.index1 < hi.index);
-            if (isfinite(hi.dist))
-            {
-   #ifdef _OPENMP
-               omp_set_lock(&writelock);
-   #endif
+            OPENMP_ONLY(omp_unset_lock(&writelock))
+            HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
+            if (isfinite(hi.dist)) {
+               OPENMP_ONLY(omp_set_lock(&writelock))
                pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-   #ifdef _OPENMP
-               omp_unset_lock(&writelock);
-   #endif
+               OPENMP_ONLY(omp_unset_lock(&writelock))
             }
             continue;
          }
 
-   #ifdef _OPENMP
-         omp_unset_lock(&writelock); //different threads will be unable to put data into pq without it
-         #pragma omp barrier
-         #pragma omp single
-   #endif
-         {
-   #ifdef _OPENMP
-            threadMerge = omp_get_thread_num();
-   #endif
-            hhi = pq.top(); //it can change, because other threads can push something
+         STOPIFNOT(s1 != s2)
+         // if lastGini is above thresholdGini, we are only interested in
+         // pq elems that are from clusters of size equal to minsize
+         if (lastGini > thresholdGini &&
+               ds.getClusterSize(s1) > minsize &&
+               ds.getClusterSize(s2) > minsize) {
+            // the writelock is still in ON
+            pq_cache.push_back(hhi);
             pq.pop();
-            s1 = ds.find_set(hhi.index1);
-            s2 = ds.find_set(hhi.index2);
-            STOPIFNOT(s1 != s2);
-            STOPIFNOT(hhi.index1 < hhi.index2);
-
-            res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
-            ds.link(s1, s2);
-
-            ++i;
-            if (i == n-1)
-               go = false;/* avoids computing unnecessary nn */
-
-         }
-   #ifdef _OPENMP
-
-         if(threadMerge == omp_get_thread_num())
-   #endif
-         {
-            if(go) {
-               STOPIFNOT(hhi.index1 < hhi.index2);
-               HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
-               STOPIFNOT(hhi.index1 < hi.index);
-               if (isfinite(hi.dist))
-               {
-   #ifdef _OPENMP
-                  omp_set_lock(&writelock);
-   #endif
-                  pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-   #ifdef _OPENMP
-                  omp_unset_lock(&writelock);
-   #endif
-               }
-            }
-         } // #pragma omp single
-         if (MASTER_OR_SINGLE_THREAD) {
-            if (i % 512 == 0) MESSAGE_7("\r             merge clusters: %d / %d", i+1, n-1);
-            Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+            OPENMP_ONLY(omp_unset_lock(&writelock))
+            continue;
          }
       }
+      // THREAD BARRIER FOLLOWS
+      // all the threads no longer work
+      // if we got here, then either we got a merge candidate,
+      // or pq is empty
+
+      #ifdef _OPENMP
+      omp_unset_lock(&writelock);
+      #pragma omp barrier
+      #pragma omp single
+      #endif
+      {
+         std::size_t lastminsize = minsize;
+         if (!pq.empty()) {
+            HeapHierarchicalItem hhi = pq.top();
+            pq.pop();
+            STOPIFNOT(hhi.index2 != SIZE_MAX)
+            size_t s1 = ds.find_set(hhi.index1);
+            size_t s2 = ds.find_set(hhi.index2);
+            STOPIFNOT(s1 != s2)
+            STOPIFNOT(lastGini <= thresholdGini ||
+               (ds.getClusterSize(s1) == minsize || ds.getClusterSize(s2) == minsize))
+
+            linkAndRecomputeGini(lastGini, s1, s2);
+            res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
+            minsize = ds.getMinClusterSize();
+
+            if (++i == n-1)
+               go = false;
+            pq.push(HeapHierarchicalItem(hhi.index1, SIZE_MAX, hhi.dist)); // will be fetched in a moment
+         }
+
+         if (go && (pq.empty() || lastGini <= thresholdGini || minsize != lastminsize)) {
+            if (pq_cache.size() > 5) pq.reset(); // will call make_heap on next top()
+            while (!pq_cache.empty()) {
+               pq.push(pq_cache.back());
+               pq_cache.pop_back();
+            }
+         }
+      } // END OMP BARRIER SINGLE
+
+      if (MASTER_OR_SINGLE_THREAD) {
+         if (i % 512 == 0) MESSAGE_7("\r             merge clusters: %d / %d", i+1, n-1);
+         Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
+      }
+   } // END WHILE
+
    #ifdef _OPENMP
-      omp_destroy_lock(&writelock);
+   omp_destroy_lock(&writelock);
    #endif
-      MESSAGE_7("\r             merge clusters: %d / %d  \n", n-1, n-1);
-      Rcpp::checkUserInterrupt();
+   MESSAGE_7("\r             merge clusters: %d / %d  \n", n-1, n-1);
+   Rcpp::checkUserInterrupt();
 }
+
 
 HClustResult HClustNNbasedSingleApprox::compute()
 {

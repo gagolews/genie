@@ -282,7 +282,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
        }
        else
          Rcpp::stop("In euclinf r should be given.");
-       
+
        return (grup::Distance*)
          new grup::Euclinf(
              objects2,
@@ -293,8 +293,8 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
      else {
        Rcpp::stop("`distance` should be one of: \"euclinf\" (default)");
      }
-     
-     
+
+
    }
    else if ((Rf_isVectorList(objects) || Rf_isString(objects)) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
@@ -566,19 +566,19 @@ void VariableLengthNumericDistance::constructFromList_robj()
 {
   items = new const double*[n];
   lengths = new size_t[n];
-  
+
   for (size_t i=0; i<n; ++i) {
     SEXP cur = VECTOR_ELT(robj, i);
     if (!Rf_isReal(cur))
       Rcpp::stop("only real vectors are allowed in the input list; check for NULLs, NAs, etc.");
     lengths[i] = LENGTH(cur);
     items[i] = REAL(cur);
-    
+
     for (size_t j=0; j<lengths[i]; ++j)
       if (items[i][j] == NA_REAL)
         Rcpp::stop("missing values in input objects are not allowed");
   }
-  
+
 }
 
 
@@ -612,10 +612,10 @@ double Euclinf::compute(size_t v1, size_t v2)
   size_t nx = lengths[v1];
   size_t ny = lengths[v2];
   double dist = 0.0;
-  int min_nx_ny = std::min(nx, ny);
-  for (int i=0; i<min_nx_ny;  ++i) dist += (x[i]-y[i])*(x[i]-y[i]);
-  for (int i=min_nx_ny; i<nx; ++i) dist += x[i]*x[i];
-  for (int i=min_nx_ny; i<ny; ++i) dist += y[i]*y[i];
+  std::size_t min_nx_ny = std::min(nx, ny);
+  for (std::size_t i=0; i<min_nx_ny;  ++i) dist += (x[i]-y[i])*(x[i]-y[i]);
+  for (std::size_t i=min_nx_ny; i<nx; ++i) dist += x[i]*x[i];
+  for (std::size_t i=min_nx_ny; i<ny; ++i) dist += y[i]*y[i];
   dist += p*abs(std::pow(nx, r)-std::pow(ny, r));
   return dist;
 }

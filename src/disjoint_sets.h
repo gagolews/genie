@@ -65,10 +65,14 @@ public:
 class PhatDisjointSets : public DisjointSets {
 private:
    std::vector< std::size_t > clusterSize;
-   std::size_t clusterCount;
    std::vector< std::size_t* > clusterMembers;
    std::vector< std::size_t > clusterNext;
    std::vector< std::size_t > clusterPrev;
+   std::size_t clusterCount;
+   std::size_t minClusterSize;
+   std::size_t minClusterCount;
+
+   void recomputeMinClusterSize();
 
 public:
    PhatDisjointSets(std::size_t n);
@@ -78,6 +82,7 @@ public:
    virtual std::size_t link(std::size_t x, std::size_t y, std::size_t z);
 
    inline std::size_t getClusterCount() const { return clusterCount; }
+   inline std::size_t getMinClusterSize() const { return minClusterSize; }
 
    inline const std::size_t* getClusterMembers(std::size_t x) DISJOINT_SETS_DEBUG_CONST {
       #ifdef DISJOINT_SETS_DEBUG
