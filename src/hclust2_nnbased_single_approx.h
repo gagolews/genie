@@ -57,7 +57,7 @@ protected:
 
    HClustStats stats;
 
-   DisjointSets ds;
+   PhatDisjointSets ds;
    bool prefetch;
 
    HClustVpTreeSingleApprox vptree;
@@ -67,6 +67,7 @@ protected:
    void computePrefetch(HclustPriorityQueue& pq);
    void computeMerge(HclustPriorityQueue& pq, HClustResult& res);
 
+   void linkAndRecomputeGini(double& lastGini, size_t s1, size_t s2);
 
 public:
 

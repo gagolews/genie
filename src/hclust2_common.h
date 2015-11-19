@@ -122,6 +122,235 @@ struct HeapHierarchicalItem
 };
 
 
+// class HclustPriorityQueue {
+// private:
+//    struct BSTNode {
+//       BSTNode* left;
+//       BSTNode* right;
+//       HeapHierarchicalItem elem;
+//    };
+//
+//    BSTNode* root;
+//
+//    void rotateLeft(BSTNode** root) {
+//       STOPIFNOT(*root)
+//       if (!(*root)->left) return;
+//       BSTNode* oldroot = *root;
+//       *root = oldroot->left;
+//       oldroot->left = (*root)->right;
+//       (*root)->right = oldroot;
+//    }
+//
+//    void rotateRight(BSTNode** root) {
+//       STOPIFNOT(*root)
+//       if (!(*root)->right) return;
+//       BSTNode* oldroot = *root;
+//       *root = oldroot->right;
+//       oldroot->right = (*root)->left;
+//       (*root)->left = oldroot;
+//    }
+//
+//    void deleteSubTree(BSTNode** root) {
+//       if (!*root) return;
+//       deleteSubTree(&(*root)->left);
+//       deleteSubTree(&(*root)->right);
+//       delete *root;
+//       *root = NULL;
+//    }
+//
+//    void deleteLeftmost(BSTNode** root) {
+//       STOPIFNOT(*root)
+//       if ((*root)->left) {
+//          deleteLeftmost(&(*root)->left);
+//       }
+//       else {
+//          BSTNode* delme = *root;
+//          *root = delme->right;
+//          delete delme;
+//       }
+//    }
+//
+//    void insert(BSTNode** root, const HeapHierarchicalItem& data) {
+//       if (*root) {
+//          if (data.dist < (*root)->elem.dist)
+//             insert(&(*root)->left, data);
+//          else
+//             insert(&(*root)->right, data);
+//
+//          double u = unif_rand();
+//          if (u < 0.33) rotateLeft(root);
+//          else if (u < 0.67) rotateRight(root);
+//       }
+//       else {
+//          *root = new BSTNode;
+//          (*root)->left = NULL;
+//          (*root)->right = NULL;
+//          (*root)->elem = data;
+//       }
+//    }
+//
+//
+// public:
+//    HclustPriorityQueue(std::size_t) { root = NULL; }
+//    const bool empty() const { return root == NULL; }
+//    ~HclustPriorityQueue() { deleteSubTree(&root); }
+//
+//    const HeapHierarchicalItem& top() {
+//       STOPIFNOT(root)
+//       while (root->left)
+//          rotateLeft(&root);
+//       return root->elem;
+//    }
+//
+//    void pop() {
+//       STOPIFNOT(root)
+//       deleteLeftmost(&root);
+//    }
+//
+//    void push(const HeapHierarchicalItem& data) {
+//       insert(&root, data);
+//    }
+//
+// };
+
+// class HclustPriorityQueue {
+// private:
+//
+//    std::vector<std::size_t> left;
+//    std::vector<std::size_t> right;
+//    std::vector<std::size_t> parent;
+//    std::vector<HeapHierarchicalItem> elem;
+//    std::vector<std::size_t> free;
+//    std::size_t occupied;
+//    std::size_t root;
+//    std::size_t best;
+//
+//    double check_sorted;
+//
+//    void print(std::size_t cur, std::size_t h) {
+//       if (cur == SIZE_MAX) return;
+//       print(left[cur], h+1);
+//       std::cerr << elem[cur].dist << "(" << h << "), ";
+//       print(right[cur], h+1);
+//    }
+//
+//    void checkSorted(std::size_t cur) {
+//       if (cur == SIZE_MAX) return;
+//       checkSorted(right[cur]);
+//       STOPIFNOT(check_sorted >= elem[cur].dist)
+//       check_sorted = elem[cur].dist;
+//       checkSorted(left[cur]);
+//    }
+//
+// public:
+//
+//    HclustPriorityQueue(std::size_t n) :
+//         left(n), right(n), parent(n), elem(n), free(n)
+//    {
+//       root = SIZE_MAX;
+//       occupied = 0;
+//       best = SIZE_MAX;
+//       for (std::size_t i=0; i<n; ++i)
+//          free[i] = i;
+//    }
+//
+//    ~HclustPriorityQueue() {  }
+//
+//    void print() { print(root, 1); }
+//    void checkSorted() { check_sorted = INFINITY; checkSorted(root); STOPIFNOT(check_sorted == elem[best].dist) }
+//
+//    void pop() {
+//       STOPIFNOT(best != SIZE_MAX)
+//       STOPIFNOT(left[best] == SIZE_MAX) // best has no left leaves
+//       free[--occupied] = best;
+//       STOPIFNOT(occupied >= 0)
+//       if (parent[best] == SIZE_MAX) {
+//          // it's a root
+//          best = root = right[best];
+//          parent[root] = SIZE_MAX;
+//          if (best != SIZE_MAX) {
+//             while (left[best] != SIZE_MAX)
+//                best = left[best];
+//          }
+//       }
+//       else { // parent[best] != SIZE_MAX
+//          STOPIFNOT(left[parent[best]] == best)
+//          STOPIFNOT(elem[parent[best]].dist >= elem[best].dist)
+//          STOPIFNOT(elem[root].dist >= elem[best].dist)
+//          if (right[best] == SIZE_MAX) {
+//             left[parent[best]] = SIZE_MAX;
+//             best = parent[best];
+//          }
+//          else { // right[best] != SIZE_MAX
+//             left[parent[best]] = right[best];
+//             parent[right[best]] = parent[best];
+//             best = right[best];
+//             while (left[best] != SIZE_MAX)
+//                best = left[best];
+//          }
+//       }
+//    }
+//
+//    inline const HeapHierarchicalItem& top() {
+//       STOPIFNOT(best != SIZE_MAX)
+//       return elem[best];
+//    }
+//
+//    void push(const HeapHierarchicalItem& data) {
+//       STOPIFNOT(occupied+1 < free.size())
+//       if (root == SIZE_MAX) {
+//          STOPIFNOT(occupied == 0)
+//          root = best = free[occupied++];
+//          right[root] = left[root] = parent[root] = SIZE_MAX;
+//          elem[root] = data;
+//          return;
+//       }
+//
+//       STOPIFNOT(best != SIZE_MAX)
+//       if (data.dist < elem[best].dist) {
+//          STOPIFNOT(left[best] == SIZE_MAX)
+//          left[best] = free[occupied++];
+//          parent[left[best]] = best;
+//          best = left[best];
+//          right[best] = left[best] = SIZE_MAX;
+//          elem[best] = data;
+//          return;
+//       }
+//
+//
+//       std::size_t start = root;
+//       while (true) {
+//          if (data.dist < elem[start].dist) {
+//             if (left[start] == SIZE_MAX) {
+//                left[start] = free[occupied++];
+//                parent[left[start]] = start;
+//                left[left[start]] = right[left[start]] = SIZE_MAX;
+//                elem[left[start]] = data;
+//                return;
+//             }
+//             else {
+//                start = left[start];
+//             }
+//          }
+//          else {
+//             if (right[start] == SIZE_MAX) {
+//                right[start] = free[occupied++];
+//                parent[right[start]] = start;
+//                left[right[start]] = right[right[start]] = SIZE_MAX;
+//                elem[right[start]] = data;
+//                return;
+//             }
+//             else {
+//                start = right[start];
+//             }
+//          }
+//       }
+//    }
+//
+//    inline bool empty() const { return root == SIZE_MAX; }
+// };
+
+
 class HclustPriorityQueue
 {
    size_t n;
@@ -158,6 +387,12 @@ public:
          std::push_heap(items.begin(), items.begin()+ncur);
       }
    }
+
+   bool empty() const {
+      return (ncur == 0);
+   }
+
+   void reset() { heapMade = false; }
 
 };
 

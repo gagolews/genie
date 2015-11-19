@@ -131,7 +131,8 @@ Rcpp::NumericVector HClustOptions::toR() const
       Rcpp::_["minNNMerge"]     = minNNMerge,
       Rcpp::_["vpSelectScheme"] = vpSelectScheme,
       Rcpp::_["vpSelectCand"]   = vpSelectCand,
-      Rcpp::_["vpSelectTest"]   = vpSelectTest
+      Rcpp::_["vpSelectTest"]   = vpSelectTest,
+      Rcpp::_["nodesVisitedLimit"]   = nodesVisitedLimit
    );
 }
 
