@@ -88,7 +88,7 @@ protected:
    size_t& n;
    Distance* distance;
    std::vector<size_t>& indices;
-   size_t nodesVisited;
+   //size_t nodesVisited;
 
    HClustVpTreeSingleNodeApprox* root;
    bool endOfSearching;
@@ -98,11 +98,11 @@ protected:
    HClustVpTreeSingleNodeApprox* buildFromPoints(size_t left, size_t right, std::vector<double>& distances);
 
    void getNearestNeighborsFromMinRadiusRecursive(HClustVpTreeSingleNodeApprox* node,
-      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap, size_t& nodesVisited);
    void getNearestNeighborsFromMinRadiusRecursiveLeaf(HClustVpTreeSingleNodeApprox* node,
-      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap, size_t& nodesVisited);
    void getNearestNeighborsFromMinRadiusRecursiveNonLeaf(HClustVpTreeSingleNodeApprox* node,
-      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
+      size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap, size_t& nodesVisited);
 
    void updateSameClusterFlag(HClustVpTreeSingleNodeApprox* node);
 
@@ -116,7 +116,7 @@ public:
    void build();
    void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap);
    void print();
-   inline void zeroNodesVisited(){nodesVisited=0;}
+   //inline void zeroNodesVisited(){nodesVisited=0;}
 
 }; // class
 

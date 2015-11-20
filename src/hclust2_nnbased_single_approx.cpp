@@ -72,7 +72,8 @@ HeapNeighborItem HClustNNbasedSingleApprox::getNearestNeighbor(size_t index, dou
 #endif
       ++stats.nnCals;
 #endif
-      vptree.zeroNodesVisited();
+      //vptree.zeroNodesVisited();
+      
       NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
       vptree.getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);
@@ -223,7 +224,7 @@ void HClustNNbasedSingleApprox::computeMerge(
    #endif
 
    double lastGini = 0.0;
-   double thresholdGini = 0.35; // TO DO: OPTION
+   double thresholdGini = 0.5; // TO DO: OPTION
    bool go = true;
    size_t i = 0;
    std::size_t minsize = 1;
