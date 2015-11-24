@@ -32,6 +32,7 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
    vpSelectCand = DEFAULT_VP_SELECT_CAND;
    vpSelectTest = DEFAULT_VP_SELECT_TEST;
    nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
+   thresholdGini = DEFAULT_THRESHOLD_GINI;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -78,9 +79,17 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
       if (control2.containsElementNamed("nodesVisitedLimit")) {
          nodesVisitedLimit = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["nodesVisitedLimit"])[0];
       }
+
+      if (control2.containsElementNamed("thresholdGini")) {
+         thresholdGini = (double)Rcpp::as<Rcpp::NumericVector>(control2["thresholdGini"])[0];
+      }
    }
 
-   if (maxLeavesElems < 2 || maxLeavesElems > 64) {
+   if (thresholdGini < 0.0 || thresholdGini > 1.0) {
+      thresholdGini = DEFAULT_THRESHOLD_GINI;
+      Rf_warning("wrong thresholdGini value. using default");
+   }
+   if (maxLeavesElems < 2 || maxLeavesElems > 512) {
       maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
       Rf_warning("wrong maxLeavesElems value. using default");
    }
@@ -132,7 +141,8 @@ Rcpp::NumericVector HClustOptions::toR() const
       Rcpp::_["vpSelectScheme"] = vpSelectScheme,
       Rcpp::_["vpSelectCand"]   = vpSelectCand,
       Rcpp::_["vpSelectTest"]   = vpSelectTest,
-      Rcpp::_["nodesVisitedLimit"]   = nodesVisitedLimit
+      Rcpp::_["nodesVisitedLimit"]   = nodesVisitedLimit,
+      Rcpp::_["thresholdGini"]   = thresholdGini
    );
 }
 

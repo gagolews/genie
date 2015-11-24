@@ -73,7 +73,7 @@ HeapNeighborItem HClustNNbasedSingleApprox::getNearestNeighbor(size_t index, dou
       ++stats.nnCals;
 #endif
       //vptree.zeroNodesVisited();
-      
+
       NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
       vptree.getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);
@@ -224,7 +224,6 @@ void HClustNNbasedSingleApprox::computeMerge(
    #endif
 
    double lastGini = 0.0;
-   double thresholdGini = 0.5; // TO DO: OPTION
    bool go = true;
    size_t i = 0;
    std::size_t minsize = 1;
@@ -264,7 +263,7 @@ void HClustNNbasedSingleApprox::computeMerge(
          STOPIFNOT(s1 != s2)
          // if lastGini is above thresholdGini, we are only interested in
          // pq elems that are from clusters of size equal to minsize
-         if (lastGini > thresholdGini &&
+         if (lastGini > opts.thresholdGini &&
                ds.getClusterSize(s1) > minsize &&
                ds.getClusterSize(s2) > minsize) {
             // the writelock is still in ON
@@ -293,7 +292,7 @@ void HClustNNbasedSingleApprox::computeMerge(
             size_t s1 = ds.find_set(hhi.index1);
             size_t s2 = ds.find_set(hhi.index2);
             STOPIFNOT(s1 != s2)
-            STOPIFNOT(lastGini <= thresholdGini ||
+            STOPIFNOT(lastGini <= opts.thresholdGini ||
                (ds.getClusterSize(s1) == minsize || ds.getClusterSize(s2) == minsize))
 
             linkAndRecomputeGini(lastGini, s1, s2);
@@ -305,7 +304,7 @@ void HClustNNbasedSingleApprox::computeMerge(
             pq.push(HeapHierarchicalItem(hhi.index1, SIZE_MAX, hhi.dist)); // will be fetched in a moment
          }
 
-         if (go && (pq.empty() || lastGini <= thresholdGini || minsize != lastminsize)) {
+         if (go && (pq.empty() || lastGini <= opts.thresholdGini || minsize != lastminsize)) {
             if (pq_cache.size() > 5) pq.reset(); // will call make_heap on next top()
             while (!pq_cache.empty()) {
                pq.push(pq_cache.back());
