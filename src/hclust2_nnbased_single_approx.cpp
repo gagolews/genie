@@ -295,13 +295,14 @@ void HClustNNbasedSingleApprox::computeMerge(
             STOPIFNOT(lastGini <= opts.thresholdGini ||
                (ds.getClusterSize(s1) == minsize || ds.getClusterSize(s2) == minsize))
 
+            res.link(indices[hhi.index1], indices[hhi.index2],
+               (lastGini <= opts.thresholdGini)?hhi.dist:-hhi.dist);
             linkAndRecomputeGini(lastGini, s1, s2);
-            res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
             minsize = ds.getMinClusterSize();
 
             if (++i == n-1)
                go = false;
-            pq.push(HeapHierarchicalItem(hhi.index1, SIZE_MAX, hhi.dist)); // will be fetched in a moment
+            pq.push(HeapHierarchicalItem(hhi.index1, SIZE_MAX, hhi.dist));
          }
 
          if (go && (pq.empty() || lastGini <= opts.thresholdGini || minsize != lastminsize)) {

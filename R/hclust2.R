@@ -35,7 +35,7 @@
 #' @export
 hclust2 <- function(
       d=NULL,
-      method=c("single", "single_approx", "exemplar", "exemplar2", 
+      method=c("single", "single_approx", "exemplar", "exemplar2",
                "exemplar_approx", "exemplar_naive"), # , "complete", "exemplar", "exemplar_naive"
       objects=NULL,
       ...)
@@ -52,5 +52,15 @@ hclust2 <- function(
    )
    result[["call"]] <- match.call()
    result[["method"]] <- method
+
+   if (any(result[["height"]]<0)) {
+      nonNegative <- which(result[["height"]]>=0)
+      lastNonNegative <- nonNegative[length(nonNegative)]
+      result[["height"]][1:lastNonNegative] <-
+         approx(nonNegative,
+            result[["height"]][nonNegative],
+            1:lastNonNegative)$y
+      result[["height"]][result[["height"]] < 0] <- cummax(-result[["height"]][result[["height"]] < 0])
+   }
    result
 }
