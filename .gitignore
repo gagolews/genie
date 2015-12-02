@@ -1,6 +1,8 @@
 # History files
 .Rhistory
 Rplots.pdf
+*_cache
+*_files
 
 # Example code in package build process
 *-Ex.R
