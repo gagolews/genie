@@ -148,16 +148,16 @@ HClustVpTreeSingleNodeApprox* HClustVpTreeSingleApprox::buildFromPoints(size_t l
    size_t vpi = indices[left];
    size_t median = (right + left) / 2;
 
-   double minD = INFINITY;
-   double maxD = -INFINITY;
-   for (size_t i=left+1; i<right; ++i)
-   {
-      distances[indices[i]] = (*distance)(vpi, indices[i]);
-      if(distances[indices[i]] < minD)
-         minD = distances[indices[i]];
-      if(distances[indices[i]] > maxD)
-         maxD = distances[indices[i]];
-   }
+//    double minD = INFINITY;
+//    double maxD = -INFINITY;
+//    for (size_t i=left+1; i<right; ++i)
+//    {
+//       distances[indices[i]] = (*distance)(vpi, indices[i]);
+//       if(distances[indices[i]] < minD)
+//          minD = distances[indices[i]];
+//       if(distances[indices[i]] > maxD)
+//          maxD = distances[indices[i]];
+//    }
 
    // std::sort(indices.begin()+left+1, indices.begin()+right, DistanceComparatorCached(&distances));
    std::nth_element(indices.begin()+left+1, indices.begin() + median, indices.begin()+right, DistanceComparatorCached(&distances));
@@ -169,8 +169,8 @@ HClustVpTreeSingleNodeApprox* HClustVpTreeSingleApprox::buildFromPoints(size_t l
 //    HClustVpTreeSingleNode* node = new HClustVpTreeSingleNode(vpi, left, left+1, (*distance)(vpi, indices[median]));
 
    HClustVpTreeSingleNodeApprox* node = new HClustVpTreeSingleNodeApprox(vpi, left, left+1, distances[indices[median]]);
-   node->minDist = minD;
-   node->maxDist = maxD;
+   // node->minDist = minD;
+   // node->maxDist = maxD;
 
    node->maxindex = left;
    if (median - left > 0) { // don't include vpi
@@ -187,13 +187,24 @@ HClustVpTreeSingleNodeApprox* HClustVpTreeSingleApprox::buildFromPoints(size_t l
    return node;
 }
 
-void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
+void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadius(size_t index,
+      size_t clusterIndex, double minR, NNHeap& nnheap)
+{
+   // BEGIN for testing only: naive method to fetch all NNs
+//    double maxR = INFINITY;
+//    for (size_t i=index+1; i<n; ++i) {
+//       size_t currentCluster = ds.find_set(i);
+//       if (currentCluster == clusterIndex) continue;
+//       double dist2 = (*distance)(indices[index], indices[i]); // the slow part
+//       if (dist2 > maxR || dist2 <= minR) continue;
+//       nnheap.insert(i, dist2, maxR);
+//    }
+   // END for testing only
    std::priority_queue<double> bestR;
    size_t minNN = (prefetch)?opts.minNNPrefetch:opts.minNNMerge;
    for (size_t i=0; i<minNN; ++i) bestR.push(INFINITY);
 
    double maxR = INFINITY;
-   endOfSearching = false;
    size_t nodesVisited = 0;
    getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, bestR, maxR, nnheap, nodesVisited);
 }
@@ -210,7 +221,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursive(HClustV
       ++stats.nodeVisit;
    #endif
 
-   if(endOfSearching) return;
+   // if(endOfSearching) return;
 
    if (!prefetch && node->sameCluster && clusterIndex == ds.find_set(node->left))
       return;
@@ -231,7 +242,7 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveLeaf(
 {
    STOPIFNOT(node->vpindex == SIZE_MAX);
    nodesVisited++;
-   if(nodesVisited >= opts.nodesVisitedLimit && nnheap.size() > opts.minNNPrefetch)
+   if (nodesVisited > opts.nodesVisitedLimit)
       return;
 
    if (!prefetch && !node->sameCluster) {
@@ -284,10 +295,10 @@ void HClustVpTreeSingleApprox::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
       nnheap.insert(node->left, dist, maxR);
       //if(nnheap.size() >= nnheap.maxNNPrefetch) endOfSearching = true;
    }
-   if(5 * node->maxDist < dist && node->sameCluster)
-   {
-      return;
-   }
+//    if(5 * node->maxDist < dist && node->sameCluster)
+//    {
+//       return;
+//    }
 //    if (visitAll) {
 //       if (node->childL && index < node->childL->maxindex)
 //          getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, maxR, nnheap);

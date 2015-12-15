@@ -6,7 +6,7 @@ Date: 2015-09-16
 Authors@R: c(
     person("Maciej", "Bartoszuk", role = "aut",
     email = "bartoszuk@rexamine.com"),
-    person("Anna", "Cena", role = "ctb",
+    person("Anna", "Cena", role = "aut",
     email = "cena@rexamine.com"),
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com")
@@ -14,9 +14,10 @@ Authors@R: c(
 Description: Fast exact and approximate single linkage hierarchical clustering
     algorithms in arbitrary finite pseudometric spaces.
 License: GPL (>= 3)
-Imports:
-    Rcpp (>= 0.12.0),
+Depends:
     stringi (>= 0.5-9000)
-LinkingTo: Rcpp (>= 0.12.0), BH, stringi (>= 0.5-9000)
+Imports:
+    Rcpp (>= 0.12.0)
+LinkingTo: Rcpp (>= 0.12.0), BH
 SystemRequirements: C++11
 RoxygenNote: 5.0.1

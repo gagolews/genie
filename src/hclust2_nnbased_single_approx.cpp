@@ -238,6 +238,7 @@ void HClustNNbasedSingleApprox::computeMerge(
       // pq may be empty if we have all the elements in pq_cache
       if (!pq.empty()) {
          HeapHierarchicalItem hhi = pq.top();
+         STOPIFNOT(isfinite(hhi.dist));
          size_t s1 = ds.find_set(hhi.index1);
          size_t s2 = (hhi.index2 == SIZE_MAX)?s1:ds.find_set(hhi.index2);
          if (s1 == s2) {

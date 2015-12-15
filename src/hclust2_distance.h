@@ -212,26 +212,52 @@ public:
       GenericMatrixDistance(points)  {   }
 };
 
+class StringDistanceDouble : public Distance
+{
+protected:
+  const double** items;
+  size_t* lengths;
+  SEXP robj;
 
-class StringDistance : public Distance
+public:
+  virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
+
+  StringDistanceDouble(const Rcpp::List& vectors);
+  virtual ~StringDistanceDouble();
+};
+
+
+class StringDistanceInt : public Distance
 {
 protected:
    const int** items;
    size_t* lengths;
    SEXP robj;
 
-   void constructFromList_robj();
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
+
+   StringDistanceInt(const Rcpp::List& strings);
+   virtual ~StringDistanceInt();
+};
+
+
+class StringDistanceChar : public Distance
+{
+protected:
+   const char** items;
+   size_t* lengths;
+   SEXP robj;
 
 public:
    virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
 
-   StringDistance(const Rcpp::CharacterVector& strings);
-   StringDistance(const Rcpp::List& strings);
-   virtual ~StringDistance();
+   StringDistanceChar(const Rcpp::CharacterVector& strings);
+   virtual ~StringDistanceChar();
 };
 
 
-class DinuDistance : public StringDistance
+class DinuDistanceInt : public StringDistanceInt
 {
 protected:
    struct Comparer {
@@ -246,54 +272,90 @@ protected:
 public:
    virtual Rcpp::RObject getDistMethod() { return Rf_mkString("dinu"); }
 
-   DinuDistance(const Rcpp::CharacterVector& strings) :
-         StringDistance(strings), ranks(n) {
+   DinuDistanceInt(const Rcpp::List& strings) :
+         StringDistanceInt(strings), ranks(n) {
       // TODO: openmp
       for (size_t i=0; i<n; ++i) {
          size_t ni = lengths[i];
          ranks[i].resize(ni);
          for (size_t j=0; j<ni; ++j) ranks[i][j] = j;
-         std::stable_sort(ranks[i].begin(), ranks[i].end(), DinuDistance::Comparer(items[i]));
+         std::stable_sort(ranks[i].begin(), ranks[i].end(), DinuDistanceInt::Comparer(items[i]));
       }
    }
+};
 
-   virtual ~DinuDistance() {  }
+class DinuDistanceChar : public StringDistanceChar
+{
+protected:
+   struct Comparer {
+      const char* v;
+      Comparer(const char* _v) { v = _v; }
+      bool operator()(const size_t& i, const size_t& j) const { return v[i] < v[j]; }
+   };
 
+   virtual double compute(size_t v1, size_t v2);
+   std::vector< std::vector<size_t> > ranks;
+
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("dinu"); }
+
+   DinuDistanceChar(const Rcpp::CharacterVector& strings) :
+         StringDistanceChar(strings), ranks(n) {
+      // TODO: openmp
+      for (size_t i=0; i<n; ++i) {
+         size_t ni = lengths[i];
+         ranks[i].resize(ni);
+         for (size_t j=0; j<ni; ++j) ranks[i][j] = j;
+         std::stable_sort(ranks[i].begin(), ranks[i].end(), DinuDistanceChar::Comparer(items[i]));
+      }
+   }
 };
 
 
 
-class LevenshteinDistance : public StringDistance
+class LevenshteinDistanceInt : public StringDistanceInt
 {
 protected:
    virtual double compute(size_t v1, size_t v2);
 
-#ifndef _OPENMP
-   // to be thread-safe, we have to allocate these 2 arrays each time...
-   size_t* v_cur;
-   size_t* v_last;
-#endif
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   LevenshteinDistanceInt(const Rcpp::List& strings) :
+         StringDistanceInt(strings) {   }
+};
+
+class LevenshteinDistanceChar : public StringDistanceChar
+{
+protected:
+   virtual double compute(size_t v1, size_t v2);
 
 public:
    virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   LevenshteinDistanceChar(const Rcpp::CharacterVector& strings) :
+         StringDistanceChar(strings) {   }
+};
 
-   LevenshteinDistance(const Rcpp::CharacterVector& strings) :
-         StringDistance(strings) {
-   #ifndef _OPENMP
-      size_t n2 = 0;
-      for (size_t i=0; i<n; ++i) if (lengths[i] > n2) n2 = lengths[i];
-      v_cur = new size_t[n2+1];
-      v_last = new size_t[n2+1];
-   #endif
-   }
 
-   virtual ~LevenshteinDistance() {
-   #ifndef _OPENMP
-      delete [] v_cur;
-      delete [] v_last;
-   #endif
-   }
+class HammingDistanceInt : public StringDistanceInt
+{
+protected:
+   virtual double compute(size_t v1, size_t v2);
 
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   HammingDistanceInt(const Rcpp::List& strings) :
+         StringDistanceInt(strings) {   }
+};
+
+class HammingDistanceChar : public StringDistanceChar
+{
+protected:
+   virtual double compute(size_t v1, size_t v2);
+
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   HammingDistanceChar(const Rcpp::CharacterVector& strings) :
+         StringDistanceChar(strings) {   }
 };
 
 
@@ -352,45 +414,26 @@ public:
    }
 };
 
-class VariableLengthNumericDistance : public Distance
-{
-protected:
-  const double** items;
-  size_t* lengths;
-  SEXP robj;
-  
-  void constructFromList_robj();
-  
-public:
-  virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj).attr("names"); }
-  
-  // VariableLengthNumericDistance(const Rcpp::CharacterVector& strings);
-  VariableLengthNumericDistance(const Rcpp::List& vectors);
-  virtual ~VariableLengthNumericDistance();
-};
 
 
-class Euclinf : public VariableLengthNumericDistance
+class Euclinf : public StringDistanceDouble
 {
 protected:
   double p;
   double r;
   virtual double compute(size_t v1, size_t v2);
-  
+
 public:
   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclinf"); }
-  
-  Euclinf(const Rcpp::List& vectors, double p, double r) :
-  VariableLengthNumericDistance(vectors),
-  p(p),
-  r(r)
-  {
-  }
-  
-  virtual ~Euclinf() {
 
-  }
-  
+  Euclinf(const Rcpp::List& vectors, double p, double r) :
+     StringDistanceDouble(vectors),
+     p(p),
+     r(r)
+  {  }
+
+  virtual ~Euclinf() {  }
+
 };
 
 } // namespace grup

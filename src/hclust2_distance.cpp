@@ -18,10 +18,11 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
+
+
 #include <algorithm>
 #include "hclust2_distance.h"
 using namespace grup;
-#include <stringi.h>
 
 
 // ------------------------------------------------------------------------
@@ -263,40 +264,43 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
                (Rcpp::NumericVector)distance
             );
    }
-   else if(Rf_isVectorList(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
+   else if (Rf_isVectorList(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
-     Rcpp::List objects2(objects);
-     Rcpp::CharacterVector distance2 =
-       ((Rf_isNull(distance))?Rcpp::CharacterVector("euclinf"):Rcpp::CharacterVector(distance));
-     const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
-     if (!strcmp(distance3, "euclinf")) {
-       Rcpp::List control2(control);
-       double p, r;
-       if (control2.containsElementNamed("p")) {
-         p = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["p"])[0];
-       }
-       else
-         Rcpp::stop("In euclinf p should be given.");
-       if (control2.containsElementNamed("r")) {
-         r = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["r"])[0];
-       }
-       else
-         Rcpp::stop("In euclinf r should be given.");
+      Rcpp::List objects2(objects);
+      Rcpp::CharacterVector distance2 =
+         ((Rf_isNull(distance))?Rcpp::CharacterVector("levenshtein"):Rcpp::CharacterVector(distance));
 
-       return (grup::Distance*)
-         new grup::Euclinf(
-             objects2,
-             p,
-             r
-         );
-     }
-     else {
-       Rcpp::stop("`distance` should be one of: \"euclinf\" (default)");
-     }
+      const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
+      if (!strcmp(distance3, "levenshtein")) {
+         return (grup::Distance*)new grup::LevenshteinDistanceInt(objects2);
+      }
+      else if (!strcmp(distance3, "dinu")) {
+         return (grup::Distance*)new grup::DinuDistanceInt(objects2);
+      }
+      else if (!strcmp(distance3, "hamming")) {
+         return (grup::Distance*)new grup::HammingDistanceInt(objects2);
+      }
+      else if (!strcmp(distance3, "euclinf")) {
+         Rcpp::List control2(control);
+         double p, r;
 
+         if (control2.containsElementNamed("p"))
+            p = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["p"])[0];
+         else
+            Rcpp::stop("In euclinf p should be given.");
 
+         if (control2.containsElementNamed("r"))
+            r = (size_t)Rcpp::as<Rcpp::NumericVector>(control2["r"])[0];
+         else
+            Rcpp::stop("In euclinf r should be given.");
+
+         return (grup::Distance*)new grup::Euclinf(objects2, p, r);
+      }
+      else {
+         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), \"dinu\", \"hamming\", \"euclinf\"");
+      }
    }
-   else if ((Rf_isVectorList(objects) || Rf_isString(objects)) && (Rf_isNull(distance) || Rf_isString(distance)))
+   else if (Rf_isString(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
    {
       Rcpp::CharacterVector objects2(objects);
       Rcpp::CharacterVector distance2 =
@@ -304,19 +308,16 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
 
       const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
       if (!strcmp(distance3, "levenshtein")) {
-         return (grup::Distance*)
-            new grup::LevenshteinDistance(
-               objects2
-            );
+         return (grup::Distance*)new grup::LevenshteinDistanceChar(objects2);
       }
       else if (!strcmp(distance3, "dinu")) {
-         return (grup::Distance*)
-            new grup::DinuDistance(
-               objects2
-            );
+         return (grup::Distance*)new grup::DinuDistanceChar(objects2);
+      }
+      else if (!strcmp(distance3, "hamming")) {
+         return (grup::Distance*)new grup::HammingDistanceChar(objects2);
       }
       else {
-         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), \"dinu\"");
+         Rcpp::stop("`distance` should be one of: \"levenshtein\" (default), \"dinu\", \"hamming\"");
       }
    }
    else if (Rf_isMatrix(objects) && Rf_isNumeric(objects) && (Rf_isNull(distance) || Rf_isString(distance)))
@@ -437,47 +438,6 @@ double GenericRDistance::compute(size_t v1, size_t v2)
 }
 
 
-void StringDistance::constructFromList_robj()
-{
-   items = new const int*[n];
-   lengths = new size_t[n];
-
-   for (size_t i=0; i<n; ++i) {
-      SEXP cur = VECTOR_ELT(robj, i);
-      if (!Rf_isInteger(cur))
-         Rcpp::stop("only integer vectors are allowed in the input list; check for NULLs, NAs, etc.");
-      lengths[i] = LENGTH(cur);
-      items[i] = INTEGER(cur);
-
-      for (size_t j=0; j<lengths[i]; ++j)
-         if (items[i][j] == NA_INTEGER)
-            Rcpp::stop("missing values in input objects are not allowed");
-   }
-}
-
-
-StringDistance::StringDistance(const Rcpp::List& strings) :
-   Distance(strings.size()),
-      robj()
-{
-   R_PreserveObject(robj = (SEXP)strings);
-   constructFromList_robj();
-}
-
-
-StringDistance::StringDistance(const Rcpp::CharacterVector& strings) :
-      Distance(strings.size())
-{
-   R_PreserveObject(robj = stri_enc_toutf32((SEXP)strings));
-   constructFromList_robj();
-}
-
-
-StringDistance::~StringDistance() {
-   delete [] items;
-   delete [] lengths;
-   R_ReleaseObject(robj);
-}
 
 
 double DistObjectDistance::compute(size_t v1, size_t v2)
@@ -494,22 +454,112 @@ double DistObjectDistance::compute(size_t v1, size_t v2)
 }
 
 
-double LevenshteinDistance::compute(size_t v1, size_t v2)
+
+
+// --------------------------------------------------------------------------------------------
+
+
+StringDistanceInt::StringDistanceInt(const Rcpp::List& strings) :
+   Distance(strings.size()),
+      robj()
 {
-   const int* s1 = items[v1];
-   const int* s2 = items[v2];
-   size_t n1 = lengths[v1];
-   size_t n2 = lengths[v2];
-   if (n1 < n2) {
+   R_PreserveObject(robj = (SEXP)strings);
+
+   items = new const int*[n];
+   lengths = new size_t[n];
+
+   for (size_t i=0; i<n; ++i) {
+      SEXP cur = VECTOR_ELT(robj, i);
+      if (!Rf_isInteger(cur))
+         Rcpp::stop("only integer vectors are allowed in the input list; check for NULLs, NAs, etc.");
+      lengths[i] = LENGTH(cur);
+      items[i] = INTEGER(cur);
+
+      for (size_t j=0; j<lengths[i]; ++j)
+         if (items[i][j] == NA_INTEGER)
+            Rcpp::stop("missing values in input objects are not allowed");
+   }
+}
+
+StringDistanceInt::~StringDistanceInt() {
+   delete [] items;
+   delete [] lengths;
+   R_ReleaseObject(robj);
+}
+
+
+
+StringDistanceChar::StringDistanceChar(const Rcpp::CharacterVector& strings) :
+   Distance(strings.size()),
+      robj()
+{
+   R_PreserveObject(robj = (SEXP)strings);
+
+   items = new const char*[n];
+   lengths = new size_t[n];
+
+   for (size_t i=0; i<n; ++i) {
+      SEXP cur = STRING_ELT(robj, i);
+      if (cur == NA_STRING)
+         Rcpp::stop("missing values are not allowed");
+      // if (Rf_getCharCE(cur) != CE_ANY)
+         // Rcpp::stop("only ASCII strings allowed. Try with stringi::stri_enc_toutf32()");
+      lengths[i] = LENGTH(cur);
+      items[i] = CHAR(cur);
+   }
+}
+
+StringDistanceChar::~StringDistanceChar() {
+   delete [] items;
+   delete [] lengths;
+   R_ReleaseObject(robj);
+}
+
+
+StringDistanceDouble::StringDistanceDouble(const Rcpp::List& vectors) :
+   Distance(vectors.size()),
+   robj()
+{
+   R_PreserveObject(robj = (SEXP)vectors);
+   items = new const double*[n];
+   lengths = new size_t[n];
+
+   for (size_t i=0; i<n; ++i) {
+      SEXP cur = VECTOR_ELT(robj, i);
+      if (!Rf_isReal(cur))
+      Rcpp::stop("only real vectors are allowed in the input list; check for NULLs, NAs, etc.");
+      lengths[i] = LENGTH(cur);
+      items[i] = REAL(cur);
+
+      for (size_t j=0; j<lengths[i]; ++j)
+         if (items[i][j] == NA_REAL)
+            Rcpp::stop("missing values in input objects are not allowed");
+   }
+}
+
+
+StringDistanceDouble::~StringDistanceDouble() {
+   delete [] items;
+   delete [] lengths;
+   R_ReleaseObject(robj);
+}
+
+
+
+// --------------------------------------------------------------------------------------------
+
+
+template<class T> double distance_levenshtein(const T* s1, const T* s2, size_t n1, size_t n2) {
+  if (n1 < n2) {
       std::swap(s1, s2); // pointer swap
       std::swap(n1, n2);
    }
 
-#ifdef _OPENMP
+// #ifdef _OPENMP
    // to be thread-safe, we have to allocate these 2 arrays each time...
    size_t* v_cur = new size_t[n2+1];
    size_t* v_last = new size_t[n2+1];
-#endif
+// #endif
 
    // n2 <= n1
    for (size_t j=0; j<=n2; ++j) v_cur[j] = j;
@@ -529,23 +579,55 @@ double LevenshteinDistance::compute(size_t v1, size_t v2)
    }
 
    double ret = (double) v_cur[n2];
-#ifdef _OPENMP
+// #ifdef _OPENMP
    delete [] v_cur;
    delete [] v_last;
-#endif
+// #endif
    return ret;
 }
 
 
-double DinuDistance::compute(size_t v1, size_t v2)
+double LevenshteinDistanceInt::compute(size_t v1, size_t v2)
 {
-   const int* x = items[v1];
-   const int* y = items[v2];
-   const size_t* ox = ranks[v1].data();
-   const size_t* oy = ranks[v2].data();
-   size_t nx = lengths[v1];
-   size_t ny = lengths[v2];
+   return distance_levenshtein(items[v1], items[v2], lengths[v1], lengths[v2]);
+}
 
+double LevenshteinDistanceChar::compute(size_t v1, size_t v2)
+{
+   return distance_levenshtein(items[v1], items[v2], lengths[v1], lengths[v2]);
+}
+
+
+// --------------------------------------------------------------------------------------------
+
+
+
+template<class T> double distance_hamming(const T* s1, const T* s2, size_t n1, size_t n2) {
+   if (n1 != n2)
+      Rcpp::stop("objects should be of the same dimension");
+
+   double d = 0.0;
+   for (size_t i=0; i<n1; ++i) {
+      if (s1[i] != s2[i]) d += 1.0;
+   }
+
+   return d;
+}
+
+
+double HammingDistanceInt::compute(size_t v1, size_t v2)
+{
+   return distance_hamming(items[v1], items[v2], lengths[v1], lengths[v2]);
+}
+
+double HammingDistanceChar::compute(size_t v1, size_t v2)
+{
+   return distance_hamming(items[v1], items[v2], lengths[v1], lengths[v2]);
+}
+
+// --------------------------------------------------------------------------------------------
+
+template<class T> double distance_dinu(const T* x, const T* y, const size_t* ox, const size_t* oy, size_t nx, size_t ny) {
    double d = 0.0;
    size_t ix = 0, iy = 0;
    while (ix < nx && iy < ny) {
@@ -562,48 +644,32 @@ double DinuDistance::compute(size_t v1, size_t v2)
    return d;
 }
 
-void VariableLengthNumericDistance::constructFromList_robj()
+
+double DinuDistanceInt::compute(size_t v1, size_t v2)
 {
-  items = new const double*[n];
-  lengths = new size_t[n];
+   const int* x = items[v1];
+   const int* y = items[v2];
+   const size_t* ox = ranks[v1].data();
+   const size_t* oy = ranks[v2].data();
+   size_t nx = lengths[v1];
+   size_t ny = lengths[v2];
 
-  for (size_t i=0; i<n; ++i) {
-    SEXP cur = VECTOR_ELT(robj, i);
-    if (!Rf_isReal(cur))
-      Rcpp::stop("only real vectors are allowed in the input list; check for NULLs, NAs, etc.");
-    lengths[i] = LENGTH(cur);
-    items[i] = REAL(cur);
-
-    for (size_t j=0; j<lengths[i]; ++j)
-      if (items[i][j] == NA_REAL)
-        Rcpp::stop("missing values in input objects are not allowed");
-  }
-
+   return distance_dinu(x, y, ox, oy, nx, ny);
 }
 
 
-VariableLengthNumericDistance::VariableLengthNumericDistance(const Rcpp::List& vectors) :
-  Distance(vectors.size()),
-  robj()
+double DinuDistanceChar::compute(size_t v1, size_t v2)
 {
-  R_PreserveObject(robj = (SEXP)vectors);
-  constructFromList_robj();
+   const char* x = items[v1];
+   const char* y = items[v2];
+   const size_t* ox = ranks[v1].data();
+   const size_t* oy = ranks[v2].data();
+   size_t nx = lengths[v1];
+   size_t ny = lengths[v2];
+
+   return distance_dinu(x, y, ox, oy, nx, ny);
 }
 
-
-// VariableLengthNumericDistance::VariableLengthNumericDistance(const Rcpp::CharacterVector& vectors) :
-//   Distance(vectors.size())
-// {
-//   R_PreserveObject(robj = stri_enc_toutf32((SEXP)vectors));
-//   constructFromList_robj();
-// }
-
-
-VariableLengthNumericDistance::~VariableLengthNumericDistance() {
-  delete [] items;
-  delete [] lengths;
-  R_ReleaseObject(robj);
-}
 
 double Euclinf::compute(size_t v1, size_t v2)
 {
@@ -616,7 +682,7 @@ double Euclinf::compute(size_t v1, size_t v2)
   for (std::size_t i=0; i<min_nx_ny;  ++i) dist += (x[i]-y[i])*(x[i]-y[i]);
   for (std::size_t i=min_nx_ny; i<nx; ++i) dist += x[i]*x[i];
   for (std::size_t i=min_nx_ny; i<ny; ++i) dist += y[i]*y[i];
-  dist += p*abs(std::pow(nx, r)-std::pow(ny, r));
+  dist += p*fabs(std::pow(nx, r)-std::pow(ny, r));
   return dist;
 }
 
