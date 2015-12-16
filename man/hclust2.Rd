@@ -4,19 +4,20 @@
 \alias{hclust2}
 \title{Faster Hierarchical Clustering in Pseudometric Spaces}
 \usage{
-hclust2(d = NULL, method = c("single", "single_approx", "exemplar",
-  "exemplar2", "exemplar_approx", "exemplar_naive"), objects = NULL, ...)
+hclust2(d = NULL, method = c("single", "gini", "exemplar", "exemplar2",
+  "exemplar_approx", "exemplar_naive"), objects = NULL, ...)
 }
 \arguments{
 \item{d}{an object of class \code{\link{dist}},
 \code{NULL}, an R function, or a single string}
 
 \item{method}{a single string,
-one of: \code{single}, \code{single_approx}}
+one of: \code{single}, \code{gini}}
 
 \item{objects}{\code{NULL}, numeric matrix, a list, or a character vector}
 
-\item{...}{internal tuning parameters}
+\item{...}{internal tuning parameters,
+e.g., \code{control=list(thresholdGini=0.3)} for the \code{gini} method.}
 }
 \value{
 A named list of class \code{hclust}, see \code{\link{hclust}},
@@ -35,8 +36,10 @@ Here, \code{d(objects[[i]], objects[[j]])} gives the value of a pseudometric.
 
 If \code{objects} is a character vector or a list, then \code{d}
 should be a single string, one of: \code{levenshtein} (or \code{NULL}),
-\code{dinu}. Note that the list must consist of integer vectors only.
-Each string will be converted to UTF-32 with \link[stringi]{stri_enc_toutf32}.
+\code{dinu}, \code{hamming}, \code{euclinf}. Note that the list must consist either
+of integer or of numeric vectors only (depending on the pseudometric of choice).
+Each string must be in ASCII, but you can always convert it to UTF-32 with
+\link[stringi]{stri_enc_toutf32}.
 
 Otherwise, if \code{objects} is a numeric matrix, then \code{d} should be
 a single string, one of: \code{euclidean} (or \code{NULL}),

@@ -57,6 +57,19 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// hclust2_gini
+RObject hclust2_gini(RObject distance, RObject objects, RObject control);
+RcppExport SEXP grup_hclust2_gini(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< RObject >::type distance(distanceSEXP);
+    Rcpp::traits::input_parameter< RObject >::type objects(objectsSEXP);
+    Rcpp::traits::input_parameter< RObject >::type control(controlSEXP);
+    __result = Rcpp::wrap(hclust2_gini(distance, objects, control));
+    return __result;
+END_RCPP
+}
 // hclust2_nntest_single_approx
 RObject hclust2_nntest_single_approx(RObject distance, RObject objects, RObject control);
 RcppExport SEXP grup_hclust2_nntest_single_approx(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {

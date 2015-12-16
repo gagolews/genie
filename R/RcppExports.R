@@ -17,6 +17,10 @@
     .Call('grup_hclust2_exemplar_approx', PACKAGE = 'grup', distance, objects, control)
 }
 
+.hclust2_gini <- function(distance, objects, control = NULL) {
+    .Call('grup_hclust2_gini', PACKAGE = 'grup', distance, objects, control)
+}
+
 .hclust2_nntest_single_approx <- function(distance, objects, control = NULL) {
     .Call('grup_hclust2_nntest_single_approx', PACKAGE = 'grup', distance, objects, control)
 }
