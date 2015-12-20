@@ -129,11 +129,11 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
       for (size_t j=i+1; j<n; ++j) {
          double dist2 = (*distance)(indices[i], indices[j]); // the slow part
 
-         OPENMP_ONLY(omp_set_lock(&writelocks[i]));
+         OPENMP_ONLY(omp_set_lock(&writelocks[i]))
          nnheaps[i].insert(j, dist2, maxR[i]);
          OPENMP_ONLY(omp_unset_lock(&writelocks[i]))
 
-         OPENMP_ONLY(omp_set_lock(&writelocks[j]));
+         OPENMP_ONLY(omp_set_lock(&writelocks[j]))
          nnheaps[j].insert(i, dist2, maxR[j]);
          OPENMP_ONLY(omp_unset_lock(&writelocks[j]))
       }
@@ -147,7 +147,6 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
    }
 
 #ifdef _OPENMP
-   std::vector<omp_lock_t> writelocks;
    for (size_t i=0; i<n; ++i) {
       omp_destroy_lock(&writelocks[i]);
    }
@@ -182,9 +181,9 @@ void HClustNNbasedGini::computePrefetch(HclustPriorityQueue& pq)
          if (MASTER_OR_SINGLE_THREAD) {
             if (i % 64 == 0) MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
          }
-         OPENMP_ONLY(omp_set_lock(&writelock));
+         OPENMP_ONLY(omp_set_lock(&writelock))
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
-         OPENMP_ONLY(omp_unset_lock(&writelock));
+         OPENMP_ONLY(omp_unset_lock(&writelock))
       }
    }
 #ifdef _OPENMP
@@ -252,11 +251,6 @@ void HClustNNbasedGini::linkAndRecomputeGini(double& lastGini, size_t s1, size_t
 // }
 
 
-#ifdef _OPENMP
-#define OPENMP_ONLY(x) {x;}
-#else
-#define OPENMP_ONLY(x)  ;
-#endif
 
 
 void HClustNNbasedGini::computeMerge(

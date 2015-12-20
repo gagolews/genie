@@ -31,10 +31,17 @@
 #define MASTER_OR_SINGLE_THREAD (1)
 #endif
 
+#ifdef _OPENMP
+#define OPENMP_ONLY(x) {x;}
+#else
+#define OPENMP_ONLY(x)  ;
+#endif
+
+
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
-#define VERBOSE 0
+#define VERBOSE 7
 
 // #define DISJOINT_SETS_DEBUG
 #define MEASURE_MEM_USE
