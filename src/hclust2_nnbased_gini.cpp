@@ -119,7 +119,7 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
    std::vector<double> maxR(n, INFINITY);
 
 #ifdef _OPENMP
-   std::vector<omp_lock_t> writelocks;
+   std::vector<omp_lock_t> writelocks(n);
    for (size_t i=0; i<n; ++i) {
       omp_init_lock(&writelocks[i]);
    }
