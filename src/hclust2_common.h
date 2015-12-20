@@ -407,7 +407,7 @@ struct NNHeap {
 // #endif
    NNHeap() :
          heap(),
-         maxNNPrefetch(1),
+         maxNNPrefetch(DEFAULT_MAX_NN_PREFETCH),
          exemplarsCount(0) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
@@ -589,6 +589,7 @@ struct HClustOptions
    size_t minNNPrefetch;    //
    size_t minNNMerge;       //
    std::string exemplar;      //
+   bool useVpTree;
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1

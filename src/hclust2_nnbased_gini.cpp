@@ -42,6 +42,11 @@ HClustNNbasedGini::HClustNNbasedGini(Distance* dist, RObject control) :
    #endif
       ds(dist->getObjectCount())
 {
+   if (opts.thresholdGini < 1.0)
+      symmetric = true;
+   else
+      symmetric = false;
+
    // starting indices: random permutation of {0,1,...,_n-1}
    for (size_t i=0;i<n;i++)
       indices[i] = i;
@@ -108,10 +113,58 @@ HeapNeighborItem HClustNNbasedGini::getNearestNeighbor(size_t index, double dist
 }
 
 
+void HClustNNbasedGini::prefetchNNsSymmetric()
+{
+   std::vector<NNHeap> nnheaps(n);
+   std::vector<double> maxR(n, INFINITY);
+
+#ifdef _OPENMP
+   std::vector<omp_lock_t> writelocks;
+   for (size_t i=0; i<n; ++i) {
+      omp_init_lock(&writelocks[i]);
+   }
+   #pragma omp parallel for schedule(dynamic)
+#endif
+   for (size_t i=0; i<n; ++i) {
+      for (size_t j=i+1; j<n; ++j) {
+         double dist2 = (*distance)(indices[i], indices[j]); // the slow part
+
+         OPENMP_ONLY(omp_set_lock(&writelocks[i]));
+         nnheaps[i].insert(j, dist2, maxR[i]);
+         OPENMP_ONLY(omp_unset_lock(&writelocks[i]))
+
+         OPENMP_ONLY(omp_set_lock(&writelocks[j]));
+         nnheaps[j].insert(i, dist2, maxR[j]);
+         OPENMP_ONLY(omp_unset_lock(&writelocks[j]))
+      }
+   }
+
+#ifdef _OPENMP
+   #pragma omp parallel for schedule(dynamic)
+#endif
+   for (size_t i=0; i<n; ++i) {
+      nnheaps[i].fill(nearestNeighbors[i]);
+   }
+
+#ifdef _OPENMP
+   std::vector<omp_lock_t> writelocks;
+   for (size_t i=0; i<n; ++i) {
+      omp_destroy_lock(&writelocks[i]);
+   }
+#endif
+
+}
+
+
 void HClustNNbasedGini::computePrefetch(HclustPriorityQueue& pq)
 {
    // INIT: Pre-fetch a few nearest neighbors for each point
    MESSAGE_2("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
+
+   if (symmetric && !opts.useVpTree)
+      prefetchNNsSymmetric();
+   else
+      ; /* use vp-tree or something else */
 
 #ifdef _OPENMP
    omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
@@ -129,13 +182,9 @@ void HClustNNbasedGini::computePrefetch(HclustPriorityQueue& pq)
          if (MASTER_OR_SINGLE_THREAD) {
             if (i % 64 == 0) MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
          }
-#ifdef _OPENMP
-         omp_set_lock(&writelock);
-#endif
+         OPENMP_ONLY(omp_set_lock(&writelock));
          pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
-#ifdef _OPENMP
-         omp_unset_lock(&writelock);
-#endif
+         OPENMP_ONLY(omp_unset_lock(&writelock));
       }
    }
 #ifdef _OPENMP

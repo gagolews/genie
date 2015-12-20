@@ -49,7 +49,7 @@ HClustVpTreeGini::~HClustVpTreeGini() {
 size_t HClustVpTreeGini::chooseNewVantagePoint(size_t left, size_t right)
 {
    if (opts.vpSelectScheme == 1) {
-      // idea by Yianilos (original vp-tree paper)
+      // idea by Yianilos (the original vp-tree paper)
       if (left + opts.vpSelectCand + opts.vpSelectTest > right)
          return left;
 
@@ -177,7 +177,7 @@ void HClustVpTreeGini::getNearestNeighborsFromMinRadiusRecursiveLeaf(
          size_t currentCluster = ds.find_set(i);
          if (currentCluster != commonCluster) commonCluster = SIZE_MAX;
          if (currentCluster == clusterIndex) continue;
-         if (index >= i) continue;
+         if (index == i || (!symmetric && index > i)) continue;
          double dist2 = (*distance)(indices[index], indices[i]); // the slow part
          if (dist2 > maxR || dist2 <= minR) continue;
          if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
@@ -189,7 +189,7 @@ void HClustVpTreeGini::getNearestNeighborsFromMinRadiusRecursiveLeaf(
    }
    else /* node->sameCluster */ {
       for (size_t i=node->left; i<node->right; ++i) {
-         if (index >= i) continue;
+         if (index == i || (!symmetric && index > i)) continue;
          double dist2 = (*distance)(indices[index], indices[i]); // the slow part
          if (dist2 > maxR || dist2 <= minR) continue;
          if (dist2 < bestR.top()) { bestR.pop(); bestR.push(dist2); }
@@ -208,7 +208,7 @@ void HClustVpTreeGini::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
 
    // first visit the vantage point
    double dist = (*distance)(indices[index], indices[node->left]); // the slow part
-   if (index < node->left && dist <= maxR && dist > minR &&
+   if (index != node->left && (symmetric || index < node->left) && dist <= maxR && dist > minR &&
          ds.find_set(node->left) != clusterIndex) {
       if (dist < bestR.top()) { bestR.pop(); bestR.push(dist); }
       nnheap.insert(node->left, dist, maxR);
@@ -222,14 +222,14 @@ void HClustVpTreeGini::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
 //    }
 //    else {
       if (dist < node->radius) {
-         if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+         if (node->childL && (symmetric || index < node->childL->maxindex) && dist + node->radius > minR) {
             // double cutR = dist - node->radius;
             //STOPIFNOT(maxR >= cutR);
             //STOPIFNOT(!(bestR.top() < cutR));
             getNearestNeighborsFromMinRadiusRecursive(node->childL, index, clusterIndex, minR, bestR, maxR, nnheap);
          }
 
-         if (node->childR && index < node->childR->maxindex) {
+         if (node->childR && (symmetric || index < node->childR->maxindex)) {
             double cutR = node->radius - dist;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {
@@ -244,14 +244,14 @@ void HClustVpTreeGini::getNearestNeighborsFromMinRadiusRecursiveNonLeaf(
          }
       }
       else /* ( dist >= node->radius ) */ {
-         if (node->childR && index < node->childR->maxindex) {
+         if (node->childR && (symmetric || index < node->childR->maxindex)) {
             // double cutR = node->radius - dist;
             //STOPIFNOT(maxR >= cutR);
             //STOPIFNOT(!(bestR.top() < cutR));
             getNearestNeighborsFromMinRadiusRecursive(node->childR, index, clusterIndex, minR, bestR, maxR, nnheap);
          }
 
-         if (node->childL && index < node->childL->maxindex && dist + node->radius > minR) {
+         if (node->childL && (symmetric || index < node->childL->maxindex) && dist + node->radius > minR) {
             double cutR = dist - node->radius;
             if (maxR >= cutR) {
                if (bestR.top() < cutR) {

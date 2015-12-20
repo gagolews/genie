@@ -67,12 +67,15 @@ protected:
 
    HClustStats stats;
 
+   bool symmetric;
+
    PhatDisjointSets ds;
    bool prefetch;
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
    HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
 
+   void prefetchNNsSymmetric();
    void computePrefetch(HclustPriorityQueue& pq);
    void computeMerge(HclustPriorityQueue& pq, HClustResult& res);
    void linkAndRecomputeGini(double& lastGini, size_t s1, size_t s2);

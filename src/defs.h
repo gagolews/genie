@@ -34,7 +34,7 @@
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
 #define GENERATE_STATS
-#define VERBOSE 7
+#define VERBOSE 0
 
 // #define DISJOINT_SETS_DEBUG
 #define MEASURE_MEM_USE
@@ -49,6 +49,7 @@
 #define DEFAULT_VP_SELECT_TEST 12
 #define DEFAULT_NODES_VISITED_LIMIT SIZE_MAX
 #define DEFAULT_THRESHOLD_GINI 0.3
+#define DEFAULT_USEVPTREE false
 // #define DEFAULT_GNAT_DEGREE 50
 // #define DEFAULT_GNAT_CANDIDATES_TIMES 3
 // #define DEFAULT_GNAT_MIN_DEGREE 2
