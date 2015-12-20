@@ -83,7 +83,7 @@ HeapNeighborItem HClustNNbasedGini::getNearestNeighbor(size_t index, double dist
       size_t newNeighborsCount = nearestNeighbors[index].size();
 
       neighborsCount[index] += newNeighborsCount;
-      if (neighborsCount[index] > n - index || newNeighborsCount == 0)
+      if (newNeighborsCount == 0)
          shouldFind[index] = false;
 
       if (newNeighborsCount > 0)
@@ -130,11 +130,13 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
          double dist2 = (*distance)(indices[i], indices[j]); // the slow part
 
          OPENMP_ONLY(omp_set_lock(&writelocks[i]))
-         nnheaps[i].insert(j, dist2, maxR[i]);
+         if (nnheaps[i].size() == 0 || dist2 <= nnheaps[i].top().dist)
+            nnheaps[i].insert(j, dist2, maxR[i]);
          OPENMP_ONLY(omp_unset_lock(&writelocks[i]))
 
          OPENMP_ONLY(omp_set_lock(&writelocks[j]))
-         nnheaps[j].insert(i, dist2, maxR[j]);
+         if (nnheaps[j].size() == 0 || dist2 <= nnheaps[j].top().dist)
+            nnheaps[j].insert(i, dist2, maxR[j]);
          OPENMP_ONLY(omp_unset_lock(&writelocks[j]))
       }
    }
@@ -144,6 +146,8 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
 #endif
    for (size_t i=0; i<n; ++i) {
       nnheaps[i].fill(nearestNeighbors[i]);
+      neighborsCount[i] += nearestNeighbors[i].size();
+      minRadiuses[i] = nearestNeighbors[i].back().dist;
    }
 
 #ifdef _OPENMP
