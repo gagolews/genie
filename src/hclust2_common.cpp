@@ -22,6 +22,9 @@
 
 using namespace grup;
 
+HClustOptions* NNHeap::opts = NULL;
+
+
 HClustOptions::HClustOptions(Rcpp::RObject control) {
    maxLeavesElems = DEFAULT_MAX_LEAVES_ELEMS;
    maxNNPrefetch = DEFAULT_MAX_NN_PREFETCH;

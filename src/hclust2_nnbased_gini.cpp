@@ -42,6 +42,8 @@ HClustNNbasedGini::HClustNNbasedGini(Distance* dist, RObject control) :
    #endif
       ds(dist->getObjectCount())
 {
+   NNHeap::setOptions(&opts);
+
    if (opts.thresholdGini < 1.0)
       symmetric = true;
    else
@@ -76,7 +78,7 @@ HeapNeighborItem HClustNNbasedGini::getNearestNeighbor(size_t index, double dist
 #endif
       ++stats.nnCals;
 #endif
-      NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
+      NNHeap nnheap;
       getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);
 
@@ -121,6 +123,7 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
 #ifdef _OPENMP
    std::vector<omp_lock_t> writelocks(n);
    for (size_t i=0; i<n; ++i) {
+      nnheaps[i].setMaxNNPrefetch(opts.maxNNPrefetch);
       omp_init_lock(&writelocks[i]);
    }
    #pragma omp parallel for schedule(dynamic)
@@ -346,6 +349,8 @@ void HClustNNbasedGini::computeMerge(
                (lastGini <= opts.thresholdGini)?hhi.dist:-hhi.dist);
             linkAndRecomputeGini(lastGini, s1, s2);
             minsize = ds.getMinClusterSize();
+
+            if (i > n-15) {Rcout << i << ": "; distance->getStats().print();}
 
             if (++i == n-1)
                go = false;

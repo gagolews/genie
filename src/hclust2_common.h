@@ -398,29 +398,70 @@ public:
 
 
 
+struct HClustOptions
+{
+//    size_t degree;           // for GNAT
+//    size_t candidatesTimes;  // for GNAT
+//    size_t minDegree;        // for GNAT
+//    size_t maxDegree;        // for GNAT
+//    size_t maxTimesDegree;   // for GNAT
+   size_t maxLeavesElems;   //
+   size_t maxNNPrefetch;    //
+   size_t maxNNMerge;       //
+   size_t minNNPrefetch;    //
+   size_t minNNMerge;       //
+   std::string exemplar;      //
+   bool useVpTree;
+   size_t vpSelectScheme;   // vp-tree and GNAT
+   size_t vpSelectCand;     // for vpSelectScheme == 1
+   size_t vpSelectTest;     // for vpSelectScheme == 1
+   size_t nodesVisitedLimit;// for single approx
+   double thresholdGini;    // for single approx
+   // size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
+   // size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
+   // bool isCurseOfDimensionality;
+
+   HClustOptions(Rcpp::RObject control);
+   Rcpp::NumericVector toR() const;
+};
+
+
+struct HClustStats
+{
+   size_t nodeCount; // how many nodes are there in the tree
+   size_t leafCount; // how many leaves
+   size_t nodeVisit; // how many nodes were visited during NN search
+   size_t nnCals;    // how many times NN search job was launched
+   size_t nnCount;   // how many NNs were obtained in overall
+   size_t medoidOldNew; //..how many times it was successful
+   size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
+
+   HClustStats();
+   ~HClustStats();
+   Rcpp::NumericVector toR() const;
+};
+
+
+
+
+
 struct NNHeap {
    std::priority_queue< HeapNeighborItem > heap;
-   size_t maxNNPrefetch;
+   static HClustOptions* opts;
    size_t exemplarsCount;
 // #ifdef _OPENMP
 //    omp_lock_t lock;
 // #endif
    NNHeap() :
          heap(),
-         maxNNPrefetch(DEFAULT_MAX_NN_PREFETCH),
          exemplarsCount(0) {
 // #ifdef _OPENMP
 //      omp_init_lock(&lock);
 // #endif
    }
 
-   NNHeap(size_t maxNNPrefetch) :
-         heap(),
-         maxNNPrefetch(maxNNPrefetch),
-         exemplarsCount(0) {
-// #ifdef _OPENMP
-//      omp_init_lock(&lock);
-// #endif
+   static void setOptions(HClustOptions* newopts) {
+      opts = newopts;
    }
 
    ~NNHeap() {
@@ -456,16 +497,17 @@ struct NNHeap {
    }
 
    inline void insert(double index, double dist, double& maxR) {
+      STOPIFNOT(NNHeap::opts != NULL)
 // #ifdef _OPENMP
 //       omp_set_lock(&lock);
 // #endif
-      if (heap.size() >= maxNNPrefetch && dist < maxR) {
+      if (heap.size() >= opts->maxNNPrefetch && dist < maxR) {
          while (!heap.empty() && heap.top().dist == maxR) {
             heap.pop();
          }
       }
       heap.push( HeapNeighborItem(index, dist) );
-      if (heap.size() >= maxNNPrefetch) maxR = heap.top().dist;
+      if (heap.size() >= opts->maxNNPrefetch) maxR = heap.top().dist;
 // #ifdef _OPENMP
 //       omp_unset_lock(&lock);
 // #endif
@@ -483,7 +525,7 @@ struct NNHeap {
       std::list<HeapNeighborItem> toRemove;
       size_t toRemoveExemplarsCount=0;
 
-      if (heap.size() >= maxNNPrefetch+1 && dist < maxR) {
+      if (heap.size() >= opts->maxNNPrefetch+1 && dist < maxR) {
          while (!heap.empty() && heap.top().dist == maxR) {
             toRemove.push_back(heap.top());
             if(heap.top().index == ds.find_set(heap.top().index))
@@ -504,7 +546,7 @@ struct NNHeap {
          exemplarsCount -= toRemoveExemplarsCount;
       }
 
-      if (heap.size() >= maxNNPrefetch && exemplarsCount > 0) maxR = heap.top().dist;
+      if (heap.size() >= opts->maxNNPrefetch && exemplarsCount > 0) maxR = heap.top().dist;
    // #ifdef _OPENMP
    //       omp_unset_lock(&lock);
    // #endif
@@ -575,50 +617,6 @@ struct IndexComparator
 
 inline bool comparer_gt(size_t i, size_t j) { return (i>j); }
 inline bool comparer_gt(double i, double j) { return (i>j); }
-
-struct HClustOptions
-{
-//    size_t degree;           // for GNAT
-//    size_t candidatesTimes;  // for GNAT
-//    size_t minDegree;        // for GNAT
-//    size_t maxDegree;        // for GNAT
-//    size_t maxTimesDegree;   // for GNAT
-   size_t maxLeavesElems;   //
-   size_t maxNNPrefetch;    //
-   size_t maxNNMerge;       //
-   size_t minNNPrefetch;    //
-   size_t minNNMerge;       //
-   std::string exemplar;      //
-   bool useVpTree;
-   size_t vpSelectScheme;   // vp-tree and GNAT
-   size_t vpSelectCand;     // for vpSelectScheme == 1
-   size_t vpSelectTest;     // for vpSelectScheme == 1
-   size_t nodesVisitedLimit;// for single approx
-   double thresholdGini;    // for single approx
-   // size_t exemplarUpdateMethod; // exemplar - naive(0) or not naive(1)?
-   // size_t maxExemplarLeavesElems; //for exemplars biggers numbers are needed I think
-   // bool isCurseOfDimensionality;
-
-   HClustOptions(Rcpp::RObject control);
-   Rcpp::NumericVector toR() const;
-};
-
-
-struct HClustStats
-{
-   size_t nodeCount; // how many nodes are there in the tree
-   size_t leafCount; // how many leaves
-   size_t nodeVisit; // how many nodes were visited during NN search
-   size_t nnCals;    // how many times NN search job was launched
-   size_t nnCount;   // how many NNs were obtained in overall
-   size_t medoidOldNew; //..how many times it was successful
-   size_t medoidUpdateCount; // how many times we calculate d_old and d_new..
-
-   HClustStats();
-   ~HClustStats();
-   Rcpp::NumericVector toR() const;
-};
-
 
 struct SortedPoint
 {

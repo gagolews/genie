@@ -45,6 +45,8 @@ HClustNNbasedSingleApprox::HClustNNbasedSingleApprox(Distance* dist, RObject con
       prefetch(true),
       vptree(opts, stats, prefetch, ds, n, dist, indices)
 {
+   NNHeap::setOptions(&opts);
+
    // starting indices: random permutation of {0,1,...,_n-1}
    for (size_t i=0;i<n;i++)
       indices[i] = i;
@@ -74,7 +76,7 @@ HeapNeighborItem HClustNNbasedSingleApprox::getNearestNeighbor(size_t index, dou
 #endif
       //vptree.zeroNodesVisited();
 
-      NNHeap nnheap((prefetch)?opts.maxNNPrefetch:opts.maxNNMerge);
+      NNHeap nnheap;
       vptree.getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
       nnheap.fill(nearestNeighbors[index]);
 
