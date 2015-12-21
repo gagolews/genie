@@ -282,7 +282,6 @@ void HClustNNbasedGini::computeMerge(
    #endif
    while (go)
    {
-      STOPIFNOT(lastGini >= 0 && lastGini <= 1)
       OPENMP_ONLY(omp_set_lock(&writelock))
       // pq may be empty if we have all the elements in pq_cache
       if (!pq.empty()) {
@@ -347,10 +346,11 @@ void HClustNNbasedGini::computeMerge(
 
             res.link(indices[hhi.index1], indices[hhi.index2],
                (lastGini <= opts.thresholdGini)?hhi.dist:-hhi.dist);
+            STOPIFNOT(lastGini >= -1e-12 && lastGini <= 1+1e-12)
             linkAndRecomputeGini(lastGini, s1, s2);
             minsize = ds.getMinClusterSize();
 
-            if (i > n-15) {Rcout << i << ": "; distance->getStats().print();}
+            // if (i > n-15) {Rcout << i << ": "; distance->getStats().print();}
 
             if (++i == n-1)
                go = false;
