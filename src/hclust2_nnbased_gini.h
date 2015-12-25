@@ -55,7 +55,7 @@ class HClustNNbasedGini
 {
 protected:
 
-   HClustOptions opts;
+   HClustOptions* opts;
    size_t n;
    Distance* distance;
    std::vector<size_t> indices;
@@ -72,7 +72,7 @@ protected:
    PhatDisjointSets ds;
    bool prefetch;
 
-   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
+   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap) = 0;
    HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
 
    void prefetchNNsSymmetric();
@@ -82,13 +82,13 @@ protected:
 
 public:
 
-   HClustNNbasedGini(Distance* dist, RObject control);
+   HClustNNbasedGini(Distance* dist, HClustOptions* opts);
    virtual ~HClustNNbasedGini();
 
    HClustResult compute();
 
    inline const HClustStats& getStats()     { return stats; }
-   inline const HClustOptions& getOptions() { return opts; }
+   inline const HClustOptions& getOptions() { return *opts; }
 
 }; // class
 

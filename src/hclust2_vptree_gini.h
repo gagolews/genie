@@ -100,12 +100,10 @@ protected:
    void getNearestNeighborsFromMinRadiusRecursiveNonLeaf(HClustVpTreeGiniNode* node,
       size_t index, size_t clusterIndex, double minR, std::priority_queue<double>& bestR, double& maxR, NNHeap& nnheap);
 
-   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
+   virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, double& maxR, NNHeap& nnheap) {
       std::priority_queue<double> bestR;
-      size_t minNN = (prefetch)?opts.minNNPrefetch:opts.minNNMerge;
+      size_t minNN = (prefetch)?opts->minNNPrefetch:opts->minNNMerge;
       for (size_t i=0; i<minNN; ++i) bestR.push(INFINITY);
-
-      double maxR = INFINITY;
 
       getNearestNeighborsFromMinRadiusRecursive(root, index, clusterIndex, minR, bestR, maxR, nnheap);
    }
@@ -114,7 +112,7 @@ protected:
 
 public:
 
-   HClustVpTreeGini(Distance* dist, RObject control);
+   HClustVpTreeGini(Distance* dist, HClustOptions* opts);
    ~HClustVpTreeGini();
 
 }; // class

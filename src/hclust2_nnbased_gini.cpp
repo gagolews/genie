@@ -28,8 +28,8 @@ using namespace grup;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustNNbasedGini::HClustNNbasedGini(Distance* dist, RObject control) :
-      opts(control),
+HClustNNbasedGini::HClustNNbasedGini(Distance* dist, HClustOptions* opts) :
+      opts(opts),
       n(dist->getObjectCount()),
       distance(dist),
       indices(dist->getObjectCount()),
@@ -42,9 +42,7 @@ HClustNNbasedGini::HClustNNbasedGini(Distance* dist, RObject control) :
    #endif
       ds(dist->getObjectCount())
 {
-   NNHeap::setOptions(&opts);
-
-   if (opts.thresholdGini < 1.0)
+   if (opts->thresholdGini < 1.0)
       symmetric = true;
    else
       symmetric = false;
@@ -72,6 +70,7 @@ HeapNeighborItem HClustNNbasedGini::getNearestNeighbor(size_t index, double dist
          return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
       }
 
+
 #ifdef GENERATE_STATS
 #ifdef _OPENMP
 #pragma omp atomic
@@ -79,7 +78,8 @@ HeapNeighborItem HClustNNbasedGini::getNearestNeighbor(size_t index, double dist
       ++stats.nnCals;
 #endif
       NNHeap nnheap;
-      getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
+      double maxR = INFINITY;
+      getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], maxR, nnheap);
       nnheap.fill(nearestNeighbors[index]);
 
       size_t newNeighborsCount = nearestNeighbors[index].size();
@@ -123,7 +123,6 @@ void HClustNNbasedGini::prefetchNNsSymmetric()
 #ifdef _OPENMP
    std::vector<omp_lock_t> writelocks(n);
    for (size_t i=0; i<n; ++i) {
-      nnheaps[i].setMaxNNPrefetch(opts.maxNNPrefetch);
       omp_init_lock(&writelocks[i]);
    }
    #pragma omp parallel for schedule(dynamic)
@@ -167,7 +166,7 @@ void HClustNNbasedGini::computePrefetch(HclustPriorityQueue& pq)
    // INIT: Pre-fetch a few nearest neighbors for each point
    MESSAGE_2("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 
-   if (symmetric && !opts.useVpTree)
+   if (symmetric && !opts->useVpTree)
       prefetchNNsSymmetric();
    else
       ; /* use vp-tree or something else */
@@ -236,9 +235,27 @@ void HClustNNbasedGini::linkAndRecomputeGini(double& lastGini, size_t s1, size_t
    lastGini -= std::fabs(size2-size1-size2);
    lastGini -= std::fabs(size1-size1-size2);
 
-   ds.link(s1, s2);
+   s1 = ds.link(s1, s2);
 
    lastGini /= (n)*(double)(ds.getClusterCount()-1);
+   lastGini = std::min(1.0, std::max(0.0, lastGini)); // avoid numeric inaccuracies
+
+   // if (ds.getClusterCount() == 1) return;
+   // const std::size_t* memb = ds.getClusterMembers(s1);
+   // size_t siz = ds.getClusterSize(s1);
+   // for (size_t i=0; i<siz; ++i) {
+   //    size_t j = memb[i];
+   //    while (!nearestNeighbors[j].empty()) {
+   //       auto res = nearestNeighbors[j].front();
+   //       if (s1 == ds.find_set(res.index))
+   //          nearestNeighbors[j].pop_front();
+   //       else {
+   //          // Rcout << "somebody has it!\n";
+   //          return;
+   //       }
+   //    }
+   // }
+   // Rcout << "*** empty! *** " << siz << "\n";
 }
 
 
@@ -271,6 +288,8 @@ void HClustNNbasedGini::computeMerge(
    omp_lock_t writelock; //critical section for pq
    omp_init_lock(&writelock);
    #endif
+
+   bool lastLinkArbitrary = false;//(opts.thresholdGini < 1.0);
 
    double lastGini = 0.0;
    bool go = true;
@@ -312,7 +331,7 @@ void HClustNNbasedGini::computeMerge(
          STOPIFNOT(s1 != s2)
          // if lastGini is above thresholdGini, we are only interested in
          // pq elems that are from clusters of size equal to minsize
-         if (lastGini > opts.thresholdGini &&
+         if (lastGini > opts->thresholdGini &&
                ds.getClusterSize(s1) > minsize &&
                ds.getClusterSize(s2) > minsize) {
             // the writelock is still in ON
@@ -341,23 +360,23 @@ void HClustNNbasedGini::computeMerge(
             size_t s1 = ds.find_set(hhi.index1);
             size_t s2 = ds.find_set(hhi.index2);
             STOPIFNOT(s1 != s2)
-            STOPIFNOT(lastGini <= opts.thresholdGini ||
+            STOPIFNOT(lastGini <= opts->thresholdGini ||
                (ds.getClusterSize(s1) == minsize || ds.getClusterSize(s2) == minsize))
 
+            // if (i > n-100) {Rcout << n-i << ": "; distance->getStats().print();}
+
             res.link(indices[hhi.index1], indices[hhi.index2],
-               (lastGini <= opts.thresholdGini)?hhi.dist:-hhi.dist);
-            STOPIFNOT(lastGini >= -1e-12 && lastGini <= 1+1e-12)
+               (lastGini <= opts->thresholdGini)?hhi.dist:-hhi.dist);
+            // STOPIFNOT(lastGini >= -1e-9 && lastGini <= 1+1e-9)
             linkAndRecomputeGini(lastGini, s1, s2);
             minsize = ds.getMinClusterSize();
 
-            // if (i > n-15) {Rcout << i << ": "; distance->getStats().print();}
-
-            if (++i == n-1)
-               go = false;
+            ++i;
+            if (i == n-1 || (lastLinkArbitrary && i == n-2)) go = false;
             pq.push(HeapHierarchicalItem(hhi.index1, SIZE_MAX, hhi.dist));
          }
 
-         if (go && (pq.empty() || lastGini <= opts.thresholdGini || minsize != lastminsize)) {
+         if (go && (pq.empty() || lastGini <= opts->thresholdGini || minsize != lastminsize)) {
             if (pq_cache.size() > 5) pq.reset(); // will call make_heap on next top()
             while (!pq_cache.empty()) {
                pq.push(pq_cache.back());
@@ -371,6 +390,22 @@ void HClustNNbasedGini::computeMerge(
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
       }
    } // END WHILE
+
+   if (lastLinkArbitrary) {
+      // early quit: last two clusters can be merged arbitrarily
+      // (this only affects dendrogram plotting, who cares)
+      HeapHierarchicalItem hhi = pq.top();
+      size_t s1 = ds.find_set(hhi.index1);
+      if (hhi.index2 == SIZE_MAX) {
+         // this would fire up an NNs search == that's not necessary
+         hhi.index2 = ds.getClusterMembers(ds.getClusterNext(s1))[0];
+         hhi.dist = (*distance)(hhi.index1, hhi.index2);
+      }
+      size_t s2 = ds.find_set(hhi.index2);
+      STOPIFNOT(s1 != s2)
+      res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
+      linkAndRecomputeGini(lastGini, s1, s2);
+   }
 
    #ifdef _OPENMP
    omp_destroy_lock(&writelock);

@@ -144,7 +144,7 @@ List HClustResult::toR(
       _["call"]   = R_NilValue,
       _["method"] = R_NilValue,
       _["dist.method"] = dist_method,
-      // _["links"]  = links,
+      _["links"]  = links,
       _["stats"] = List::create(
          _["method"] = hclustStats.toR(),
          _["distance"] = distStats.toR()

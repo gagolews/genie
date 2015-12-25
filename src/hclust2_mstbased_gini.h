@@ -18,39 +18,64 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
+#ifndef __HCLUST2_MSTBASED_GINI_H
+#define __HCLUST2_MSTBASED_GINI_H
 
-#include "hclust2_naive_single.h"
 
 
-using namespace Rcpp;
+// ************************************************************************
+
+
+#include <Rcpp.h>
+#include <R.h>
+#include <Rmath.h>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
+// #include <fstream>
+#include <deque>
+// #include <exception>
+// #include <string>
+// #include <boost/property_map/property_map.hpp>
+// #include <boost/tuple/tuple_comparison.hpp>
+// #include <algorithm>
+
+#include "hclust2_common.h"
+#include "disjoint_sets.h"
+#include "hclust2_result.h"
+
 using namespace std;
-using namespace boost;
-using namespace grup;
+using namespace Rcpp;
 
-
-// constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustNaiveSingle::HClustNaiveSingle(Distance* dist, HClustOptions* opts) :
-   HClustNNbasedSingle(dist, opts)
+namespace grup
 {
 
-}
 
 
-HClustNaiveSingle::~HClustNaiveSingle()
+class HClustMSTbasedGini
 {
+protected:
 
-}
+   HClustOptions* opts;
+   size_t n;
+   Distance* distance;
+   HClustStats stats;
+
+   HclustPriorityQueue getMST();
+   void linkAndRecomputeGini(PhatDisjointSets& ds, double& lastGini, size_t s1, size_t s2);
+
+public:
+
+   HClustMSTbasedGini(Distance* dist, HClustOptions* opts);
+   virtual ~HClustMSTbasedGini();
+
+   HClustResult compute();
+
+   inline const HClustStats& getStats()     { return stats; }
+   inline const HClustOptions& getOptions() { return *opts; }
+
+}; // class
+
+} // namespace grup
 
 
-void HClustNaiveSingle::getNearestNeighborsFromMinRadius(size_t index,
-      size_t clusterIndex, double minR, NNHeap& nnheap)
-{
-   double maxR = INFINITY;
-   for (size_t i=index+1; i<n; ++i) {
-      size_t currentCluster = ds.find_set(i);
-      if (currentCluster == clusterIndex) continue;
-      double dist2 = (*distance)(indices[index], indices[i]); // the slow part
-      if (dist2 > maxR || dist2 <= minR) continue;
-      nnheap.insert(i, dist2, maxR);
-   }
-}
+#endif

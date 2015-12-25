@@ -28,8 +28,8 @@ using namespace grup;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, RObject control) :
-      opts(control),
+HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, HClustOptions* opts) :
+      opts(opts),
       n(dist->getObjectCount()),
       distance(dist),
       indices(dist->getObjectCount()),
@@ -42,8 +42,6 @@ HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, RObject control) :
    #endif
       ds(dist->getObjectCount())
 {
-   NNHeap::setOptions(&opts);
-
    // starting indices: random permutation of {0,1,...,_n-1}
    for (size_t i=0;i<n;i++)
       indices[i] = i;

@@ -54,6 +54,9 @@ private:
 public:
    HClustResult(size_t n, Distance* dist);
 
+   Rcpp::NumericMatrix getLinks() { return links; }
+   Rcpp::NumericVector getHeight() { return height; }
+
    void link(size_t i1, size_t i2, double d12);
 
    Rcpp::List toR(

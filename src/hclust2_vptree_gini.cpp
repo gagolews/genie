@@ -28,8 +28,8 @@ using namespace grup;
 
 
 // constructor (OK, we all know what this is, but I label it for faster in-code search)
-HClustVpTreeGini::HClustVpTreeGini(Distance* dist, RObject control) :
-      HClustNNbasedGini(dist, control),
+HClustVpTreeGini::HClustVpTreeGini(Distance* dist, HClustOptions* opts) :
+      HClustNNbasedGini(dist, opts),
       root(NULL)
 //    visitAll(false)
 {
@@ -48,22 +48,22 @@ HClustVpTreeGini::~HClustVpTreeGini() {
 
 size_t HClustVpTreeGini::chooseNewVantagePoint(size_t left, size_t right)
 {
-   if (opts.vpSelectScheme == 1) {
+   if (opts->vpSelectScheme == 1) {
       // idea by Yianilos (the original vp-tree paper)
-      if (left + opts.vpSelectCand + opts.vpSelectTest > right)
+      if (left + opts->vpSelectCand + opts->vpSelectTest > right)
          return left;
 
       // randomize:
-      for (size_t i=left; i<left+opts.vpSelectCand+opts.vpSelectTest; ++i)
+      for (size_t i=left; i<left+opts->vpSelectCand+opts->vpSelectTest; ++i)
          std::swap(indices[i], indices[i+(size_t)(unif_rand()*(right-i))]);
 
       // maximize variance
       size_t bestIndex = -1;
       double bestSigma = -INFINITY;
-      for (size_t i=left; i<left+opts.vpSelectCand; i++) {
+      for (size_t i=left; i<left+opts->vpSelectCand; i++) {
          accumulators::accumulator_set< double,
             accumulators::features<accumulators::tag::variance> > acc;
-         for (size_t j = left+opts.vpSelectCand; j < left+opts.vpSelectCand+opts.vpSelectTest; ++j)
+         for (size_t j = left+opts->vpSelectCand; j < left+opts->vpSelectCand+opts->vpSelectTest; ++j)
             acc( (*distance)( indices[i], indices[j] ) );
          double curSigma = accumulators::variance(acc);
          if (curSigma > bestSigma) {
@@ -74,7 +74,7 @@ size_t HClustVpTreeGini::chooseNewVantagePoint(size_t left, size_t right)
 
       return bestIndex;
    }
-   else if (opts.vpSelectScheme == 2) {
+   else if (opts->vpSelectScheme == 2) {
       // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
       //      for similarity search queries"
 
@@ -122,7 +122,7 @@ HClustVpTreeGiniNode* HClustVpTreeGini::buildFromPoints(size_t left,
 #ifdef GENERATE_STATS
    ++stats.nodeCount;
 #endif
-   if (right - left <= opts.maxLeavesElems)
+   if (right - left <= opts->maxLeavesElems)
    {
    #ifdef GENERATE_STATS
       ++stats.leafCount;

@@ -39,7 +39,7 @@ protected:
 
 public:
 
-   HClustNaiveSingle(Distance* dist, RObject control);
+   HClustNaiveSingle(Distance* dist, HClustOptions* opts);
    ~HClustNaiveSingle();
 
 }; // class

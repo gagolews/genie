@@ -18,8 +18,8 @@
  *   If not, see <http://www.gnu.org/licenses/>.                             *
  * ************************************************************************* */
 
-
 #include "hclust2_vptree_gini.h"
+#include "hclust2_mstbased_gini.h"
 
 
 // [[Rcpp::export(".hclust2_gini")]]
@@ -29,13 +29,24 @@ RObject hclust2_gini(RObject distance, RObject objects, RObject control=R_NilVal
    grup::Distance* dist = grup::Distance::createDistance(distance, objects, control);
 
    try { /* Rcpp::checkUserInterrupt(); may throw an exception */
+      grup::HClustOptions opts(control);
+      grup::NNHeap::setOptions(&opts);
 
-      grup::HClustVpTreeGini hclust(dist, control);
+      if (opts.useMST) {
+         grup::HClustMSTbasedGini hclust(dist, &opts);
+         grup::HClustResult result2 = grup::HClustMSTbasedGini(dist, &opts).compute();
+         result = Rcpp::as<RObject>(
+            result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
+         );
+      }
+      else {
+         grup::HClustVpTreeGini hclust(dist, &opts);
+         grup::HClustResult result2 = hclust.compute();
+         result = Rcpp::as<RObject>(
+            result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
+         );
+      }
 
-      grup::HClustResult result2 = hclust.compute();
-      result = Rcpp::as<RObject>(
-         result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
-      );
 
       // hclust.print();
    }

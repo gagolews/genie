@@ -55,7 +55,7 @@ class HClustNNbasedSingle
 {
 protected:
 
-   HClustOptions opts;
+   HClustOptions* opts;
    size_t n;
    Distance* distance;
    std::vector<size_t> indices;
@@ -79,7 +79,7 @@ protected:
 
 public:
 
-   HClustNNbasedSingle(Distance* dist, RObject control);
+   HClustNNbasedSingle(Distance* dist, HClustOptions* opts);
    virtual ~HClustNNbasedSingle();
 
    virtual void print() { Rcout << "this print method is a stub" << std::endl; }
@@ -87,7 +87,7 @@ public:
    HClustResult compute();
 
    inline const HClustStats& getStats()     { return stats; }
-   inline const HClustOptions& getOptions() { return opts; }
+   inline const HClustOptions& getOptions() { return *opts; }
 
 }; // class
 

@@ -102,7 +102,7 @@ protected:
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) {
       std::priority_queue<double> bestR;
-      size_t minNN = (prefetch)?opts.minNNPrefetch:opts.minNNMerge;
+      size_t minNN = (prefetch)?opts->minNNPrefetch:opts->minNNMerge;
       for (size_t i=0; i<minNN; ++i) bestR.push(INFINITY);
 
       double maxR = INFINITY;
@@ -116,7 +116,7 @@ protected:
 
 public:
 
-   HClustVpTreeSingle(Distance* dist, RObject control);
+   HClustVpTreeSingle(Distance* dist, HClustOptions* opts);
    ~HClustVpTreeSingle();
 
    virtual void print();

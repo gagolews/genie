@@ -30,9 +30,10 @@ RObject hclust2_single(RObject distance, RObject objects, RObject control=R_NilV
    grup::Distance* dist = grup::Distance::createDistance(distance, objects, control);
 
    try { /* Rcpp::checkUserInterrupt(); may throw an exception */
+      grup::HClustOptions opts(control);
+      grup::NNHeap::setOptions(&opts);
 
-      grup::HClustVpTreeSingle hclust(dist, control);
-      // grup::HClustNaiveSingle hclust(dist, control);
+      grup::HClustVpTreeSingle hclust(dist, &opts);
 
       grup::HClustResult result2 = hclust.compute();
       result = Rcpp::as<RObject>(

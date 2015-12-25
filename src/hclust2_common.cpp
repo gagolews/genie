@@ -37,6 +37,7 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
    nodesVisitedLimit = DEFAULT_NODES_VISITED_LIMIT;
    thresholdGini = DEFAULT_THRESHOLD_GINI;
    useVpTree = DEFAULT_USEVPTREE;
+   useMST = DEFAULT_USEMST;
 
    if (!Rf_isNull((SEXP)control)) {
       Rcpp::List control2(control);
@@ -91,6 +92,10 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
       if (control2.containsElementNamed("useVpTree")) {
          useVpTree = (bool)Rcpp::as<Rcpp::LogicalVector>(control2["useVpTree"])[0];
       }
+
+      if (control2.containsElementNamed("useMST")) {
+         useMST = (bool)Rcpp::as<Rcpp::LogicalVector>(control2["useMST"])[0];
+      }
    }
 
    if (thresholdGini < 0.0 || thresholdGini > 1.0) {
@@ -141,17 +146,18 @@ HClustOptions::HClustOptions(Rcpp::RObject control) {
 Rcpp::NumericVector HClustOptions::toR() const
 {
    return Rcpp::NumericVector::create(
-      Rcpp::_["maxLeavesElems"] = maxLeavesElems,
-      Rcpp::_["maxNNPrefetch"]  = maxNNPrefetch,
-      Rcpp::_["maxNNMerge"]     = maxNNMerge,
-      Rcpp::_["minNNPrefetch"]  = minNNPrefetch,
-      Rcpp::_["minNNMerge"]     = minNNMerge,
-      Rcpp::_["vpSelectScheme"] = vpSelectScheme,
-      Rcpp::_["vpSelectCand"]   = vpSelectCand,
-      Rcpp::_["vpSelectTest"]   = vpSelectTest,
-      Rcpp::_["nodesVisitedLimit"]   = nodesVisitedLimit,
-      Rcpp::_["thresholdGini"]   = thresholdGini,
-      Rcpp::_["useVpTree"]       = useVpTree
+      Rcpp::_["maxLeavesElems"]     = maxLeavesElems,
+      Rcpp::_["maxNNPrefetch"]      = maxNNPrefetch,
+      Rcpp::_["maxNNMerge"]         = maxNNMerge,
+      Rcpp::_["minNNPrefetch"]      = minNNPrefetch,
+      Rcpp::_["minNNMerge"]         = minNNMerge,
+      Rcpp::_["vpSelectScheme"]     = vpSelectScheme,
+      Rcpp::_["vpSelectCand"]       = vpSelectCand,
+      Rcpp::_["vpSelectTest"]       = vpSelectTest,
+      Rcpp::_["nodesVisitedLimit"]  = nodesVisitedLimit,
+      Rcpp::_["thresholdGini"]      = thresholdGini,
+      Rcpp::_["useVpTree"]          = useVpTree,
+      Rcpp::_["useMST"]             = useMST
    );
 }
 

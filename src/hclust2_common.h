@@ -359,7 +359,7 @@ class HclustPriorityQueue
    bool heapMade;
 
 public:
-   HclustPriorityQueue(size_t n) :
+   HclustPriorityQueue(size_t n=0) :
       n(n), ncur(0), items(n), heapMade(false) { }
 
    const HeapHierarchicalItem& top() {
@@ -412,6 +412,7 @@ struct HClustOptions
    size_t minNNMerge;       //
    std::string exemplar;      //
    bool useVpTree;
+   bool useMST;
    size_t vpSelectScheme;   // vp-tree and GNAT
    size_t vpSelectCand;     // for vpSelectScheme == 1
    size_t vpSelectTest;     // for vpSelectScheme == 1
