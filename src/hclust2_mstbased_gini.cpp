@@ -135,8 +135,8 @@ HClustResult HClustMSTbasedGini::compute()
 
       Rcpp::NumericMatrix links = res.getLinks();
       Rcpp::NumericVector dist  = res.getHeight();
-      STOPIFNOT(dist.size() == n-1);
-      STOPIFNOT(links.nrow() == n-1);
+      STOPIFNOT((size_t)dist.size() == n-1);
+      STOPIFNOT((size_t)links.nrow() == n-1);
       pq = HclustPriorityQueue(n);
       for (size_t i=0; i<n-1; ++i) {
          pq.push(HeapHierarchicalItem((size_t)links(i,0), (size_t)links(i,1), (double)dist[i]));
