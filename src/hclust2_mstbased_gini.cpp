@@ -32,10 +32,10 @@ using namespace grup;
 HClustMSTbasedGini::HClustMSTbasedGini(Distance* dist, HClustOptions* opts) :
       opts(opts),
       n(dist->getObjectCount()),
-      distance(dist),
-   #ifdef GENERATE_STATS
-      stats()
-   #endif
+#ifdef GENERATE_STATS
+      stats(),
+#endif
+      distance(dist)
 {
 
 }
@@ -77,14 +77,24 @@ HclustPriorityQueue HClustMSTbasedGini::getMST()
          }
 
          // the thread-unsafe part:
-         #ifdef _OPENMP
-         #pragma omp critical
-         #endif
+         #ifndef _OPENMP
          if (Adist[bestj] > Adist[j]) {
             bestj = j;
             bestjpos = k;
          }
+         #endif
       }
+
+      #ifdef _OPENMP
+      // to avoid establishing a (slow!) critical section in
+      // the above loop, this fast part is done single-threadedly
+      for (size_t k=0; k<n-i-1; ++k) {
+         if (Adist[bestj] > Adist[todo[k]]) {
+            bestj = todo[k];
+            bestjpos = k;
+         }
+      }
+      #endif
 
       out.push(HeapHierarchicalItem(Afrom[bestj], bestj, Adist[bestj]));
       todo.erase(todo.begin()+bestjpos); // the algorithm is O(n^2) anyway + we need to iterate thru todo sequentially
@@ -101,25 +111,30 @@ HclustPriorityQueue HClustMSTbasedGini::getMST()
 
 void HClustMSTbasedGini::linkAndRecomputeGini(PhatDisjointSets& ds, double& lastGini, size_t s1, size_t s2)
 {
-   double size1 = ds.getClusterSize(s1);
-   double size2 = ds.getClusterSize(s2);
-   lastGini *= (n)*(double)(ds.getClusterCount()-1);
-   std::size_t curi = s1;
-   do {
-      double curs = ds.getClusterSize(curi);
-      lastGini -= std::fabs(curs-size1);
-      lastGini -= std::fabs(curs-size2);
-      lastGini += std::fabs(curs-size1-size2);
-      curi = ds.getClusterNext(curi);
-   } while (curi != s1);
-   lastGini += std::fabs(size2-size1);
-   lastGini -= std::fabs(size2-size1-size2);
-   lastGini -= std::fabs(size1-size1-size2);
+   // if opts.thresholdGini == 1.0, there's no need to compute the Gini index
+   if (opts->thresholdGini < 1.0) {
+      double size1 = ds.getClusterSize(s1);
+      double size2 = ds.getClusterSize(s2);
+      lastGini *= (n)*(double)(ds.getClusterCount()-1);
+      std::size_t curi = s1;
+      do {
+         double curs = ds.getClusterSize(curi);
+         lastGini -= std::fabs(curs-size1);
+         lastGini -= std::fabs(curs-size2);
+         lastGini += std::fabs(curs-size1-size2);
+         curi = ds.getClusterNext(curi);
+      } while (curi != s1);
+      lastGini += std::fabs(size2-size1);
+      lastGini -= std::fabs(size2-size1-size2);
+      lastGini -= std::fabs(size1-size1-size2);
+   }
 
    s1 = ds.link(s1, s2);
 
-   lastGini /= (n)*(double)(ds.getClusterCount()-1);
-   lastGini = std::min(1.0, std::max(0.0, lastGini)); // avoid numeric inaccuracies
+   if (opts->thresholdGini < 1.0) {
+      lastGini /= (n)*(double)(ds.getClusterCount()-1);
+      lastGini = std::min(1.0, std::max(0.0, lastGini)); // avoid numeric inaccuracies
+   }
 }
 
 
@@ -130,7 +145,7 @@ HClustResult HClustMSTbasedGini::compute()
 
    if (opts->useVpTree) {
       HClustVpTreeSingle hclust(distance, opts);
-      HClustResult res = hclust.compute();
+      HClustResult res = hclust.compute(/*merge,order not needed*/opts->thresholdGini < 1.0);
       if (opts->thresholdGini >= 1.0) return res;
 
       Rcpp::NumericMatrix links = res.getLinks();
@@ -175,11 +190,13 @@ HClustResult HClustMSTbasedGini::compute()
       res.link(hhi.index1, hhi.index2,
          (lastGini <= opts->thresholdGini)?hhi.dist:-hhi.dist);
       linkAndRecomputeGini(ds, lastGini, s1, s2);
-      minsize = ds.getMinClusterSize();
+
+      if (opts->thresholdGini < 1.0)
+         minsize = ds.getMinClusterSize();
 
       if (++i == n-1) break;
 
-      if (pq.empty() || lastGini <= opts->thresholdGini || minsize != lastminsize)
+      if (pq_cache.size() > 0 && (pq.empty() || lastGini <= opts->thresholdGini || minsize != lastminsize))
       {
          if (pq_cache.size() > 5) pq.reset(); // will call make_heap on next top()
          while (!pq_cache.empty()) {

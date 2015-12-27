@@ -40,11 +40,20 @@
 
 // ---------------------------------------------------------------------
 // #define HASHMAP_ENABLED
-#define GENERATE_STATS
-#define VERBOSE 7
 
-// #define DISJOINT_SETS_DEBUG
+
+
+#if 1
+/* DEBUG MODE */
+#define VERBOSE 7
+#define GENERATE_STATS
+#define DISJOINT_SETS_DEBUG
 #define MEASURE_MEM_USE
+#else
+/* PRODUCTION USE */
+#define VERBOSE 0
+#endif
+
 
 #define DEFAULT_MAX_LEAVES_ELEMS 4
 #define DEFAULT_MAX_NN_PREFETCH 256

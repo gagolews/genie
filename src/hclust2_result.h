@@ -46,13 +46,14 @@ private:
    // method is set by R
    Rcpp::RObject labels;
    Rcpp::RObject dist_method;
+   bool lite;
 
    void generateMergeMatrix();
    void generateOrderVector();
 
 
 public:
-   HClustResult(size_t n, Distance* dist);
+   HClustResult(size_t n, Distance* dist, bool lite=false);
 
    Rcpp::NumericMatrix getLinks() { return links; }
    Rcpp::NumericVector getHeight() { return height; }

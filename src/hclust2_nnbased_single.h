@@ -84,7 +84,7 @@ public:
 
    virtual void print() { Rcout << "this print method is a stub" << std::endl; }
 
-   HClustResult compute();
+   HClustResult compute(bool lite=false);
 
    inline const HClustStats& getStats()     { return stats; }
    inline const HClustOptions& getOptions() { return *opts; }

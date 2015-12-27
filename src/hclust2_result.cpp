@@ -23,7 +23,7 @@ using namespace grup;
 using namespace Rcpp;
 
 
-HClustResult::HClustResult(size_t n, Distance* dist) :
+HClustResult::HClustResult(size_t n, Distance* dist, bool lite) :
       curiter(0),
       n(n),
       links(n-1, 2),         // this may be meaningless for some methods, do not return
@@ -31,7 +31,8 @@ HClustResult::HClustResult(size_t n, Distance* dist) :
       height(n-1),
       order(n, NA_REAL),
       labels(dist->getLabels()),
-      dist_method(dist->getDistMethod())
+      dist_method(dist->getDistMethod()),
+      lite(lite)
 {
    // no-op
 }
@@ -45,7 +46,7 @@ void HClustResult::link(size_t i1, size_t i2, double d12)
    height(curiter) = d12;
    ++curiter;
 
-   if (curiter == n-1) {
+   if (curiter == n-1 && !lite) {
       generateMergeMatrix();
       generateOrderVector();
    }

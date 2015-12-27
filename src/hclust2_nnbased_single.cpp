@@ -272,10 +272,10 @@ void HClustNNbasedSingle::computeMerge(
 }
 
 
-HClustResult HClustNNbasedSingle::compute()
+HClustResult HClustNNbasedSingle::compute(bool lite)
 {
    HclustPriorityQueue pq(n);
-   HClustResult res(n, distance);
+   HClustResult res(n, distance, lite);
 
 #if VERBOSE >= 5
    distance->getStats().print();
