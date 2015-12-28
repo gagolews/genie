@@ -43,7 +43,7 @@
 
 
 
-#if 1
+#if 0
 /* DEBUG MODE */
 #define VERBOSE 1
 #define GENERATE_STATS

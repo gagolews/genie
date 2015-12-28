@@ -63,18 +63,21 @@ protected:
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
    std::vector<bool> shouldFind;
-   std::vector< deque<HeapNeighborItem> > nearestNeighbors;
 
    HClustStats stats;
+
+#ifdef _OPENMP
+   omp_lock_t pqwritelock;
+#endif
 
    DisjointSets ds;
    bool prefetch;
 
    virtual void getNearestNeighborsFromMinRadius(size_t index, size_t clusterIndex, double minR, NNHeap& nnheap) = 0;
-   HeapNeighborItem getNearestNeighbor(size_t index, double distMax=INFINITY);
+   void getNearestNeighbors(std::priority_queue<HeapHierarchicalItem> & pq, size_t index);
 
-   void computePrefetch(HclustPriorityQueue& pq);
-   void computeMerge(HclustPriorityQueue& pq, HClustResult& res);
+   void computePrefetch(std::priority_queue<HeapHierarchicalItem> & pq);
+   void computeMerge(std::priority_queue<HeapHierarchicalItem> & pq, HClustResult& res);
 
 
 public:

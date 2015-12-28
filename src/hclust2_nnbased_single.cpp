@@ -36,7 +36,6 @@ HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, HClustOptions* opts) :
       neighborsCount(dist->getObjectCount(), 0),
       minRadiuses(dist->getObjectCount(), -INFINITY),
       shouldFind(dist->getObjectCount(), true),
-      nearestNeighbors(dist->getObjectCount()),
    #ifdef GENERATE_STATS
       stats(),
    #endif
@@ -47,187 +46,140 @@ HClustNNbasedSingle::HClustNNbasedSingle(Distance* dist, HClustOptions* opts) :
       indices[i] = i;
    for (size_t i=n-1; i>= 1; i--)
       swap(indices[i], indices[(size_t)(unif_rand()*(i+1))]);
+
+#ifdef _OPENMP
+   omp_init_lock(&pqwritelock);
+#endif
 }
 
 
 HClustNNbasedSingle::~HClustNNbasedSingle() {
-
+#ifdef _OPENMP
+   omp_destroy_lock(&pqwritelock);
+#endif
 }
 
 
 
-HeapNeighborItem HClustNNbasedSingle::getNearestNeighbor(size_t index, double distMax)
+void HClustNNbasedSingle::getNearestNeighbors(
+   std::priority_queue< HeapHierarchicalItem > & pq,
+   size_t index)
 {
+   if (!shouldFind[index])
+      return;
+
    size_t clusterIndex = ds.find_set(index);
-   if (shouldFind[index] && nearestNeighbors[index].empty())
-   {
-      if (minRadiuses[index] > distMax) {
-         return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
-      }
-
 #ifdef GENERATE_STATS
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-      ++stats.nnCals;
+   ++stats.nnCals;
 #endif
-      NNHeap nnheap;
-      getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
-      nnheap.fill(nearestNeighbors[index]);
+   NNHeap nnheap;
+   getNearestNeighborsFromMinRadius(index, clusterIndex, minRadiuses[index], nnheap);
+   size_t newNeighborsCount = 0.0;
 
-      size_t newNeighborsCount = nearestNeighbors[index].size();
-
-      neighborsCount[index] += newNeighborsCount;
-      if (neighborsCount[index] > n - index || newNeighborsCount == 0)
-         shouldFind[index] = false;
-
-      if (newNeighborsCount > 0)
-         minRadiuses[index] = nearestNeighbors[index].back().dist;
-   }
-
-   if (!nearestNeighbors[index].empty())
-   {
-      while (!nearestNeighbors[index].empty()) {
-#ifdef GENERATE_STATS
 #ifdef _OPENMP
-#pragma omp atomic
+   omp_set_lock(&pqwritelock);
 #endif
-         ++stats.nnCount;
-#endif
-         auto res = nearestNeighbors[index].front();
-         nearestNeighbors[index].pop_front();
-         if (clusterIndex != ds.find_set(res.index))
-            return res;
+   while (!nnheap.empty()) {
+      if (isfinite(nnheap.top().dist) && nnheap.top().index != SIZE_MAX) {
+         ++newNeighborsCount;
+         pq.push(HeapHierarchicalItem(index, nnheap.top().index, nnheap.top().dist));
+         minRadiuses[index] = std::max(minRadiuses[index], nnheap.top().dist);
       }
-      return HeapNeighborItem(SIZE_MAX, minRadiuses[index]);
+      nnheap.pop();
    }
-   else
-   {
-      return HeapNeighborItem(SIZE_MAX, INFINITY);
+   neighborsCount[index] += newNeighborsCount;
+#ifdef GENERATE_STATS
+   stats.nnCount += newNeighborsCount;
+#endif
+   if (neighborsCount[index] > n - index || newNeighborsCount == 0)
+      shouldFind[index] = false;
+   else {
+      pq.push(HeapHierarchicalItem(index, SIZE_MAX, minRadiuses[index])); // to be continued...
    }
+#ifdef _OPENMP
+   omp_unset_lock(&pqwritelock);
+#endif
 }
 
 
-void HClustNNbasedSingle::computePrefetch(HclustPriorityQueue& pq)
+void HClustNNbasedSingle::computePrefetch(std::priority_queue< HeapHierarchicalItem > & pq)
 {
    // INIT: Pre-fetch a few nearest neighbors for each point
    MESSAGE_2("[%010.3f] prefetching NNs\n", clock()/(float)CLOCKS_PER_SEC);
 
 #ifdef _OPENMP
    omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
-   omp_lock_t writelock;
-   omp_init_lock(&writelock);
    #pragma omp parallel for schedule(dynamic)
 #endif
    for (size_t i=0; i<n; i++)
    {
       if (MASTER_OR_SINGLE_THREAD) Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
 
-      HeapNeighborItem hi=getNearestNeighbor(i);
-      if (hi.index != SIZE_MAX)
-      {
-         if (MASTER_OR_SINGLE_THREAD) {
-            if (i % 64 == 0) MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
-         }
-#ifdef _OPENMP
-         omp_set_lock(&writelock);
-#endif
-         pq.push(HeapHierarchicalItem(i, hi.index, hi.dist));
-#ifdef _OPENMP
-         omp_unset_lock(&writelock);
-#endif
+      getNearestNeighbors(pq, i);
+
+      if (MASTER_OR_SINGLE_THREAD) {
+         if (i % 64 == 0) MESSAGE_7("\r             prefetch NN: %d/%d", i, n-1);
       }
    }
-#ifdef _OPENMP
-   omp_destroy_lock(&writelock);
-#endif
    MESSAGE_7("\r             prefetch NN: %d/%d  \n", n-1, n-1);
 }
 
 
 void HClustNNbasedSingle::computeMerge(
-      HclustPriorityQueue& pq,
+      std::priority_queue< HeapHierarchicalItem > & pq,
       HClustResult& res)
 {
    MESSAGE_2("[%010.3f] merging clusters\n", clock()/(float)CLOCKS_PER_SEC);
 
-#ifdef _OPENMP
-   int threadMerge;
-   omp_set_dynamic(0); /* the runtime will not dynamically adjust the number of threads */
-   omp_lock_t writelock; //critical section for pq
-   omp_init_lock(&writelock);
-#endif
-
    volatile bool go=true;
    volatile size_t i = 0;
 #ifdef _OPENMP
-   #pragma omp parallel shared(go, i, pq, res, threadMerge)
+   #pragma omp parallel
 #endif
    while (go)
    {
 #ifdef _OPENMP
-      omp_set_lock(&writelock);
+      omp_set_lock(&pqwritelock);
 #endif
+      STOPIFNOT(!pq.empty())
       HeapHierarchicalItem hhi = pq.top();
 
       if (hhi.index2 == SIZE_MAX) {
          pq.pop();
 #ifdef _OPENMP
-         omp_unset_lock(&writelock);
+         omp_unset_lock(&pqwritelock);
 #endif
-         HeapNeighborItem hi = getNearestNeighbor(hhi.index1, INFINITY);
-         if (isfinite(hi.dist))
-         {
-#ifdef _OPENMP
-            omp_set_lock(&writelock);
-#endif
-            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-#ifdef _OPENMP
-            omp_unset_lock(&writelock);
-#endif
-         }
+         getNearestNeighbors(pq, hhi.index1);
          continue;
       }
 
       size_t s1 = ds.find_set(hhi.index1);
       size_t s2 = ds.find_set(hhi.index2);
 
-      if (s1==s2)
+      if (s1 == s2)
       {
          pq.pop();
 #ifdef _OPENMP
-         omp_unset_lock(&writelock);
+         omp_unset_lock(&pqwritelock);
 #endif
-         STOPIFNOT(hhi.index1 < hhi.index2);
-         HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
-         STOPIFNOT(hhi.index1 < hi.index);
-         if (isfinite(hi.dist))
-         {
-#ifdef _OPENMP
-            omp_set_lock(&writelock);
-#endif
-            pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-#ifdef _OPENMP
-            omp_unset_lock(&writelock);
-#endif
-         }
          continue;
       }
 
 #ifdef _OPENMP
-      omp_unset_lock(&writelock); //different threads will be unable to put data into pq without it
+      omp_unset_lock(&pqwritelock); //different threads will be unable to put data into pq without it
       #pragma omp barrier
       #pragma omp single
 #endif
       {
-#ifdef _OPENMP
-         threadMerge = omp_get_thread_num();
-#endif
          hhi = pq.top(); //it can change, because other threads can push something
          pq.pop();
          s1 = ds.find_set(hhi.index1);
          s2 = ds.find_set(hhi.index2);
          STOPIFNOT(s1 != s2);
+         STOPIFNOT(s2 != SIZE_MAX);
          STOPIFNOT(hhi.index1 < hhi.index2);
 
          res.link(indices[hhi.index1], indices[hhi.index2], hhi.dist);
@@ -236,37 +188,13 @@ void HClustNNbasedSingle::computeMerge(
          ++i;
          if (i == n-1)
             go = false;/* avoids computing unnecessary nn */
-
-      }
-#ifdef _OPENMP
-
-      if(threadMerge == omp_get_thread_num())
-#endif
-      {
-         if(go) {
-            STOPIFNOT(hhi.index1 < hhi.index2);
-            HeapNeighborItem hi=getNearestNeighbor(hhi.index1, pq.top().dist);
-            STOPIFNOT(hhi.index1 < hi.index);
-            if (isfinite(hi.dist))
-            {
-#ifdef _OPENMP
-               omp_set_lock(&writelock);
-#endif
-               pq.push(HeapHierarchicalItem(hhi.index1, hi.index, hi.dist));
-#ifdef _OPENMP
-               omp_unset_lock(&writelock);
-#endif
-            }
-         }
       } // #pragma omp single
       if (MASTER_OR_SINGLE_THREAD) {
          if (i % 512 == 0) MESSAGE_7("\r             merge clusters: %d / %d", i+1, n-1);
          Rcpp::checkUserInterrupt(); // may throw an exception, fast op, not thread safe
       }
    }
-#ifdef _OPENMP
-   omp_destroy_lock(&writelock);
-#endif
+
    MESSAGE_7("\r             merge clusters: %d / %d  \n", n-1, n-1);
    Rcpp::checkUserInterrupt();
 }
@@ -274,8 +202,8 @@ void HClustNNbasedSingle::computeMerge(
 
 HClustResult HClustNNbasedSingle::compute(bool lite)
 {
-   // std::priority_queue< HeapHierarchicalItem, std::deque<HeapHierarchicalItem> > pq;
-   HclustPriorityQueue pq(n);
+   std::priority_queue< HeapHierarchicalItem > pq;
+   // HclustPriorityQueue pq(n);
    HClustResult res(n, distance, lite);
 
 #if VERBOSE >= 5

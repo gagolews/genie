@@ -117,7 +117,7 @@ struct HeapHierarchicalItem
       index1(index1), index2(index2), dist(dist) {}
 
    inline bool operator<( const HeapHierarchicalItem& o ) const {
-      return dist >= o.dist;
+      return dist >= o.dist || (dist == o.dist && index2 > o.index2); // SIZE_MAX index2 at the end of a series
    }
 };
 
