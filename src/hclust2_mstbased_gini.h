@@ -57,8 +57,8 @@ protected:
 
    HClustOptions* opts;
    size_t n;
-   Distance* distance;
    HClustStats stats;
+   Distance* distance;
 
    HclustPriorityQueue getMST();
    void linkAndRecomputeGini(PhatDisjointSets& ds, double& lastGini, size_t s1, size_t s2);

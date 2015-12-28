@@ -45,7 +45,7 @@
 
 #if 1
 /* DEBUG MODE */
-#define VERBOSE 7
+#define VERBOSE 1
 #define GENERATE_STATS
 #define DISJOINT_SETS_DEBUG
 #define MEASURE_MEM_USE

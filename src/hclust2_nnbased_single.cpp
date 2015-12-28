@@ -274,6 +274,7 @@ void HClustNNbasedSingle::computeMerge(
 
 HClustResult HClustNNbasedSingle::compute(bool lite)
 {
+   // std::priority_queue< HeapHierarchicalItem, std::deque<HeapHierarchicalItem> > pq;
    HclustPriorityQueue pq(n);
    HClustResult res(n, distance, lite);
 
