@@ -27,6 +27,9 @@ with additional components:
      \item control internal tuning parameters used
 }
 }
+\description{
+....
+}
 \details{
 For compatibility with \code{\link{hclust}}, \code{d} may be an object
 of class \code{dist}. In such a case, the \code{objects} argument is ignored.
@@ -44,5 +47,9 @@ Each string must be in ASCII, but you can always convert it to UTF-32 with
 Otherwise, if \code{objects} is a numeric matrix, then \code{d} should be
 a single string, one of: \code{euclidean} (or \code{NULL}),
 \code{manhattan}, \code{maximum}, or \code{hamming}.
+}
+\examples{
+#....
+
 }
 

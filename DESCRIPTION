@@ -20,9 +20,9 @@ Description: A new hierarchical clustering linkage
     the clustering quality while retaining the single linkage speed.
 License: GPL (>= 3)
 Depends:
-    stringi (>= 0.5-9000)
+    R (>= 3.2.0)
 Imports:
     Rcpp (>= 0.12.0)
-LinkingTo: Rcpp (>= 0.12.0), BH
-SystemRequirements: C++11
+LinkingTo: Rcpp (>= 0.12.0)
+SystemRequirements: OpenMP, C++11
 RoxygenNote: 5.0.1

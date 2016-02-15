@@ -1,6 +1,9 @@
 #' @title
 #' Faster Hierarchical Clustering in Pseudometric Spaces
 #'
+#' @description
+#' ....
+#'
 #' @param method a single string,
 #'        one of: \code{single}, \code{gini}
 #' @param d an object of class \code{\link{dist}},
@@ -35,6 +38,9 @@
 #'      \item control internal tuning parameters used
 #' }
 #'
+#' @examples
+#' #....
+#'
 #' @export
 hclust2 <- function(
       d=NULL,
@@ -46,13 +52,7 @@ hclust2 <- function(
    method <- match.arg(method)
    result <- switch(method,
       single=.hclust2_single(d, objects, ...),
-      gini=.hclust2_gini(d, objects, ...),
-      single_approx=.hclust2_single_approx(d, objects, ...),
-#       complete=.hclust2_complete(d, objects, ...),
-      exemplar=.hclust2_exemplar(d, objects, ...),
-      exemplar2=.hclust2_exemplar2(d, objects, ...),
-      exemplar_approx=.hclust2_exemplar_approx(d, objects, ...),
-      exemplar_naive=.hclust2_exemplar_naive(d, objects, ...)
+      gini=.hclust2_gini(d, objects, ...)
    )
    result[["call"]] <- match.call()
    result[["method"]] <- method
