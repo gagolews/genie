@@ -324,10 +324,16 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
    {
       Rcpp::NumericMatrix objects2(objects);
       Rcpp::CharacterVector distance2 =
-         ((Rf_isNull(distance))?Rcpp::CharacterVector("euclidean"):Rcpp::CharacterVector(distance));
+         ((Rf_isNull(distance))?Rcpp::CharacterVector("euclidean_squared"):Rcpp::CharacterVector(distance));
 
       const char* distance3 = CHAR(STRING_ELT((SEXP)distance2, 0));
-      if (!strcmp(distance3, "euclidean")) {
+      if (!strcmp(distance3, "euclidean_squared")) {
+         return (grup::Distance*)
+            new grup::SquaredEuclideanDistance(
+               objects2
+            );
+      }
+      else if (!strcmp(distance3, "euclidean")) {
          return (grup::Distance*)
             new grup::EuclideanDistance(
                objects2
@@ -352,7 +358,7 @@ Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects
             );
       }
       else {
-         Rcpp::stop("`distance` should be one of: \"euclidean\" (default), \"manhattan\", \"maximum\", \"hamming\"");
+         Rcpp::stop("`distance` should be one of: \"euclidean_squared\" (default), \"euclidean\", \"manhattan\", \"maximum\", \"hamming\"");
       }
    }
    else {
@@ -377,6 +383,15 @@ GenericMatrixDistance::GenericMatrixDistance(const Rcpp::NumericMatrix& points) 
          *(items_ptr++) = items2[j*n+i];
       }
    }
+}
+
+double SquaredEuclideanDistance::compute(size_t v1, size_t v2)
+{
+   if (v1 == v2) return 0.0;
+   double d = 0.0;
+   for (size_t i=0; i<m; ++i)
+      d += (items[v1*m+i]-items[v2*m+i])*(items[v1*m+i]-items[v2*m+i]);
+   return d;
 }
 
 

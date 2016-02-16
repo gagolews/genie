@@ -5,15 +5,3 @@
     .Call('genie_hclust2_gini', PACKAGE = 'genie', distance, objects, control)
 }
 
-.hclust2_nntest_single_approx <- function(distance, objects, control = NULL) {
-    .Call('genie_hclust2_nntest_single_approx', PACKAGE = 'genie', distance, objects, control)
-}
-
-.hclust2_single_approx <- function(distance, objects, control = NULL) {
-    .Call('genie_hclust2_single_approx', PACKAGE = 'genie', distance, objects, control)
-}
-
-.hclust2_single <- function(distance, objects, control = NULL) {
-    .Call('genie_hclust2_single', PACKAGE = 'genie', distance, objects, control)
-}
-

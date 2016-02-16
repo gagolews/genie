@@ -2,7 +2,7 @@ Package: genie
 Type: Package
 Title: A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
 Version: 1.0.0
-Date: 2016-02-15
+Date: 2016-02-16
 Authors@R: c(
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com"),
@@ -23,6 +23,8 @@ Depends:
     R (>= 3.2.0)
 Imports:
     Rcpp (>= 0.12.0)
-LinkingTo: Rcpp (>= 0.12.0)
+Suggests:
+    datasets, stats
+LinkingTo: Rcpp (>= 0.12.0), BH (>= 1.60)
 SystemRequirements: OpenMP, C++11
 RoxygenNote: 5.0.1

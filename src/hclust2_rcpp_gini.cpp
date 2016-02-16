@@ -32,23 +32,11 @@ RObject hclust2_gini(RObject distance, RObject objects, RObject control=R_NilVal
       grup::HClustOptions opts(control);
       grup::NNHeap::setOptions(&opts);
 
-      if (opts.useMST) {
-         grup::HClustMSTbasedGini hclust(dist, &opts);
-         grup::HClustResult result2 = grup::HClustMSTbasedGini(dist, &opts).compute();
-         result = Rcpp::as<RObject>(
-            result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
-         );
-      }
-      else {
-         grup::HClustVpTreeGini hclust(dist, &opts);
-         grup::HClustResult result2 = hclust.compute();
-         result = Rcpp::as<RObject>(
-            result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
-         );
-      }
-
-
-      // hclust.print();
+      grup::HClustMSTbasedGini hclust(dist, &opts);
+      grup::HClustResult result2 = grup::HClustMSTbasedGini(dist, &opts).compute();
+      result = Rcpp::as<RObject>(
+         result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
+      );
    }
    catch(...) {
       // do nothing yet

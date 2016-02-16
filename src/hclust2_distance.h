@@ -148,6 +148,18 @@ public:
 };
 
 
+class SquaredEuclideanDistance : public GenericMatrixDistance
+{
+protected:
+   virtual double compute(size_t v1, size_t v2);
+
+public:
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); }
+
+   SquaredEuclideanDistance(const Rcpp::NumericMatrix& points) :
+      GenericMatrixDistance(points) {   }
+};
+
 class EuclideanDistance : public GenericMatrixDistance
 {
 // private:
