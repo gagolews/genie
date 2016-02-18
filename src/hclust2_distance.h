@@ -154,7 +154,7 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
-   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); }
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean_squared"); }
 
    SquaredEuclideanDistance(const Rcpp::NumericMatrix& points) :
       GenericMatrixDistance(points) {   }
@@ -354,7 +354,7 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
-   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("hamming"); }
    HammingDistanceInt(const Rcpp::List& strings) :
          StringDistanceInt(strings) {   }
 };
@@ -365,7 +365,7 @@ protected:
    virtual double compute(size_t v1, size_t v2);
 
 public:
-   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("levenshtein"); }
+   virtual Rcpp::RObject getDistMethod() { return Rf_mkString("hamming"); }
    HammingDistanceChar(const Rcpp::CharacterVector& strings) :
          StringDistanceChar(strings) {   }
 };

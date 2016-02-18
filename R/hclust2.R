@@ -70,8 +70,8 @@
 #' A named list of class \code{hclust}, see \code{\link[stats]{hclust}},
 #' with additional components:
 #' \itemize{
-#'      \item stats   performance statistics
-#'      \item control internal tuning parameters used
+#'      \item \code{stats} -   performance statistics
+#'      \item \code{control} - internal tuning parameters used
 #' }
 #'
 #' @examples

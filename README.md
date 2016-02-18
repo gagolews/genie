@@ -1,5 +1,5 @@
-# Genie
-## A new, fast, and outlier resistant hierarchical clustering algorithm
+# Genie (R Package)
+## A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
 
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
