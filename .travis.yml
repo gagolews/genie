@@ -3,3 +3,8 @@ warnings_are_errors: true
 sudo: required
 apt_packages:
   - r-cran-devtools
+r_packages:
+  - devtools
+  - BH
+  - testthat
+  - Rcpp
