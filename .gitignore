@@ -13,10 +13,6 @@ Rplots.pdf
 
 # RStudio files
 .Rproj.user/
-.Rproj.user
-
-*.Rproj
-.Rproj.user
 .Rhistory
 .RData
 DataStructures.Rcheck
@@ -44,3 +40,4 @@ src-x64/
 *.out
 cache-knitr/
 cache/
+.Rproj.user

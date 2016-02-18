@@ -384,10 +384,10 @@ public:
    //virtual Rcpp::RObject getDistMethod() { return Rf_mkString("euclidean"); } ....deparse???? in R
    // virtual Rcpp::RObject getDistMethod() { return Rcpp::RObject(robj1).attr("names"); } .... get names attrib from items....
 
-   GenericRDistance(const Rcpp::Function& distfun, const Rcpp::List& items) :
-         Distance(items.size()),
-         distfun(distfun),
-         items(items) {
+   GenericRDistance(const Rcpp::Function& _distfun, const Rcpp::List& _items) :
+         Distance(_items.size()),
+         distfun(_distfun),
+         items(_items) {
       R_PreserveObject(distfun);
       R_PreserveObject(items);
    }

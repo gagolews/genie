@@ -24,9 +24,9 @@
 using namespace grup;
 
 
-DisjointSets::DisjointSets(std::size_t n) :
-   clusterParent(std::vector< std::size_t >(n)),
-   n(n)
+DisjointSets::DisjointSets(std::size_t _n) :
+   clusterParent(std::vector< std::size_t >(_n)),
+   n(_n)
 {
 #ifdef DISJOINT_SETS_DEBUG
    MESSAGE_1("Warning: DISJOINT_SETS_DEBUG defined in disjoint_sets.h\n");
@@ -72,22 +72,22 @@ std::size_t DisjointSets::union_set(std::size_t x, std::size_t y) {
 }
 
 
-PhatDisjointSets::PhatDisjointSets(std::size_t n) :
-   DisjointSets(n),
-   clusterSize(std::vector< std::size_t >(n, 1)),
-   clusterMembers(n),
-   clusterNext(std::vector< std::size_t >(n)),
-   clusterPrev(std::vector< std::size_t >(n))
+PhatDisjointSets::PhatDisjointSets(std::size_t _n) :
+   DisjointSets(_n),
+   clusterSize(std::vector< std::size_t >(_n, 1)),
+   clusterMembers(_n),
+   clusterNext(std::vector< std::size_t >(_n)),
+   clusterPrev(std::vector< std::size_t >(_n))
 {
-   clusterCount = n;
+   clusterCount = _n;
    minClusterSize = 1;
-   minClusterCount = n;
-   for (std::size_t i=0; i<n; ++i) {
+   minClusterCount = _n;
+   for (std::size_t i=0; i<_n; ++i) {
       clusterMembers[i] = (std::size_t*)malloc(sizeof(std::size_t)*1);
       clusterMembers[i][0] = i;
       // clusterSize[i] = 1; // already initialized
-      clusterNext[i] = (i<n-1)?(i+1):0;
-      clusterPrev[i] = (i>0)?(i-1):(n-1);
+      clusterNext[i] = (i<_n-1)?(i+1):0;
+      clusterPrev[i] = (i>0)?(i-1):(_n-1);
    }
 }
 

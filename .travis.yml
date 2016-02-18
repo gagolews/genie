@@ -3,6 +3,7 @@ warnings_are_errors: true
 sudo: required
 apt_packages:
   - r-cran-devtools
+  - r-cran-stringi
 r_packages:
   - devtools
   - BH

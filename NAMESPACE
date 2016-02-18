@@ -1,3 +1,4 @@
 useDynLib(genie)
 exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
+importFrom(stats, approx)

@@ -91,6 +91,7 @@
 #' Gagolewski M., Bartoszuk M., Cena A.,
 #' Genie: A new, fast, and outlier-resistant hierarchical clustering algorithm,
 #' 2016, (submitted paper)
+#'
 #' @export
 hclust2 <- function(d=NULL, objects=NULL,
    thresholdGini=0.3, useVpTree=FALSE, ...)

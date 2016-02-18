@@ -20,13 +20,14 @@ Description: A new hierarchical clustering linkage
     the clustering quality while retaining the single linkage speed.
 License: GPL (>= 3)
 Depends:
-    R (>= 3.2.0)
+    R (>= 3.1.0),
+    stats
 Imports:
     Rcpp (>= 0.12.0)
 Suggests:
     datasets,
-    stats,
-    testthat
+    testthat,
+    stringi
 LinkingTo: Rcpp (>= 0.12.0), BH (>= 1.60)
 SystemRequirements: OpenMP, C++11
 RoxygenNote: 5.0.1

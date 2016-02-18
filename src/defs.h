@@ -21,8 +21,8 @@
 #ifndef __DEFS_H
 #define __DEFS_H
 
-#include <cstdint>
-
+#include <cstdint> /* SIZE_MAX, C++11 */
+#include <cmath>   /* INFINITY, C++11 */
 
 #ifdef _OPENMP
 #include <omp.h>
