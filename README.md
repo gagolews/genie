@@ -1,6 +1,8 @@
 # Genie (R Package)
 ## A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
 
+[![Build Status](https://travis-ci.org/Rexamine/genie.png?branch=master)](https://travis-ci.org/Rexamine/genie)
+
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
 dissimilarity measure. Such a constraint, for larger data sets,
