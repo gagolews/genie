@@ -21,6 +21,9 @@
 #ifndef __DEFS_H
 #define __DEFS_H
 
+#include <cstdint>
+
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
