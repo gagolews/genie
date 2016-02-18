@@ -157,12 +157,12 @@ size_t getCurrentRSS( )
 void DistanceStats::print() const
 {
 #if VERBOSE > 0
-#if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
-   Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
-      (double)hashmapHit, (double)hashmapMiss,
-      8.0f*hashmapMiss/1000.0f/1000.0f,
-      8.0f*distCallTheoretical/1000.0f/1000.0f);
-#endif
+// #if defined(HASHMAP_ENABLED) && defined(GENERATE_STATS)
+//    Rprintf("             distance function hashmap #hits: %.0f, #miss: %.0f, est.mem.used: ~%.1fMB (vs %.1fMB)\n",
+//       (double)hashmapHit, (double)hashmapMiss,
+//       8.0f*hashmapMiss/1000.0f/1000.0f,
+//       8.0f*distCallTheoretical/1000.0f/1000.0f);
+// #endif
 #if defined(GENERATE_STATS)
    Rprintf("             distance function total calls: %.0f (i.e., %.2f%% of %.0f)\n",
       (double)distCallCount,
@@ -181,15 +181,15 @@ void DistanceStats::print() const
 
 
 Distance::Distance(size_t n) :
-#ifdef HASHMAP_ENABLED
-   hashmap(std::vector< std::unordered_map<size_t, double> >(n)),
-#endif
+// #ifdef HASHMAP_ENABLED
+//    hashmap(std::vector< std::unordered_map<size_t, double> >(n)),
+// #endif
    stats(DistanceStats(n)),
    n(n)
 {
-#ifdef HASHMAP_ENABLED
-   MESSAGE_1("Warning: HASHMAP_ENABLED is defined in hclust2_distance.h\n");
-#endif
+// #ifdef HASHMAP_ENABLED
+//    MESSAGE_1("Warning: HASHMAP_ENABLED is defined in hclust2_distance.h\n");
+// #endif
 #ifdef GENERATE_STATS
    MESSAGE_1("Warning: GENERATE_STATS is defined in hclust2_distance.h\n");
 #endif
@@ -204,45 +204,45 @@ Distance::~Distance()
 }
 
 
-#ifdef HASHMAP_ENABLED
-double Distance::operator()(size_t v1, size_t v2)
-{
-   if (v1 == v2) return 0.0;
-   if (v1 > v2) std::swap(v1, v2);
-
-#ifdef GENERATE_STATS
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-      ++stats.distCallCount;
-#endif
-
-   // this is thread unsafe, but we use it only for testing:
-   auto got = hashmap[v1].find(v2);
-   if ( got == hashmap[v1].end() )
-   {
-#ifdef GENERATE_STATS
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-      ++stats.hashmapMiss;
-#endif
-      double d = compute(v1, v2);
-      hashmap[v1].emplace(v2, d);
-      return d;
-   }
-   else
-   {
-#ifdef GENERATE_STATS
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-      ++stats.hashmapHit;
-#endif
-      return got->second;
-   }
-}
-#endif
+// #ifdef HASHMAP_ENABLED
+// double Distance::operator()(size_t v1, size_t v2)
+// {
+//    if (v1 == v2) return 0.0;
+//    if (v1 > v2) std::swap(v1, v2);
+//
+// #ifdef GENERATE_STATS
+// #ifdef _OPENMP
+// #pragma omp atomic
+// #endif
+//       ++stats.distCallCount;
+// #endif
+//
+//    // this is thread unsafe, but we use it only for testing:
+//    auto got = hashmap[v1].find(v2);
+//    if ( got == hashmap[v1].end() )
+//    {
+// #ifdef GENERATE_STATS
+// #ifdef _OPENMP
+// #pragma omp atomic
+// #endif
+//       ++stats.hashmapMiss;
+// #endif
+//       double d = compute(v1, v2);
+//       hashmap[v1].emplace(v2, d);
+//       return d;
+//    }
+//    else
+//    {
+// #ifdef GENERATE_STATS
+// #ifdef _OPENMP
+// #pragma omp atomic
+// #endif
+//       ++stats.hashmapHit;
+// #endif
+//       return got->second;
+//    }
+// }
+// #endif
 
 
 Distance* Distance::createDistance(Rcpp::RObject distance, Rcpp::RObject objects, Rcpp::RObject control)

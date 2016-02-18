@@ -22,9 +22,6 @@
 #include "hclust2_mstbased_gini.h"
 #include "hclust2_vptree_single.h"
 
-using namespace Rcpp;
-using namespace std;
-using namespace boost;
 using namespace grup;
 
 

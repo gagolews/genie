@@ -28,6 +28,6 @@ Suggests:
     datasets,
     testthat,
     stringi
-LinkingTo: Rcpp (>= 0.12.0), BH (>= 1.60)
+LinkingTo: Rcpp (>= 0.12.0)
 SystemRequirements: OpenMP, C++11
 RoxygenNote: 5.0.1

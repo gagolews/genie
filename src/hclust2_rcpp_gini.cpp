@@ -21,11 +21,12 @@
 #include "hclust2_vptree_gini.h"
 #include "hclust2_mstbased_gini.h"
 
+using namespace Rcpp;
 
 // [[Rcpp::export(".hclust2_gini")]]
 RObject hclust2_gini(RObject distance, RObject objects, RObject control=R_NilValue) {
    MESSAGE_2("[%010.3f] starting timer\n", clock()/(double)CLOCKS_PER_SEC);
-   RObject result(R_NilValue);
+   Rcpp::RObject result(R_NilValue);
    grup::Distance* dist = grup::Distance::createDistance(distance, objects, control);
 
    try { /* Rcpp::checkUserInterrupt(); may throw an exception */
@@ -34,7 +35,7 @@ RObject hclust2_gini(RObject distance, RObject objects, RObject control=R_NilVal
 
       grup::HClustMSTbasedGini hclust(dist, &opts);
       grup::HClustResult result2 = grup::HClustMSTbasedGini(dist, &opts).compute();
-      result = Rcpp::as<RObject>(
+      result = Rcpp::as<Rcpp::RObject>(
          result2.toR(hclust.getStats(), hclust.getOptions(), dist->getStats())
       );
    }
@@ -47,6 +48,6 @@ RObject hclust2_gini(RObject distance, RObject objects, RObject control=R_NilVal
 #endif
    if (dist) delete dist;
    MESSAGE_2("[%010.3f] done\n", clock()/(double)CLOCKS_PER_SEC);
-   if (Rf_isNull(result)) stop("stopping on error or explicit user interrupt");
+   if (Rf_isNull(result)) Rcpp::stop("stopping on error or explicit user interrupt");
    return result;
 }

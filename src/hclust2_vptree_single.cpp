@@ -21,9 +21,6 @@
 
 #include "hclust2_vptree_single.h"
 
-using namespace Rcpp;
-using namespace std;
-using namespace boost;
 using namespace grup;
 
 
@@ -48,33 +45,34 @@ HClustVpTreeSingle::~HClustVpTreeSingle() {
 
 size_t HClustVpTreeSingle::chooseNewVantagePoint(size_t left, size_t right)
 {
-   if (opts->vpSelectScheme == 1) {
-      // idea by Yianilos (original vp-tree paper)
-      if (left + opts->vpSelectCand + opts->vpSelectTest > right)
-         return left;
-
-      // randomize:
-      for (size_t i=left; i<left+opts->vpSelectCand+opts->vpSelectTest; ++i)
-         std::swap(indices[i], indices[i+(size_t)(unif_rand()*(right-i))]);
-
-      // maximize variance
-      size_t bestIndex = -1;
-      double bestSigma = -INFINITY;
-      for (size_t i=left; i<left+opts->vpSelectCand; i++) {
-         accumulators::accumulator_set< double,
-            accumulators::features<accumulators::tag::variance> > acc;
-         for (size_t j = left+opts->vpSelectCand; j < left+opts->vpSelectCand+opts->vpSelectTest; ++j)
-            acc( (*distance)( indices[i], indices[j] ) );
-         double curSigma = accumulators::variance(acc);
-         if (curSigma > bestSigma) {
-            bestSigma = curSigma;
-            bestIndex = i;
-         }
-      }
-
-      return bestIndex;
-   }
-   else if (opts->vpSelectScheme == 2) {
+   // if (opts->vpSelectScheme == 1) {
+   //    // idea by Yianilos (original vp-tree paper)
+   //    if (left + opts->vpSelectCand + opts->vpSelectTest > right)
+   //       return left;
+   //
+   //    // randomize:
+   //    for (size_t i=left; i<left+opts->vpSelectCand+opts->vpSelectTest; ++i)
+   //       std::swap(indices[i], indices[i+(size_t)(unif_rand()*(right-i))]);
+   //
+   //    // maximize variance
+   //    size_t bestIndex = -1;
+   //    double bestSigma = -INFINITY;
+   //    for (size_t i=left; i<left+opts->vpSelectCand; i++) {
+   //       accumulators::accumulator_set< double,
+   //          accumulators::features<accumulators::tag::variance> > acc;
+   //       for (size_t j = left+opts->vpSelectCand; j < left+opts->vpSelectCand+opts->vpSelectTest; ++j)
+   //          acc( (*distance)( indices[i], indices[j] ) );
+   //       double curSigma = accumulators::variance(acc);
+   //       if (curSigma > bestSigma) {
+   //          bestSigma = curSigma;
+   //          bestIndex = i;
+   //       }
+   //    }
+   //
+   //    return bestIndex;
+   // }
+   // else
+   if (opts->vpSelectScheme == 2) {
       // idea by T. Bozkaya and M. Ozsoyoglu, "Indexing large metric spaces
       //      for similarity search queries"
 

@@ -50,7 +50,6 @@
 */
 
 
-#include <boost/functional/hash.hpp>
 #include <vector>
 #include <limits>
 #include <numeric>
@@ -63,23 +62,24 @@ namespace grup
 
 struct DistanceStats
 {
-   size_t hashmapHit;
-   size_t hashmapMiss;
+   // size_t hashmapHit;
+   // size_t hashmapMiss;
    size_t distCallCount;
    size_t distCallTheoretical;
 
    DistanceStats(size_t n) :
-      hashmapHit(0), hashmapMiss(0), distCallCount(0),
+      // hashmapHit(0), hashmapMiss(0),
+      distCallCount(0),
       distCallTheoretical(n*(n-1)/2) {}
 
    void print() const;
 
    Rcpp::NumericVector toR() const {
       return Rcpp::NumericVector::create(
-         Rcpp::_["hashmapHit"]
-            = (hashmapHit>0)?(double)hashmapHit:NA_REAL,
-         Rcpp::_["hashmapMiss"]
-            = (hashmapMiss>0)?(double)hashmapMiss:NA_REAL,
+         // Rcpp::_["hashmapHit"]
+            // = (hashmapHit>0)?(double)hashmapHit:NA_REAL,
+         // Rcpp::_["hashmapMiss"]
+            // = (hashmapMiss>0)?(double)hashmapMiss:NA_REAL,
          Rcpp::_["distCallCount"]
             = (distCallCount>0)?(double)distCallCount:NA_REAL,
          Rcpp::_["distCallTheoretical"]

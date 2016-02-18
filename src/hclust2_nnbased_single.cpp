@@ -21,9 +21,6 @@
 
 #include "hclust2_nnbased_single.h"
 
-using namespace Rcpp;
-using namespace std;
-using namespace boost;
 using namespace grup;
 
 

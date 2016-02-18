@@ -29,22 +29,10 @@
 #include <Rcpp.h>
 #include <R.h>
 #include <Rmath.h>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
-// #include <fstream>
 #include <deque>
-// #include <exception>
-// #include <string>
-// #include <boost/property_map/property_map.hpp>
-// #include <boost/tuple/tuple_comparison.hpp>
-// #include <algorithm>
-
 #include "hclust2_common.h"
 #include "disjoint_sets.h"
 #include "hclust2_result.h"
-
-using namespace std;
-using namespace Rcpp;
 
 namespace grup
 {
@@ -63,7 +51,7 @@ protected:
    std::vector<size_t> neighborsCount;
    std::vector<double> minRadiuses;
    std::vector<bool> shouldFind;
-   std::vector< deque<HeapNeighborItem> > nearestNeighbors;
+   std::vector< std::deque<HeapNeighborItem> > nearestNeighbors;
 
    HClustStats stats;
 

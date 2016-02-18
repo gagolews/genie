@@ -22,7 +22,16 @@
 #define __DEFS_H
 
 #include <cstdint> /* SIZE_MAX, C++11 */
+#include <limits>  /* INFINITY, C++11 */
 #include <cmath>   /* INFINITY, C++11 */
+
+#ifndef INFINITY
+#define INFINITY (std::numeric_limits<double>::infinity())
+#endif
+
+#ifndef SIZE_MAX
+#define SIZE_MAX (std::numeric_limits<size_t>::max())
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>

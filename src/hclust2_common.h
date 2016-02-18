@@ -665,15 +665,26 @@ struct Point
 } // namespace grup
 
 
+
+// #include <boost/functional/hash.hpp>
+
 namespace std
 {
 
 template <> struct hash<grup::Point>
 {
+   /*
+    * template<typename T> void hash_combine(size_t & seed, T const& v);
+    * seed ^= hash_value(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    */
    std::size_t operator()(const grup::Point& k) const {
      std::size_t seed = 0;
-     boost::hash_combine(seed, k.i);
-     boost::hash_combine(seed, k.j);
+
+     seed ^= (size_t)(k.i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+     seed ^= (size_t)(k.j) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+     // boost::hash_combine(seed, k.i);
+     // boost::hash_combine(seed, k.j);
      return seed;
    }
 };
@@ -682,8 +693,10 @@ template <> struct hash<grup::SortedPoint>
 {
    std::size_t operator()(const grup::SortedPoint& k) const {
      std::size_t seed = 0;
-     boost::hash_combine(seed, k.i);
-     boost::hash_combine(seed, k.j);
+     seed ^= (size_t)(k.i) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+     seed ^= (size_t)(k.j) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+     // boost::hash_combine(seed, k.i);
+     // boost::hash_combine(seed, k.j);
      return seed;
    }
 };
