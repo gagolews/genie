@@ -12,11 +12,11 @@ linkage clustering algorithm is very sensitive to outliers, produces highly
 skewed dendrograms, and therefore usually does not reflect the true
 underlying data structure - unless the clusters are well-separated.
 To overcome its limitations, we proposed a new hierarchical clustering linkage
-criterion. Namely, our algorithm links two clusters in such a way that a chosen
-economic inequity measure (e.g., the Gini or Bonferroni index) of the cluster
-sizes does not increase drastically above a given threshold. Benchmarks
-indicate a high practical usefulness of the introduced method:
-it most often outperforms the Ward or average linkage in terms of
+criterion called *Genie*. Namely, our algorithm links two clusters in such 
+a way that a chosen economic inequity measure (e.g., the Gini or Bonferroni 
+index) of the cluster sizes does not increase drastically above a given 
+threshold. Benchmarks indicate a high practical usefulness of the introduced 
+method: it most often outperforms the Ward or average linkage in terms of
 the clustering quality while retaining the single linkage speed.
 The algorithm is easily parallelizable and thus may be run
 on multiple threads to speed up its execution further on.
