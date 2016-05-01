@@ -1,7 +1,7 @@
 # Genie (R Package)
 ## A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
 
-[![Build Status](https://travis-ci.org/Rexamine/genie.png?branch=master)](https://travis-ci.org/Rexamine/genie)
+[![Build Status](https://travis-ci.org/gagolews/genie.png?branch=master)](https://travis-ci.org/gagolews/genie)
 
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
@@ -27,4 +27,10 @@ clustering.
 A detailed description of the algorithm will be available in a forthcoming
 paper of ours.
 
-**Authors**: Marek Gagolewski, Maciej Bartoszuk, and Anna Cena
+**Authors**: [Marek Gagolewski](http://www.gagolewski.com/), 
+[Maciej Bartoszuk](http://bartoszuk.rexamine.com), and 
+[Anna Cena](http://cena.rexamine.com)
+
+**Homepage**: http://www.gagolewski.com/software/genie/
+
+**CRAN entry**: http://cran.r-project.org/web/packages/genie/
