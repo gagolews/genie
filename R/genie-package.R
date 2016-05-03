@@ -1,7 +1,8 @@
-#' @title ....
+#' @title The Genie Package
 #'
 #' @description
-#' ...
+#' See \code{\link{hclust2}()} for details.
+#'
 #'
 #' @name genie-package
 #' @rdname genie-package
@@ -9,10 +10,6 @@
 #' @docType package
 #' @author Marek Gagolewski, Maciej Bartoszuk, Anna Cena
 #'
-# #' @importFrom tools md5sum
-# #' @importFrom utils packageVersion
-# #' @importFrom utils download.file
-# #' @importFrom utils unzip
-# #' @importFrom stats runif
-# #' @importFrom stats rnorm
+#' @references
+#' \emph{\pkg{stringi} Package homepage}, \url{http://www.gagolewski.com/software/genie/}
 invisible(NULL)

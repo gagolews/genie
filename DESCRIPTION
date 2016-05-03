@@ -1,8 +1,8 @@
 Package: genie
 Type: Package
 Title: A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
-Version: 1.0.0
-Date: 2016-05-01
+Version: 1.0.1
+Date: 2016-05-03
 Authors@R: c(
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com"),
