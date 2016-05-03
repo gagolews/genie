@@ -11,5 +11,5 @@
 #' @author Marek Gagolewski, Maciej Bartoszuk, Anna Cena
 #'
 #' @references
-#' \emph{\pkg{stringi} Package homepage}, \url{http://www.gagolewski.com/software/genie/}
+#' \emph{\pkg{genie} Package homepage}, \url{http://www.gagolewski.com/software/genie/}
 invisible(NULL)
