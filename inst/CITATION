@@ -1,0 +1,20 @@
+bibentry(
+    bibtype      = "article",
+    title        = "{Genie}: {A} new, fast, and outlier-resistant hierarchical clustering algorithm",
+    author       = personList(
+        as.person("Marek Gagolewski"),
+        as.person("Maciej Bartoszuk"),
+        as.person("Anna Cena")
+    ),
+    journal      = "Information Sciences",
+    year         = "2016",
+    #  volume       = "X",
+    #  number       = "Y",
+    #  pages        = "V--W",
+    doi          = "XXXXX",
+    textVersion  = paste(
+        "Gagolewski M., Bartoszuk M., Cena A. (2016).",
+        "Genie: A new, fast, and outlier-resistant hierarchical clustering algorithm.",
+        "Information Sciences, 2016, in press, doi:XXXXX."
+    )
+)

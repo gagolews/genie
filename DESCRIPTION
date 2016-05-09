@@ -2,7 +2,7 @@ Package: genie
 Type: Package
 Title: A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
 Version: 1.0.1
-Date: 2016-05-03
+Date: 2016-05-09
 Authors@R: c(
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com"),
@@ -17,7 +17,8 @@ Description: A new hierarchical clustering linkage criterion:
     sizes does not increase drastically above a given threshold. Benchmarks
     indicate a high practical usefulness of the introduced method:
     it most often outperforms the Ward or average linkage in terms of
-    the clustering quality while retaining the single linkage speed.
+    the clustering quality while retaining the single linkage speed,
+    see (Gagolewski et al. 2016, doi:XXXX) for more details.
 License: GPL (>= 3)
 BugReports: http://github.com/gagolews/genie/issues
 URL: http://www.gagolewski.com/software/genie/
