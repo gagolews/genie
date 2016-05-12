@@ -1,6 +1,17 @@
                    genie package NEWS and CHANGELOG
 ===============================================================================
 
+## 1.0.1 (2016-05-XX)
+
+* Updated documentation and package metadata.
+
+The algorithm's description can now be found in:
+
+Gagolewski M., Bartoszuk M., Cena A., Genie: A new, fast, and outlier-resistant
+hierarchical clustering algorithm, Information Sciences, 2016,
+doi:10.1016/j.ins.2016.05.003
+
+
 ## 1.0.0 (2016-03-07)
 
 * Initial release.

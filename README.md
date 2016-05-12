@@ -24,8 +24,11 @@ Its memory overhead is small: there is no need to precompute the complete
 distance matrix to perform the computations in order to obtain a desired
 clustering.
 
-A detailed description of the algorithm will be available in a forthcoming
-paper of ours.
+A detailed description of the algorithm can be found in:
+
+Gagolewski M., Bartoszuk M., Cena A., Genie: A new, fast, and outlier-resistant
+hierarchical clustering algorithm, Information Sciences, 2016,
+[doi:10.1016/j.ins.2016.05.003](http://dx.doi.org/10.1016/j.ins.2016.05.003).
 
 **Authors**: [Marek Gagolewski](http://www.gagolewski.com/), 
 [Maciej Bartoszuk](http://bartoszuk.rexamine.com), and 
