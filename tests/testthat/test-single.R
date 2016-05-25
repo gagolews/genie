@@ -1,4 +1,6 @@
 library("testthat")
+library("genie")
+library("stats")
 context("hclust2 vs single linkage")
 
 test_that("single_iris_distmat", {
