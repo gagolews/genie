@@ -8,13 +8,12 @@ bibentry(
     ),
     journal      = "Information Sciences",
     year         = "2016",
-    #  volume       = "X",
-    #  number       = "Y",
-    #  pages        = "V--W",
+    volume       = "363",
+    pages        = "8--23",
     doi          = "10.1016/j.ins.2016.05.003",
     textVersion  = paste(
         "Gagolewski M., Bartoszuk M., Cena A.",
         "Genie: A new, fast, and outlier-resistant hierarchical clustering algorithm.",
-        "Information Sciences, 2016, in press, doi:10.1016/j.ins.2016.05.003."
+        "Information Sciences 363, 2016, pp. 8-23, doi:10.1016/j.ins.2016.05.003."
     )
 )

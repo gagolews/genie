@@ -8,8 +8,16 @@
 The algorithm's description can now be found in:
 
 Gagolewski M., Bartoszuk M., Cena A., Genie: A new, fast, and outlier-resistant
-hierarchical clustering algorithm, Information Sciences, 2016,
+hierarchical clustering algorithm, Information Sciences 363, 2016, pp. 8-23,
 doi:10.1016/j.ins.2016.05.003
+
+See also:
+
+Gagolewski M., Cena A., Bartoszuk M., Hierarchical clustering via penalty-based
+aggregation and the Genie approach, In: Torra V. et al. (Eds.),
+Modeling Decisions for Artificial Intelligence (Lecture Notes in Artificial
+Intelligence 9880), Springer, 2016, pp. 191-202,
+doi:10.1007/978-3-319-45656-0_16.
 
 
 ## 1.0.0 (2016-03-07)
