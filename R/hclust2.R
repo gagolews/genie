@@ -103,7 +103,7 @@
 hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ...)
 {
    opts <- list(thresholdGini=thresholdGini, useVpTree=useVpTree, ...)
-   result <- .hclust2_gini(d, objects, opts)
+   result <- .Call(genie_hclust2_gini, PACKAGE = 'genie', d, objects, opts)
    result[["call"]] <- match.call()
    result[["method"]] <- "gini"
 
