@@ -1,25 +1,9 @@
 language: r
-sudo: required
 matrix:
   include:
   - os: linux
     r: release
-    addons:
-        apt:
-            packages:
-                - r-cran-devtools
-                - r-cran-stringi
   - os: linux
     r: oldrel
-    addons:
-        apt:
-            packages:
-                - r-cran-devtools
-                - r-cran-stringi
   - os: linux
     r: devel
-    addons:
-        apt:
-            packages:
-                - r-cran-devtools
-                - r-cran-stringi
