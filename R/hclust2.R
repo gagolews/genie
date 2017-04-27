@@ -75,8 +75,8 @@
 #' }
 #'
 #' @examples
-#' library(datasets)
-#' data(iris)
+#' library("datasets")
+#' data("iris")
 #' h <- hclust2(objects=as.matrix(iris[,2:3]), thresholdGini=0.2)
 #' plot(iris[,2], iris[,3], col=cutree(h, 3), pch=as.integer(iris[,5]))
 #'
@@ -98,9 +98,9 @@
 #' Artificial Intelligence} (\emph{Lecture Notes in Artificial Intelligence}
 #' 9880), Springer, 2016.
 #'
+#' @importFrom stats approx
 #' @export
-hclust2 <- function(d=NULL, objects=NULL,
-   thresholdGini=0.3, useVpTree=FALSE, ...)
+hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ...)
 {
    opts <- list(thresholdGini=thresholdGini, useVpTree=useVpTree, ...)
    result <- .hclust2_gini(d, objects, opts)

@@ -1,6 +1,13 @@
                    genie package NEWS and CHANGELOG
 ===============================================================================
 
+## 1.0.3 (2017-04-27)
+
+* *Found no calls to: ‘R_registerRoutines’, ‘R_useDynamicSymbols’.
+It is good practice to register native routines and to disable symbol
+search* - fixed
+
+
 ## 1.0.1 (2016-05-25)
 
 * Updated documentation and package metadata.

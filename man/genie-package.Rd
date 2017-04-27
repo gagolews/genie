@@ -2,16 +2,15 @@
 % Please edit documentation in R/genie-package.R
 \docType{package}
 \name{genie-package}
-\alias{genie}
 \alias{genie-package}
+\alias{genie}
 \title{The Genie Package}
 \description{
 See \code{\link{hclust2}()} for details.
 }
-\author{
-Marek Gagolewski, Maciej Bartoszuk, Anna Cena
-}
 \references{
 \emph{\pkg{genie} Package homepage}, \url{http://www.gagolewski.com/software/genie/}
 }
-
+\author{
+Marek Gagolewski, Maciej Bartoszuk, Anna Cena
+}
