@@ -1,8 +1,8 @@
 Package: genie
 Type: Package
 Title: A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
-Version: 1.0.4
-Date: 2017-04-27
+Version: 1.0.5
+Date: 2018-04-11
 Authors@R: c(
     person("Marek", "Gagolewski", role = c("aut", "cre"),
     email = "gagolews@rexamine.com"),
@@ -25,14 +25,14 @@ License: GPL (>= 3)
 BugReports: http://github.com/gagolews/genie/issues
 URL: http://www.gagolewski.com/software/genie/
 Depends:
-    R (>= 3.3.0),
+    R (>= 3.4.0),
     stats
 Imports:
-    Rcpp (>= 0.12.10)
+    Rcpp (>= 0.12.16)
 Suggests:
     datasets,
     testthat,
     stringi
-LinkingTo: Rcpp (>= 0.12.10)
+LinkingTo: Rcpp (>= 0.12.16)
 SystemRequirements: OpenMP, C++11
 RoxygenNote: 6.0.1

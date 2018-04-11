@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // hclust2_gini
 RObject hclust2_gini(RObject distance, RObject objects, RObject control);
-RcppExport SEXP genie_hclust2_gini(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
+RcppExport SEXP _genie_hclust2_gini(SEXP distanceSEXP, SEXP objectsSEXP, SEXP controlSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -17,4 +17,14 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(hclust2_gini(distance, objects, control));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_genie_hclust2_gini", (DL_FUNC) &_genie_hclust2_gini, 3},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_genie(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

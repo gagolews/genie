@@ -3,4 +3,4 @@
 export(hclust2)
 importFrom(Rcpp,evalCpp)
 importFrom(stats,approx)
-useDynLib(genie, .registration=TRUE)
+useDynLib(genie)

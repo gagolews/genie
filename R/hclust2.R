@@ -78,7 +78,7 @@
 #' library("datasets")
 #' data("iris")
 #' h <- hclust2(objects=as.matrix(iris[,2:3]), thresholdGini=0.2)
-#' plot(iris[,2], iris[,3], col=cutree(h, 3), pch=as.integer(iris[,5]))
+#' plot(iris[,2], iris[,3], col=cutree(h, 3), pch=as.integer(iris[,5]), asp=1, las=1)
 #'
 #' @references
 #' Cena A., Gagolewski M., Mesiar R., Problems and challenges of information
@@ -103,7 +103,7 @@
 hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ...)
 {
    opts <- list(thresholdGini=thresholdGini, useVpTree=useVpTree, ...)
-   result <- .Call(genie_hclust2_gini, PACKAGE = 'genie', d, objects, opts)
+   result <- .hclust2_gini(d, objects, opts)
    result[["call"]] <- match.call()
    result[["method"]] <- "gini"
 

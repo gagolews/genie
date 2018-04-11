@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 .hclust2_gini <- function(distance, objects, control = NULL) {
-    .Call('genie_hclust2_gini', PACKAGE = 'genie', distance, objects, control)
+    .Call('_genie_hclust2_gini', PACKAGE = 'genie', distance, objects, control)
 }
 

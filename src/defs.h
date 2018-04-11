@@ -1,21 +1,20 @@
 /* ************************************************************************* *
- *   This file is part of the `grup` package.                                *
+ *   This file is part of the `genie` package for R.                         *
  *                                                                           *
- *   Copyright 2015 Maciej Bartoszuk, Anna Cena, Marek Gagolewski,           *
+ *   Copyright 2015-2018 Marek Gagolewski, Maciej Bartoszuk, Anna Cena       *
  *                                                                           *
- *   'grup' is free software: you can redistribute it and/or                 *
- *   modify it under the terms of the GNU Lesser General Public License      *
+ *   'genie' is free software: you can redistribute it and/or                *
+ *   modify it under the terms of the GNU General Public License             *
  *   as published by the Free Software Foundation, either version 3          *
  *   of the License, or (at your option) any later version.                  *
  *                                                                           *
- *   'grup' is distributed in the hope that it will be useful,               *
+ *   'genie' is distributed in the hope that it will be useful,              *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
- *   GNU Lesser General Public License for more details.                     *
+ *   GNU General Public License for more details.                            *
  *                                                                           *
- *   You should have received a copy of the GNU Lesser General Public        *
- *   License along with 'grup'.                                              *
- *   If not, see <http://www.gnu.org/licenses/>.                             *
+ *   You should have received a copy of the GNU General Public License       *
+ *   along with 'genie'. If not, see <http://www.gnu.org/licenses/>.         *
  * ************************************************************************* */
 
 #ifndef __DEFS_H
