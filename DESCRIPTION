@@ -25,7 +25,7 @@ License: GPL (>= 3)
 BugReports: http://github.com/gagolews/genie/issues
 URL: http://www.gagolewski.com/software/genie/
 Depends:
-    R (>= 3.4.0),
+    R (>= 3.3.0),
     stats
 Imports:
     Rcpp (>= 0.12.16)
