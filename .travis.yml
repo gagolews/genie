@@ -9,8 +9,6 @@ r_packages:
   - testthat
 matrix:
   include:
-  - os: osx
-    osx_image: xcode9.2
   - os: linux
     r: release
   - os: linux
