@@ -20,18 +20,18 @@ threshold for the Gini index, 1 gives the standard single linkage algorithm}
 \item{useVpTree}{single logical value, whether to use a vantage-point tree
 to speed up nearest neighbor searching in low-dimensional spaces}
 
-\item{...}{internal tuning parameters}
+\item{...}{internal parameters used to tune up the algorithm}
 }
 \value{
 A named list of class \code{hclust}, see \code{\link[stats]{hclust}},
 with additional components:
 \itemize{
      \item \code{stats} -   performance statistics
-     \item \code{control} - internal tuning parameters used
+     \item \code{control} - internal parameters used
 }
 }
 \description{
-An implementation of the fast, outlier resistant Genie algorithm
+An implementation of the fast, robust and outlier resistant Genie algorithm
 described in (Gagolewski, Bartoszuk, Cena, 2016).
 }
 \details{

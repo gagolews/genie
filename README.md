@@ -6,18 +6,19 @@
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
 dissimilarity measure. Such a constraint, for larger data sets,
-puts  at a disadvantage the use of all the classical linkage
-criteria but the single linkage one. However, it is known that the single
+puts the use of all the classical linkage criteria at a disadvantage,
+with the exception of the single linkage one. However, it is known that the single
 linkage clustering algorithm is very sensitive to outliers, produces highly
-skewed dendrograms, and therefore usually does not reflect the true
-underlying data structure - unless the clusters are well-separated.
-To overcome its limitations, we proposed a new hierarchical clustering linkage
+skewed dendrograms and therefore usually does not reflect the true
+underlying structure of analysed data - unless the clusters are well-separated.
+To overcome its limitations, we proposed a hierarchical clustering linkage
 criterion called *Genie*. Namely, our algorithm links two clusters in such 
-a way that a chosen economic inequity measure (e.g., the Gini or Bonferroni 
-index) of the cluster sizes does not increase drastically above a given 
-threshold. Benchmarks indicate a high practical usefulness of the introduced 
-method: it most often outperforms the Ward or average linkage in terms of
-the clustering quality while retaining the single linkage speed.
+a way that the Gini measure of inequity of the cluster sizes
+does not exceed a given threshold.
+This method most often outperforms the Ward or average linkage in terms of
+the clustering quality on benchmark data. At the same time,
+Genie retains the high speed of the single linkage approach,
+therefore it is also suitable for analysing larger data sets.
 The algorithm is easily parallelizable and thus may be run
 on multiple threads to speed up its execution further on.
 Its memory overhead is small: there is no need to precompute the complete
