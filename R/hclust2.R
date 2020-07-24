@@ -108,10 +108,15 @@ hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ..
    result[["method"]] <- "gini"
 
    if (any(result[["height"]]<0)) {
+      # corrections for departures from ultrametricity
+      # negative heights denote force Genie merges
+      # we could just use have used cummax, but then we'd get multiple
+      # merges at the same level; instead we'll linearly interpolate
+      # between the points
       nonNegative <- which(result[["height"]]>=0)
       lastNonNegative <- nonNegative[length(nonNegative)]
       result[["height"]][1:lastNonNegative] <-
-         approx(nonNegative,
+         approx(nonNegative, # linear interpolation
             result[["height"]][nonNegative],
             1:lastNonNegative)$y
       result[["height"]][result[["height"]] < 0] <- cummax(-result[["height"]][result[["height"]] < 0])
