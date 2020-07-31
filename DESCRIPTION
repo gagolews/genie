@@ -1,11 +1,11 @@
 Package: genie
 Type: Package
-Title: Fast, Robust and Outlier Resistant Hierarchical Clustering
+Title: Fast, Robust, and Outlier Resistant Hierarchical Clustering
 Version: 1.0.5
-Date: 2020-07-24
+Date: 2020-07-31
 Authors@R: c(
     person("Marek", "Gagolewski",
-    role = c("aut", "cre"),
+    role = c("aut", "cre", "cph"),
     email = "marek@gagolewski.com",
     comment = c(ORCID = "0000-0003-0637-6028")),
     person("Maciej", "Bartoszuk", role = "aut",
@@ -15,28 +15,30 @@ Authors@R: c(
     email = "cena@rexamine.com",
     comment = c(ORCID = "0000-0001-8697-5383"))
     )
-Description: The Genie algorithm links two clusters in such a way that a chosen
-    economic inequity measure (e.g., the Gini index) of the cluster
-    sizes does not increase drastically above a given threshold.
-    This method most often outperforms the Ward or average linkage in terms of
-    the clustering quality on benchmark data. At the same time,
-    Genie retains the high speed of the single linkage approach,
-    therefore it is also suitable for analysing larger data sets.
-    For details see (Gagolewski et al. 2016a <DOI:10.1016/j.ins.2016.05.003>,
-    2016b <DOI:10.1007/978-3-319-45656-0_16>)
-    for more details.
+Description: Includes the reference implementation of Genie - a hierarchical
+    clustering algorithm that links two point groups in such a way that
+    an inequity measure (namely, the Gini index) of the cluster sizes
+    does not significantly increase above a given threshold.
+    This method most often outperforms many other data segmentation approaches
+    in terms of clustering quality as tested on a wide range of benchmark
+    datasets. At the same time, Genie retains the high speed of the single
+    linkage approach, therefore it is also suitable for analysing larger data sets.
+    For more details see (Gagolewski et al. 2016 <DOI:10.1016/j.ins.2016.05.003>).
+    For an even faster and more feature-rich implementation,
+    see the 'genieclust' package.
 License: GPL (>= 3)
 BugReports: http://github.com/gagolews/genie/issues
-URL: http://www.gagolewski.com/software/genie/
+URL: http://genieclust.gagolewski.com/
 Depends:
     R (>= 3.3.0),
-    stats
+    stats,
+    genieclust
 Imports:
-    Rcpp (>= 0.12.16)
+    Rcpp (>= 1.0.0)
 Suggests:
     datasets,
     testthat,
     stringi
-LinkingTo: Rcpp (>= 0.12.16)
+LinkingTo: Rcpp (>= 1.0.0)
 SystemRequirements: OpenMP, C++11
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

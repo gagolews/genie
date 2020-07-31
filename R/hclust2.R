@@ -3,8 +3,11 @@
 #' a Dissimilarity Measure
 #'
 #' @description
-#' An implementation of the fast, robust and outlier resistant Genie algorithm
-#' described in (Gagolewski, Bartoszuk, Cena, 2016).
+#' A reference implementation of the fast, robust and outlier resistant
+#' Genie algorithm described in (Gagolewski, Bartoszuk, Cena, 2016).
+#' Note that the \code{genie} package has been superseded by \code{genieclust},
+#' see \code{\link[genieclust]{gclust}} and \code{\link[genieclust]{genie}}
+#' for more details.
 #'
 #' @param d an object of class \code{\link[stats]{dist}},
 #' \code{NULL}, or a single string, see below
@@ -12,7 +15,7 @@
 #' @param thresholdGini single numeric value in [0,1],
 #' threshold for the Gini index, 1 gives the standard single linkage algorithm
 #' @param useVpTree single logical value, whether to use a vantage-point tree
-#' to speed up nearest neighbor searching in low-dimensional spaces
+#' to speed up nearest neighbour searching in low-dimensional spaces
 #' @param ... internal parameters used to tune up the algorithm
 #'
 #' @details
@@ -99,6 +102,8 @@
 #' 9880), Springer, 2016.
 #'
 #' @importFrom stats approx
+#' @importFrom genieclust gclust
+#' @importFrom genieclust genie
 #' @export
 hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ...)
 {

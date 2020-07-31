@@ -5,8 +5,7 @@
 \title{Fast Hierarchical Clustering in Arbitrary Spaces Equipped With
 a Dissimilarity Measure}
 \usage{
-hclust2(d = NULL, objects = NULL, thresholdGini = 0.3,
-  useVpTree = FALSE, ...)
+hclust2(d = NULL, objects = NULL, thresholdGini = 0.3, useVpTree = FALSE, ...)
 }
 \arguments{
 \item{d}{an object of class \code{\link[stats]{dist}},
@@ -18,7 +17,7 @@ hclust2(d = NULL, objects = NULL, thresholdGini = 0.3,
 threshold for the Gini index, 1 gives the standard single linkage algorithm}
 
 \item{useVpTree}{single logical value, whether to use a vantage-point tree
-to speed up nearest neighbor searching in low-dimensional spaces}
+to speed up nearest neighbour searching in low-dimensional spaces}
 
 \item{...}{internal parameters used to tune up the algorithm}
 }
@@ -31,8 +30,11 @@ with additional components:
 }
 }
 \description{
-An implementation of the fast, robust and outlier resistant Genie algorithm
-described in (Gagolewski, Bartoszuk, Cena, 2016).
+A reference implementation of the fast, robust and outlier resistant
+Genie algorithm described in (Gagolewski, Bartoszuk, Cena, 2016).
+Note that the \code{genie} package has been superseded by \code{genieclust},
+see \code{\link[genieclust]{gclust}} and \code{\link[genieclust]{genie}}
+for more details.
 }
 \details{
 The time needed to apply a hierarchical clustering algorithm

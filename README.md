@@ -1,12 +1,13 @@
 # Genie (R Package)
-## A New, Fast, and Outlier Resistant Hierarchical Clustering Algorithm
-
-[![Build Status](https://travis-ci.org/gagolews/genie.png?branch=master)](https://travis-ci.org/gagolews/genie)
-
 
 > This project has been superseded by [genieclust](https://genieclust.gagolewski.com),
 which features a faster and more feature-rich implementation of Genie (now also
 available for both R and Python).
+
+
+## A Fast and Robust Hierarchical Clustering Algorithm
+
+[![Build Status](https://travis-ci.org/gagolews/genie.png?branch=master)](https://travis-ci.org/gagolews/genie)
 
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
@@ -41,3 +42,5 @@ hierarchical clustering algorithm, Information Sciences, 2016,
 [Anna Cena](http://cena.rexamine.com)
 
 **CRAN entry**: http://cran.r-project.org/web/packages/genie/
+
+**See also**: http://genieclust.gagolewski.com/

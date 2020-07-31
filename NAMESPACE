@@ -2,5 +2,7 @@
 
 export(hclust2)
 importFrom(Rcpp,evalCpp)
+importFrom(genieclust,gclust)
+importFrom(genieclust,genie)
 importFrom(stats,approx)
 useDynLib(genie, .registration=TRUE)

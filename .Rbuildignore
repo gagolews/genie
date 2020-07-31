@@ -5,3 +5,4 @@
 ^\.travis\.yml$
 ^devel
 ^README.md$
+^Makefile$

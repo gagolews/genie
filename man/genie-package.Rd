@@ -8,9 +8,6 @@
 \description{
 See \code{\link{hclust2}()} for details.
 }
-\references{
-\emph{\pkg{genie} Package homepage}, \url{http://www.gagolewski.com/software/genie/}
-}
 \author{
 Marek Gagolewski, Maciej Bartoszuk, Anna Cena
 }
