@@ -1,9 +1,9 @@
 #' @title
-#' Fast Hierarchical Clustering in Arbitrary Spaces Equipped With
+#' Fast Hierarchical Clustering in Spaces Equipped With
 #' a Dissimilarity Measure
 #'
 #' @description
-#' A reference implementation of the fast, robust and outlier resistant
+#' The reference implementation of the fast, robust and outlier resistant
 #' Genie algorithm described in (Gagolewski, Bartoszuk, Cena, 2016).
 #' Note that the \code{genie} package has been superseded by \code{genieclust},
 #' see \code{\link[genieclust]{gclust}} and \code{\link[genieclust]{genie}}
