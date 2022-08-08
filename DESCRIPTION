@@ -1,8 +1,8 @@
 Package: genie
 Type: Package
 Title: Fast, Robust, and Outlier Resistant Hierarchical Clustering
-Version: 1.0.6
-Date: 2020-08-02
+Version: 1.0.6.9001
+Date: 2022-08-08
 Authors@R: c(
     person("Marek", "Gagolewski",
     role = c("aut", "cre", "cph"),
@@ -25,10 +25,13 @@ Description: Includes the reference implementation of Genie - a hierarchical
     linkage approach, therefore it is also suitable for analysing larger data sets.
     For more details see (Gagolewski et al. 2016 <DOI:10.1016/j.ins.2016.05.003>).
     For an even faster and more feature-rich implementation, including,
-    amongst others, noise point detection, see the 'genieclust' package.
+    amongst others, noise point detection, see the 'genieclust' package
+    (Gagolewski, 2021 <DOI:10.1016/j.softx.2021.100722>).
 License: GPL (>= 3)
 BugReports: http://github.com/gagolews/genie/issues
-URL: http://genieclust.gagolewski.com/
+URL:
+    http://genieclust.gagolewski.com/
+    https://github.com/gagolews/genie
 Depends:
     R (>= 3.3.0),
     stats,

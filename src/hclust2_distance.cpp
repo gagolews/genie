@@ -546,7 +546,7 @@ StringDistanceDouble::StringDistanceDouble(const Rcpp::List& vectors) :
       items[i] = REAL(cur);
 
       for (size_t j=0; j<lengths[i]; ++j)
-         if (items[i][j] == NA_REAL)
+         if (ISNA(items[i][j]))
             Rcpp::stop("missing values in input objects are not allowed");
    }
 }

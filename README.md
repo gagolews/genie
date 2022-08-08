@@ -1,13 +1,12 @@
 # Genie (R Package)
 
-> This project has been superseded by [genieclust](https://genieclust.gagolewski.com),
-which features a faster and more feature-rich implementation of Genie (now also
-available for both R and Python).
+> This project has been superseded by
+[genieclust](https://genieclust.gagolewski.com),
+which features a faster and more feature-rich implementation
+of Genie (available for both R and Python).
 
 
 ## A Fast and Robust Hierarchical Clustering Algorithm
-
-[![Build Status](https://travis-ci.org/gagolews/genie.png?branch=master)](https://travis-ci.org/gagolews/genie)
 
 The time needed to apply a hierarchical clustering algorithm
 is most often dominated by the number of computations of a pairwise
@@ -25,7 +24,7 @@ This method most often outperforms the Ward or average linkage in terms of
 the clustering quality on benchmark data. At the same time,
 Genie retains the high speed of the single linkage approach,
 therefore it is also suitable for analysing larger data sets.
-The algorithm is easily parallelizable and thus may be run
+The algorithm is easily parallelisable and thus may be run
 on multiple threads to speed up its execution further on.
 Its memory overhead is small: there is no need to precompute the complete
 distance matrix to perform the computations in order to obtain a desired
@@ -34,8 +33,15 @@ clustering.
 A detailed description of the algorithm can be found in:
 
 Gagolewski M., Bartoszuk M., Cena A., Genie: A new, fast, and outlier-resistant
-hierarchical clustering algorithm, Information Sciences, 2016,
-[doi:10.1016/j.ins.2016.05.003](http://dx.doi.org/10.1016/j.ins.2016.05.003).
+hierarchical clustering algorithm, *Information Sciences* **363**, 2016, 8–23.
+[doi:10.1016/j.ins.2016.05.003](https://dx.doi.org/10.1016/j.ins.2016.05.003).
+
+See also:
+
+Gagolewski M., genieclust: Fast and robust hierarchical clustering,
+*SoftwareX* **15**, 2021, 100722.
+[doi:10.1016/j.softx.2021.100722](https://dx.doi.org/10.1016/j.softx.2021.100722).
+
 
 **Authors**: [Marek Gagolewski](http://www.gagolewski.com/),
 [Maciej Bartoszuk](http://bartoszuk.rexamine.com), and
@@ -43,4 +49,4 @@ hierarchical clustering algorithm, Information Sciences, 2016,
 
 **CRAN entry**: http://cran.r-project.org/web/packages/genie/
 
-**See also**: http://genieclust.gagolewski.com/
+**genieclust**: http://genieclust.gagolewski.com/
