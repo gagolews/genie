@@ -1,7 +1,8 @@
 # Genie (R Package)
 
 > This project has been superseded by
-[genieclust](https://genieclust.gagolewski.com),
+[genieclust](https://genieclust.gagolewski.com)
+(see also: [GitHub](https://github.com/gagolews/genieclust/)),
 which features a faster and more feature-rich implementation
 of Genie (available for both R and Python).
 
@@ -43,10 +44,12 @@ Gagolewski M., genieclust: Fast and robust hierarchical clustering,
 [doi:10.1016/j.softx.2021.100722](https://dx.doi.org/10.1016/j.softx.2021.100722).
 
 
-**Authors**: [Marek Gagolewski](http://www.gagolewski.com/),
+**Authors**: [Marek Gagolewski](https://www.gagolewski.com/),
 [Maciej Bartoszuk](http://bartoszuk.rexamine.com), and
 [Anna Cena](http://cena.rexamine.com)
 
-**CRAN entry**: http://cran.r-project.org/web/packages/genie/
+**CRAN entry**: <https://cran.r-project.org/web/packages/genie/>
 
-**genieclust**: http://genieclust.gagolewski.com/
+**genieclust**: <https://genieclust.gagolewski.com/>,
+<https://github.com/gagolews/genieclust/>,
+<https://cran.r-project.org/web/packages/genieclust/>
