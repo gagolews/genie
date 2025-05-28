@@ -1,8 +1,8 @@
 Package: genie
 Type: Package
 Title: Fast, Robust, and Outlier Resistant Hierarchical Clustering
-Version: 1.0.6.9001
-Date: 2022-08-16
+Version: 1.0.6.9002
+Date: 2025-05-28
 Authors@R: c(
     person("Marek", "Gagolewski",
     role = c("aut", "cre", "cph"),

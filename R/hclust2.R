@@ -14,8 +14,6 @@
 #' @param objects \code{NULL}, numeric matrix, a list, or a character vector
 #' @param thresholdGini single numeric value in [0,1],
 #' threshold for the Gini index, 1 gives the standard single linkage algorithm
-#' @param useVpTree single logical value, whether to use a vantage-point tree
-#' to speed up nearest neighbour searching in low-dimensional spaces
 #' @param ... internal parameters used to tune up the algorithm
 #'
 #' @details
@@ -65,10 +63,6 @@
 #' \code{euclidean} (which yields the same results as \code{euclidean_squared})
 #' \code{manhattan}, \code{maximum}, or \code{hamming}.
 #'
-#' If \code{useVpTree} is \code{FALSE}, then the dissimilarity measure
-#' of choice is guaranteed to be computed for each unique pair of \code{objects}
-#' only once.
-#'
 #' @return
 #' A named list of class \code{hclust}, see \code{\link[stats]{hclust}},
 #' with additional components:
@@ -105,9 +99,9 @@
 #' @importFrom genieclust gclust
 #' @importFrom genieclust genie
 #' @export
-hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, useVpTree=FALSE, ...)
+hclust2 <- function(d=NULL, objects=NULL, thresholdGini=0.3, ...)
 {
-   opts <- list(thresholdGini=thresholdGini, useVpTree=useVpTree, ...)
+   opts <- list(thresholdGini=thresholdGini, useVpTree=FALSE, ...)
    result <- .hclust2_gini(d, objects, opts)
    result[["call"]] <- match.call()
    result[["method"]] <- "gini"
